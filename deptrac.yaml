@@ -1,0 +1,55 @@
+deptrac:
+  paths:
+    - ./app
+
+  layers:
+    - name: Controllers
+      collectors:
+        - type: className
+          value: '^App\\Http\\Controllers\\'
+
+    - name: Requests
+      collectors:
+        - type: className
+          value: '^App\\Http\\Requests\\'
+
+    - name: Resources
+      collectors:
+        - type: className
+          value: '^App\\Http\\Resources\\'
+
+    - name: Services
+      collectors:
+        - type: className
+          value: '^App\\Services\\'
+
+    - name: Repositories
+      collectors:
+        - type: className
+          value: '^App\\Repositories\\'
+
+    - name: Models
+      collectors:
+        - type: className
+          value: '^App\\Models\\'
+
+  ruleset:
+    Controllers:
+      - Requests
+      - Resources
+      - Services
+
+    Requests:
+      - Models
+
+    Resources:
+      - Models
+
+    Services:
+      - Repositories
+      - Models
+
+    Repositories:
+      - Models
+
+    Models: []

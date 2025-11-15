@@ -1,0 +1,66 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Third Party Services
+    |--------------------------------------------------------------------------
+    |
+    | This file is for storing the credentials for third party services such
+    | as Mailgun, Postmark, AWS and more. This file provides the de facto
+    | location for this type of information, allowing packages to have
+    | a conventional file to locate the various service credentials.
+    |
+    */
+
+    'postmark' => [
+        'token' => env('POSTMARK_TOKEN'),
+    ],
+
+    'ses' => [
+        'key' => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    ],
+
+    'resend' => [
+        'key' => env('RESEND_KEY'),
+    ],
+
+    'slack' => [
+        'notifications' => [
+            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
+            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Call Provider Services
+    |--------------------------------------------------------------------------
+    */
+
+    'retell' => [
+        'api_key' => env('RETELL_API_KEY'),
+        'webhook_secret' => env('RETELL_WEBHOOK_SECRET'),
+    ],
+
+    'vapi' => [
+        'api_key' => env('VAPI_API_KEY'),
+        'webhook_secret' => env('VAPI_WEBHOOK_SECRET'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp Service (Evolution API)
+    |--------------------------------------------------------------------------
+    */
+
+    'whatsapp' => [
+        'api_url' => env('WHATSAPP_API_URL'),
+        'api_key' => env('WHATSAPP_API_KEY'),
+        'webhook_token' => env('WHATSAPP_WEBHOOK_TOKEN'),
+    ],
+
+];
