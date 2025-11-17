@@ -23,13 +23,15 @@ class CampaignSourceIntegrationTest extends TestCase
     use RefreshDatabase;
 
     protected CampaignService $campaignService;
+
     protected Client $client;
+
     protected User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->campaignService = app(CampaignService::class);
         $this->client = Client::factory()->create();
         $this->user = User::factory()->create();
@@ -268,4 +270,3 @@ class CampaignSourceIntegrationTest extends TestCase
         $this->assertEquals($metaWhatsappSource->id, $campaign->whatsapp_source_id);
     }
 }
-

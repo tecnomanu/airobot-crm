@@ -22,13 +22,15 @@ class SourceServiceTest extends TestCase
     use RefreshDatabase;
 
     protected SourceService $service;
+
     protected Client $client;
+
     protected User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->service = app(SourceService::class);
         $this->client = Client::factory()->create();
         $this->user = User::factory()->create();
@@ -204,7 +206,7 @@ class SourceServiceTest extends TestCase
             'type' => SourceType::WHATSAPP->value,
             'client_id' => $this->client->id,
         ]);
-        
+
         Source::factory()->count(2)->create([
             'type' => SourceType::WEBHOOK->value,
             'client_id' => $this->client->id,
@@ -237,7 +239,7 @@ class SourceServiceTest extends TestCase
             'type' => SourceType::WHATSAPP->value,
             'status' => SourceStatus::ACTIVE->value,
         ]);
-        
+
         Source::factory()->create([
             'type' => SourceType::WEBHOOK->value,
             'status' => SourceStatus::INACTIVE->value,
@@ -291,4 +293,3 @@ class SourceServiceTest extends TestCase
         $this->service->create($data);
     }
 }
-

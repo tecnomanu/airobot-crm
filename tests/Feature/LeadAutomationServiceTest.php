@@ -28,7 +28,7 @@ class LeadAutomationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->service = app(LeadAutomationService::class);
     }
 
@@ -58,7 +58,7 @@ class LeadAutomationServiceTest extends TestCase
 
         // Verificar que no lanza excepción con source configurada
         $this->expectException(\Exception::class); // Evolution API no está realmente disponible
-        
+
         $this->service->executeActionForOption($lead, 'option_2_action');
     }
 
@@ -127,7 +127,7 @@ class LeadAutomationServiceTest extends TestCase
         // El webhook intentará conectarse pero fallará (no hay servidor real)
         // Lo importante es que use la Source correcta
         $this->expectException(\Exception::class);
-        
+
         $this->service->executeActionForOption($lead, 'option_1_action');
     }
 
@@ -200,4 +200,3 @@ class LeadAutomationServiceTest extends TestCase
         $this->assertTrue(true);
     }
 }
-
