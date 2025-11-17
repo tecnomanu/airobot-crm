@@ -12,7 +12,7 @@ enum LeadStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'Pendiente',
             self::IN_PROGRESS => 'En Progreso',
             self::CONTACTED => 'Contactado',
@@ -23,7 +23,7 @@ enum LeadStatus: string
 
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'blue',
             self::IN_PROGRESS => 'yellow',
             self::CONTACTED => 'purple',
@@ -32,4 +32,3 @@ enum LeadStatus: string
         };
     }
 }
-

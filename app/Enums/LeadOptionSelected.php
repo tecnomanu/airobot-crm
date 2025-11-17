@@ -11,7 +11,7 @@ enum LeadOptionSelected: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::OPTION_1 => 'Opción 1',
             self::OPTION_2 => 'Opción 2',
             self::OPTION_I => 'Opción I (Información)',
@@ -19,4 +19,3 @@ enum LeadOptionSelected: string
         };
     }
 }
-

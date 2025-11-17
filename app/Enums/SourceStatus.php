@@ -40,4 +40,3 @@ enum SourceStatus: string
         };
     }
 }
-

@@ -9,7 +9,7 @@ enum ClientStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::ACTIVE => 'Activo',
             self::INACTIVE => 'Inactivo',
         };
@@ -17,10 +17,9 @@ enum ClientStatus: string
 
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::ACTIVE => 'green',
             self::INACTIVE => 'gray',
         };
     }
 }
-

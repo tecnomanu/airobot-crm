@@ -6,7 +6,7 @@ namespace App\Enums;
 
 /**
  * Tipos de fuentes/conectores externos.
- * 
+ *
  * Los valores se guardan como string en DB para permitir
  * agregar nuevos tipos sin migraciones.
  */
@@ -115,4 +115,3 @@ enum SourceType: string
         ]);
     }
 }
-

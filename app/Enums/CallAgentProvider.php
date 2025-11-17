@@ -10,11 +10,10 @@ enum CallAgentProvider: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::RETELL => 'Retell',
             self::VAPI => 'Vapi',
             self::OTRO => 'Otro',
         };
     }
 }
-

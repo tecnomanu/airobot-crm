@@ -13,7 +13,7 @@ enum CallStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::COMPLETED => 'Completada',
             self::NO_ANSWER => 'Sin Respuesta',
             self::HUNG_UP => 'Colgó',
@@ -25,7 +25,7 @@ enum CallStatus: string
 
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::COMPLETED => 'green',
             self::NO_ANSWER => 'yellow',
             self::HUNG_UP => 'orange',
@@ -35,4 +35,3 @@ enum CallStatus: string
         };
     }
 }
-

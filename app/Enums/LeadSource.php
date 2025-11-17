@@ -11,7 +11,7 @@ enum LeadSource: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::WEBHOOK_INICIAL => 'Webhook Inicial',
             self::WHATSAPP => 'WhatsApp',
             self::AGENTE_IA => 'Agente IA',
@@ -19,4 +19,3 @@ enum LeadSource: string
         };
     }
 }
-

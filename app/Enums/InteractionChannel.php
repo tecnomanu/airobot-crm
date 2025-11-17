@@ -12,7 +12,7 @@ enum InteractionChannel: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::WHATSAPP => 'WhatsApp',
             self::CALL => 'Llamada',
             self::EMAIL => 'Email',
@@ -23,7 +23,7 @@ enum InteractionChannel: string
 
     public function icon(): string
     {
-        return match($this) {
+        return match ($this) {
             self::WHATSAPP => 'message-circle',
             self::CALL => 'phone',
             self::EMAIL => 'mail',
@@ -32,4 +32,3 @@ enum InteractionChannel: string
         };
     }
 }
-

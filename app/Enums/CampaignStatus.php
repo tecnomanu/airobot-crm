@@ -9,7 +9,7 @@ enum CampaignStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::ACTIVE => 'Activa',
             self::PAUSED => 'Pausada',
         };
@@ -17,10 +17,9 @@ enum CampaignStatus: string
 
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::ACTIVE => 'green',
             self::PAUSED => 'yellow',
         };
     }
 }
-

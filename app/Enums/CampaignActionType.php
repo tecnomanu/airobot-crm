@@ -12,7 +12,7 @@ enum CampaignActionType: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::WHATSAPP => 'Enviar WhatsApp',
             self::CALL_AI => 'Llamada con IA',
             self::WEBHOOK_CRM => 'Enviar a CRM',
@@ -21,4 +21,3 @@ enum CampaignActionType: string
         };
     }
 }
-

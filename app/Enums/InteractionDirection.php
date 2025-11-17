@@ -9,7 +9,7 @@ enum InteractionDirection: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::INBOUND => 'Entrante',
             self::OUTBOUND => 'Saliente',
         };
@@ -17,10 +17,9 @@ enum InteractionDirection: string
 
     public function color(): string
     {
-        return match($this) {
+        return match ($this) {
             self::INBOUND => 'blue',
             self::OUTBOUND => 'green',
         };
     }
 }
-

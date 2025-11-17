@@ -12,4 +12,3 @@ enum WebhookMethod: string
         return $this->value;
     }
 }
-
