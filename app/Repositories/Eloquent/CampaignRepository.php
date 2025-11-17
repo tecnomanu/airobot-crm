@@ -15,17 +15,17 @@ class CampaignRepository implements CampaignRepositoryInterface
         $query = Campaign::with(['client', 'creator']);
 
         // Filtro por cliente
-        if (!empty($filters['client_id'])) {
+        if (! empty($filters['client_id'])) {
             $query->where('client_id', $filters['client_id']);
         }
 
         // Filtro por estado
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         // Búsqueda por nombre
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->where('name', 'like', "%{$filters['search']}%");
         }
 
@@ -36,7 +36,7 @@ class CampaignRepository implements CampaignRepositoryInterface
     {
         $query = Campaign::query();
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
@@ -51,6 +51,7 @@ class CampaignRepository implements CampaignRepositoryInterface
     public function update(Campaign $campaign, array $data): Campaign
     {
         $campaign->update($data);
+
         return $campaign->fresh();
     }
 
@@ -85,4 +86,3 @@ class CampaignRepository implements CampaignRepositoryInterface
         return Campaign::find($campaignId)?->leads()->count() ?? 0;
     }
 }
-

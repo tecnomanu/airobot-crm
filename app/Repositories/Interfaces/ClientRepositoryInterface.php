@@ -48,4 +48,3 @@ interface ClientRepositoryInterface
      */
     public function getMetrics(int $clientId): array;
 }
-

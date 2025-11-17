@@ -32,4 +32,3 @@ interface LeadInteractionRepositoryInterface
      */
     public function getByCampaign(int $campaignId): Collection;
 }
-

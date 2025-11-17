@@ -53,4 +53,3 @@ interface CampaignRepositoryInterface
      */
     public function getLeadsCount(string $campaignId): int;
 }
-

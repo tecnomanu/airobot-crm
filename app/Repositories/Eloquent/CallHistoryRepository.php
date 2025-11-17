@@ -15,30 +15,30 @@ class CallHistoryRepository implements CallHistoryRepositoryInterface
         $query = CallHistory::with(['campaign', 'client', 'lead']);
 
         // Filtro por cliente
-        if (!empty($filters['client_id'])) {
+        if (! empty($filters['client_id'])) {
             $query->where('client_id', $filters['client_id']);
         }
 
         // Filtro por campaña
-        if (!empty($filters['campaign_id'])) {
+        if (! empty($filters['campaign_id'])) {
             $query->where('campaign_id', $filters['campaign_id']);
         }
 
         // Filtro por estado
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         // Filtro por rango de fechas
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->whereDate('call_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->whereDate('call_date', '<=', $filters['end_date']);
         }
 
         // Búsqueda por teléfono
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->where('phone', 'like', "%{$filters['search']}%");
         }
 
@@ -49,7 +49,7 @@ class CallHistoryRepository implements CallHistoryRepositoryInterface
     {
         $query = CallHistory::query();
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
@@ -64,6 +64,7 @@ class CallHistoryRepository implements CallHistoryRepositoryInterface
     public function update(CallHistory $callHistory, array $data): CallHistory
     {
         $callHistory->update($data);
+
         return $callHistory->fresh();
     }
 
@@ -125,7 +126,7 @@ class CallHistoryRepository implements CallHistoryRepositoryInterface
 
         // Asegurar que todos los estados tengan un valor
         foreach (CallStatus::cases() as $status) {
-            if (!isset($counts[$status->value])) {
+            if (! isset($counts[$status->value])) {
                 $counts[$status->value] = 0;
             }
         }
@@ -133,4 +134,3 @@ class CallHistoryRepository implements CallHistoryRepositoryInterface
         return $counts;
     }
 }
-

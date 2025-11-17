@@ -82,7 +82,7 @@ class SourceRepository implements SourceRepositoryInterface
     {
         $source = $this->findOrFail($id);
         $source->update($data);
-        
+
         return $source->fresh(['client', 'creator']);
     }
 
@@ -92,6 +92,7 @@ class SourceRepository implements SourceRepositoryInterface
     public function delete(int $id): bool
     {
         $source = $this->findOrFail($id);
+
         return $source->delete();
     }
 
@@ -151,7 +152,7 @@ class SourceRepository implements SourceRepositoryInterface
     public function findByStatus(SourceStatus|string $status): Collection
     {
         $statusValue = $status instanceof SourceStatus ? $status->value : $status;
-        
+
         return $this->model
             ->with(['client', 'creator'])
             ->where('status', $statusValue)
@@ -195,10 +196,8 @@ class SourceRepository implements SourceRepositoryInterface
 
     /**
      * Aplica filtros a un query builder
-     * 
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param array $filters
-     * @return void
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      */
     protected function applyFilters($query, array $filters): void
     {
@@ -207,8 +206,8 @@ class SourceRepository implements SourceRepositoryInterface
         }
 
         if (isset($filters['status'])) {
-            $statusValue = $filters['status'] instanceof SourceStatus 
-                ? $filters['status']->value 
+            $statusValue = $filters['status'] instanceof SourceStatus
+                ? $filters['status']->value
                 : $filters['status'];
             $query->where('status', $statusValue);
         }
@@ -221,7 +220,7 @@ class SourceRepository implements SourceRepositoryInterface
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('type', 'like', "%{$search}%");
+                    ->orWhere('type', 'like', "%{$search}%");
             });
         }
 
@@ -230,4 +229,3 @@ class SourceRepository implements SourceRepositoryInterface
         }
     }
 }
-

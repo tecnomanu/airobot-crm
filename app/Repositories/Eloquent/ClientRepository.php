@@ -15,16 +15,16 @@ class ClientRepository implements ClientRepositoryInterface
         $query = Client::with('creator');
 
         // Filtro por estado
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         // Búsqueda por nombre o empresa
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', "%{$filters['search']}%")
-                  ->orWhere('company', 'like', "%{$filters['search']}%")
-                  ->orWhere('email', 'like', "%{$filters['search']}%");
+                    ->orWhere('company', 'like', "%{$filters['search']}%")
+                    ->orWhere('email', 'like', "%{$filters['search']}%");
             });
         }
 
@@ -35,7 +35,7 @@ class ClientRepository implements ClientRepositoryInterface
     {
         $query = Client::query();
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
@@ -50,6 +50,7 @@ class ClientRepository implements ClientRepositoryInterface
     public function update(Client $client, array $data): Client
     {
         $client->update($data);
+
         return $client->fresh();
     }
 
@@ -74,7 +75,7 @@ class ClientRepository implements ClientRepositoryInterface
     {
         $client = Client::with(['campaigns', 'callHistories'])->find($clientId);
 
-        if (!$client) {
+        if (! $client) {
             return [];
         }
 
@@ -92,4 +93,3 @@ class ClientRepository implements ClientRepositoryInterface
         ];
     }
 }
-

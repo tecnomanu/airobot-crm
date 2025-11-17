@@ -15,25 +15,25 @@ class LeadRepository implements LeadRepositoryInterface
         $query = Lead::with(['campaign.client', 'creator']);
 
         // Filtro por campaña
-        if (!empty($filters['campaign_id'])) {
+        if (! empty($filters['campaign_id'])) {
             $query->where('campaign_id', $filters['campaign_id']);
         }
 
         // Filtro por estado
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         // Filtro por source
-        if (!empty($filters['source'])) {
+        if (! empty($filters['source'])) {
             $query->where('source', $filters['source']);
         }
 
         // Búsqueda por texto (nombre o teléfono)
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', "%{$filters['search']}%")
-                  ->orWhere('phone', 'like', "%{$filters['search']}%");
+                    ->orWhere('phone', 'like', "%{$filters['search']}%");
             });
         }
 
@@ -44,7 +44,7 @@ class LeadRepository implements LeadRepositoryInterface
     {
         $query = Lead::query();
 
-        if (!empty($with)) {
+        if (! empty($with)) {
             $query->with($with);
         }
 
@@ -64,6 +64,7 @@ class LeadRepository implements LeadRepositoryInterface
     public function update(Lead $lead, array $data): Lead
     {
         $lead->update($data);
+
         return $lead->fresh();
     }
 
@@ -101,7 +102,7 @@ class LeadRepository implements LeadRepositoryInterface
 
         // Asegurar que todos los estados tengan un valor
         foreach (LeadStatus::cases() as $status) {
-            if (!isset($counts[$status->value])) {
+            if (! isset($counts[$status->value])) {
                 $counts[$status->value] = 0;
             }
         }
@@ -120,12 +121,11 @@ class LeadRepository implements LeadRepositoryInterface
     public function findByPhoneAndCampaign(string $phone, ?string $campaignId = null): ?Lead
     {
         $query = Lead::where('phone', $phone);
-        
+
         if ($campaignId) {
             $query->where('campaign_id', $campaignId);
         }
-        
+
         return $query->first();
     }
 }
-

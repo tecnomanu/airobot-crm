@@ -44,4 +44,3 @@ class LeadInteractionRepository implements LeadInteractionRepositoryInterface
             ->get();
     }
 }
-

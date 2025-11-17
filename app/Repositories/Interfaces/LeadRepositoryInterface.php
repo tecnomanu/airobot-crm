@@ -63,4 +63,3 @@ interface LeadRepositoryInterface
      */
     public function findByPhoneAndCampaign(string $phone, ?string $campaignId = null): ?Lead;
 }
-
