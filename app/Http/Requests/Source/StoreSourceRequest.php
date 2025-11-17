@@ -25,12 +25,12 @@ class StoreSourceRequest extends FormRequest
             'client_id' => ['nullable', 'string', 'exists:clients,id'],
             'config' => ['required', 'array'],
             'redirect_to' => ['nullable', 'string'],
-            
+
             // Validaciones específicas de WhatsApp
             'config.instance_name' => ['required_if:type,whatsapp,meta_whatsapp', 'string'],
             'config.api_url' => ['required_if:type,whatsapp,meta_whatsapp', 'url'],
             'config.api_key' => ['required_if:type,whatsapp,meta_whatsapp', 'string'],
-            
+
             // Validaciones específicas de Webhook
             'config.url' => ['required_if:type,webhook', 'url'],
             'config.method' => ['required_if:type,webhook', 'string', Rule::in(['GET', 'POST', 'PUT', 'PATCH'])],
@@ -53,4 +53,3 @@ class StoreSourceRequest extends FormRequest
         ];
     }
 }
-

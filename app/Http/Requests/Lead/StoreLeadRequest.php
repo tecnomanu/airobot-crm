@@ -5,6 +5,8 @@ namespace App\Http\Requests\Lead;
 use App\Enums\LeadOptionSelected;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Helpers\PhoneHelper;
+use App\Models\Campaign;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,12 +17,33 @@ class StoreLeadRequest extends FormRequest
         return true; // Autorización manejada por middleware
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone')) {
+            // Obtener campaña para normalización de teléfono
+            $campaign = null;
+            if ($this->has('campaign_id')) {
+                $campaign = Campaign::find($this->campaign_id);
+            }
+
+            $normalizedPhone = PhoneHelper::normalizeForLead(
+                $this->phone,
+                $campaign
+            );
+
+            $this->merge([
+                'phone' => $normalizedPhone,
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'phone' => ['required', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'size:2'],
             'option_selected' => ['nullable', Rule::enum(LeadOptionSelected::class)],
             'campaign_id' => ['required', 'integer', 'exists:campaigns,id'],
             'status' => ['nullable', Rule::enum(LeadStatus::class)],

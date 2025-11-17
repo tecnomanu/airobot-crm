@@ -14,7 +14,7 @@ class WhatsappIncomingRequest extends FormRequest
         // Validar token del webhook
         $token = $this->header('X-Webhook-Token');
         $expectedToken = config('services.whatsapp.webhook_token', env('WHATSAPP_WEBHOOK_TOKEN'));
-        
+
         return $token && $token === $expectedToken;
     }
 

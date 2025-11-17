@@ -25,7 +25,7 @@ class UpdateSourceRequest extends FormRequest
             'client_id' => ['nullable', 'string', 'exists:clients,id'],
             'config' => ['sometimes', 'array'],
             'redirect_to' => ['nullable', 'string'],
-            
+
             // Validaciones específicas (si se actualiza type o config)
             'config.instance_name' => ['sometimes', 'string'],
             'config.api_url' => ['sometimes', 'url'],
@@ -37,4 +37,3 @@ class UpdateSourceRequest extends FormRequest
         ];
     }
 }
-

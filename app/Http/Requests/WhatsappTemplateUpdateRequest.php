@@ -33,4 +33,3 @@ class WhatsappTemplateUpdateRequest extends FormRequest
         ];
     }
 }
-

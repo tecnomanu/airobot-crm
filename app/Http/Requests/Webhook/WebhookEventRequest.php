@@ -6,7 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Request para webhooks basados en eventos con estructura name/args
- * 
+ *
  * Formato esperado:
  * {
  *   "name": "webhook_register_phone",
@@ -42,4 +42,3 @@ class WebhookEventRequest extends FormRequest
         ];
     }
 }
-

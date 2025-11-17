@@ -2,10 +2,7 @@
 
 namespace App\Http\Requests\Webhook;
 
-use App\Enums\LeadOptionSelected;
-use App\Enums\LeadSource;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Request para recibir leads desde webhooks externos
@@ -69,8 +66,26 @@ class LeadWebhookRequest extends FormRequest
         }
 
         // Normalizar 'campaign' como alias de 'campaign_pattern'
-        if ($this->has('campaign') && !$this->has('campaign_pattern')) {
+        if ($this->has('campaign') && ! $this->has('campaign_pattern')) {
             $this->merge(['campaign_pattern' => $this->campaign]);
+        }
+
+        // Normalizar teléfono
+        if ($this->has('phone')) {
+            // Obtener campaña si viene campaign_id
+            $campaign = null;
+            if ($this->has('campaign_id')) {
+                $campaign = \App\Models\Campaign::find($this->campaign_id);
+            }
+
+            $normalizedPhone = \App\Helpers\PhoneHelper::normalizeForLead(
+                $this->phone,
+                $campaign
+            );
+
+            $this->merge([
+                'phone' => $normalizedPhone,
+            ]);
         }
     }
 }
