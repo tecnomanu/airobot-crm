@@ -39,7 +39,7 @@ class ClientController extends Controller
     {
         $client = $this->clientService->getClientById($id);
 
-        if (!$client) {
+        if (! $client) {
             abort(404, 'Cliente no encontrado');
         }
 
@@ -48,8 +48,8 @@ class ClientController extends Controller
 
         // Resumen mensual (por defecto, mes actual)
         $month = $request->input('month', now()->format('Y-m'));
-        $from = Carbon::parse($month . '-01')->startOfMonth();
-        $to = Carbon::parse($month . '-01')->endOfMonth();
+        $from = Carbon::parse($month.'-01')->startOfMonth();
+        $to = Carbon::parse($month.'-01')->endOfMonth();
 
         $monthlySummary = $this->reportingService->getClientMonthlySummary($client, $from, $to);
 

@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 class ClientController extends Controller
 {
     use ApiResponse;
+
     public function __construct(
         private ClientService $clientService
     ) {}
@@ -33,7 +34,7 @@ class ClientController extends Controller
     {
         $client = $this->clientService->getClientById($id);
 
-        if (!$client) {
+        if (! $client) {
             return $this->notFoundResponse('Client not found');
         }
 
@@ -89,4 +90,3 @@ class ClientController extends Controller
         }
     }
 }
-

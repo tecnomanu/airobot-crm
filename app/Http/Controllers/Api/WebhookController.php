@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 class WebhookController extends Controller
 {
     use ApiResponse;
+
     public function __construct(
         private LeadService $leadService,
         private CallHistoryService $callHistoryService
@@ -28,7 +29,7 @@ class WebhookController extends Controller
     /**
      * Recibir lead desde webhook externo (n8n, formularios, etc.)
      * POST /api/webhooks/lead
-     * 
+     *
      * Campos esperados:
      * - phone (requerido)
      * - name
@@ -103,7 +104,7 @@ class WebhookController extends Controller
     /**
      * Recibir registro de llamada desde proveedor externo (Vapi, Retell, etc.)
      * POST /api/webhooks/call
-     * 
+     *
      * Campos esperados:
      * - phone (requerido)
      * - status (requerido)

@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 class CallHistoryController extends Controller
 {
     use ApiResponse;
+
     public function __construct(
         private CallHistoryService $callHistoryService
     ) {}
@@ -44,7 +45,7 @@ class CallHistoryController extends Controller
     {
         $call = $this->callHistoryService->getCallById($id);
 
-        if (!$call) {
+        if (! $call) {
             return $this->notFoundResponse('Call history not found');
         }
 
@@ -54,4 +55,3 @@ class CallHistoryController extends Controller
         );
     }
 }
-

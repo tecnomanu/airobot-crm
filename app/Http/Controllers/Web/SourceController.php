@@ -48,6 +48,7 @@ class SourceController extends Controller
             $source->campaigns_count = \App\Models\CampaignOption::where('source_id', $source->id)
                 ->distinct('campaign_id')
                 ->count('campaign_id');
+
             return $source;
         });
 
@@ -55,7 +56,7 @@ class SourceController extends Controller
             'sources' => SourceResource::collection($sources),
             'clients' => $clients,
             'filters' => $filters,
-            'source_types' => collect(SourceType::cases())->map(fn($type) => [
+            'source_types' => collect(SourceType::cases())->map(fn ($type) => [
                 'value' => $type->value,
                 'label' => $type->label(),
             ]),
@@ -72,7 +73,7 @@ class SourceController extends Controller
         return Inertia::render('Sources/Form', [
             'source' => null,
             'clients' => $clients,
-            'source_types' => collect(SourceType::cases())->map(fn($type) => [
+            'source_types' => collect(SourceType::cases())->map(fn ($type) => [
                 'value' => $type->value,
                 'label' => $type->label(),
                 'required_fields' => $type->requiredConfigFields(),
@@ -113,7 +114,7 @@ class SourceController extends Controller
         return Inertia::render('Sources/Form', [
             'source' => new SourceResource($source),
             'clients' => $clients,
-            'source_types' => collect(SourceType::cases())->map(fn($type) => [
+            'source_types' => collect(SourceType::cases())->map(fn ($type) => [
                 'value' => $type->value,
                 'label' => $type->label(),
                 'required_fields' => $type->requiredConfigFields(),

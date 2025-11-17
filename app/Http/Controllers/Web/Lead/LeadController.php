@@ -43,7 +43,7 @@ class LeadController extends Controller
     {
         $lead = $this->leadService->getLeadById($id);
 
-        if (!$lead) {
+        if (! $lead) {
             abort(404, 'Lead no encontrado');
         }
 

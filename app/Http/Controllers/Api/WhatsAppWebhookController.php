@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Controller para recibir webhooks de Evolution API (WhatsApp)
- * 
+ *
  * Este webhook recibe las respuestas de los leads cuando responden
  * mensajes de WhatsApp, guarda la interacción y actualiza la intención del lead.
  */
@@ -26,7 +26,7 @@ class WhatsAppWebhookController extends Controller
     /**
      * Webhook principal para Evolution API
      * POST /api/webhooks/whatsapp/evolution
-     * 
+     *
      * Evolution API envía webhooks cuando:
      * - Se recibe un mensaje de un contacto
      * - Se actualiza el estado de un mensaje enviado
@@ -46,8 +46,8 @@ class WhatsAppWebhookController extends Controller
 
             // Verificar que sea un mensaje entrante
             $event = $payload['event'] ?? null;
-            
-            if (!in_array($event, ['messages.upsert', 'messages.update'])) {
+
+            if (! in_array($event, ['messages.upsert', 'messages.update'])) {
                 return $this->successResponse(
                     ['processed' => false],
                     'Event not processed - not a message event'
@@ -57,7 +57,7 @@ class WhatsAppWebhookController extends Controller
             // Procesar el mensaje
             $result = $this->whatsappService->processIncomingMessage($payload);
 
-            if (!$result) {
+            if (! $result) {
                 return $this->successResponse(
                     ['processed' => false],
                     'Message not processed - possibly not from a lead'
@@ -103,4 +103,3 @@ class WhatsAppWebhookController extends Controller
         );
     }
 }
-

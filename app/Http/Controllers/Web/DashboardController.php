@@ -17,16 +17,16 @@ class DashboardController extends Controller
     {
         // Métricas globales optimizadas
         $metrics = $this->reportingService->getGlobalDashboardMetrics();
-        
+
         // Últimos leads (optimizado, solo 10)
         $recentLeads = $this->reportingService->getRecentLeads(10);
-        
+
         // Rendimiento de campañas (top 5)
         $campaignPerformance = $this->reportingService->getCampaignPerformance(null, 5);
-        
+
         // Leads por estado
         $leadsByStatus = $this->reportingService->getLeadsByStatus();
-        
+
         // Clientes activos
         $activeClients = $this->reportingService->getActiveClients();
 
@@ -39,4 +39,3 @@ class DashboardController extends Controller
         ]);
     }
 }
-

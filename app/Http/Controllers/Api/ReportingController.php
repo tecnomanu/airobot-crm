@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 class ReportingController extends Controller
 {
     use ApiResponse;
+
     public function __construct(
         private ReportingService $reportingService,
         private ClientService $clientService
@@ -30,14 +31,14 @@ class ReportingController extends Controller
     public function globalMetrics(): GlobalMetricsResource
     {
         $metrics = $this->reportingService->getGlobalDashboardMetrics();
-        
+
         return new GlobalMetricsResource($metrics);
     }
 
     /**
      * Obtener resumen mensual de un cliente
      * GET /api/reporting/clients/{client}/monthly-summary
-     * 
+     *
      * Query params:
      * - month: YYYY-MM (default: mes actual)
      */
@@ -45,16 +46,16 @@ class ReportingController extends Controller
     {
         $client = $this->clientService->getClientById($clientId);
 
-        if (!$client) {
+        if (! $client) {
             return $this->notFoundResponse('Client not found');
         }
 
         // Parsear mes
         $month = $request->input('month', now()->format('Y-m'));
-        
+
         try {
-            $from = Carbon::parse($month . '-01')->startOfMonth();
-            $to = Carbon::parse($month . '-01')->endOfMonth();
+            $from = Carbon::parse($month.'-01')->startOfMonth();
+            $to = Carbon::parse($month.'-01')->endOfMonth();
         } catch (\Exception $e) {
             return $this->errorResponse('Invalid month format. Use YYYY-MM', '', 400);
         }
@@ -75,7 +76,7 @@ class ReportingController extends Controller
     {
         $client = $this->clientService->getClientById($clientId);
 
-        if (!$client) {
+        if (! $client) {
             return $this->notFoundResponse('Client not found');
         }
 
@@ -87,7 +88,7 @@ class ReportingController extends Controller
     /**
      * Obtener rendimiento de campañas
      * GET /api/reporting/campaigns/performance
-     * 
+     *
      * Query params:
      * - client_id: filtrar por cliente
      * - limit: número de resultados (default: 10)
@@ -102,4 +103,3 @@ class ReportingController extends Controller
         return $this->successResponse($performance, 'Campaign performance retrieved successfully');
     }
 }
-

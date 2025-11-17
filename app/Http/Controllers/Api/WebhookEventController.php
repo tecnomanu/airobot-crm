@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Controlador para webhooks basados en eventos con patrón Strategy
- * 
+ *
  * Endpoints:
  * - POST /api/webhooks/event - Procesa eventos dinámicos
  * - GET /api/webhooks/events - Lista eventos disponibles
@@ -19,15 +19,16 @@ use Illuminate\Support\Facades\Log;
 class WebhookEventController extends Controller
 {
     use ApiResponse;
+
     public function __construct(
         private WebhookEventManager $eventManager
     ) {}
 
     /**
      * Procesa un evento de webhook dinámico
-     * 
+     *
      * POST /api/webhooks/event
-     * 
+     *
      * Body:
      * {
      *   "name": "webhook_register_phone",
@@ -57,7 +58,7 @@ class WebhookEventController extends Controller
 
     /**
      * Lista los eventos disponibles
-     * 
+     *
      * GET /api/webhooks/events
      */
     public function listEvents(): JsonResponse
@@ -71,4 +72,3 @@ class WebhookEventController extends Controller
         );
     }
 }
-

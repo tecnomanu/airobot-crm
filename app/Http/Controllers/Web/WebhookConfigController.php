@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class WebhookConfigController extends Controller
@@ -11,7 +10,7 @@ class WebhookConfigController extends Controller
     public function index()
     {
         $webhookUrl = route('webhooks.lead');
-        
+
         $examplePayload = [
             'name' => 'webhook_register_phone',
             'args' => [

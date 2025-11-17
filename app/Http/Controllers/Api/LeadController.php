@@ -7,6 +7,7 @@ use App\Http\Requests\Lead\StoreLeadRequest;
 use App\Http\Requests\Lead\UpdateLeadRequest;
 use App\Http\Resources\Lead\LeadCollection;
 use App\Http\Resources\Lead\LeadResource;
+use App\Http\Resources\LeadInteractionResource;
 use App\Http\Traits\ApiResponse;
 use App\Services\Lead\LeadService;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 class LeadController extends Controller
 {
     use ApiResponse;
+
     public function __construct(
         private LeadService $leadService
     ) {}
@@ -39,7 +41,7 @@ class LeadController extends Controller
     {
         $lead = $this->leadService->getLeadById($id);
 
-        if (!$lead) {
+        if (! $lead) {
             return $this->notFoundResponse('Lead not found');
         }
 
@@ -103,5 +105,25 @@ class LeadController extends Controller
             return $this->notFoundResponse($e->getMessage());
         }
     }
-}
 
+    /**
+     * Obtener timeline de interacciones del lead
+     */
+    public function interactions(string $id): JsonResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (! $lead) {
+            return $this->notFoundResponse('Lead not found');
+        }
+
+        $interactions = $lead->interactions()
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return $this->successResponse(
+            LeadInteractionResource::collection($interactions),
+            'Lead interactions retrieved successfully'
+        );
+    }
+}

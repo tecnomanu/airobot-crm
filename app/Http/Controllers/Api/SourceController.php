@@ -47,4 +47,3 @@ class SourceController extends Controller
         }
     }
 }
-

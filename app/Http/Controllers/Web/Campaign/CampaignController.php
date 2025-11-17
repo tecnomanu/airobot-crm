@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Web\Campaign;
 
-use App\Enums\SourceType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Campaign\StoreCampaignRequest;
 use App\Http\Requests\Campaign\UpdateCampaignRequest;
@@ -47,26 +46,26 @@ class CampaignController extends Controller
     {
         $campaign = $this->campaignService->getCampaignById($id);
 
-        if (!$campaign) {
+        if (! $campaign) {
             abort(404, 'Campaña no encontrada');
         }
 
         $templates = $this->templateService->getTemplatesByCampaign($id);
         $clients = $this->clientService->getActiveClients();
-        
+
         // Obtener todas las fuentes activas
         $allActiveSources = $this->sourceService->getAll(['active_only' => true]);
-        
+
         // Filtrar por tipo (WhatsApp incluye Evolution API y Meta)
-        $whatsappSources = $allActiveSources->filter(fn($s) => $s->type->isWhatsApp());
-        $webhookSources = $allActiveSources->filter(fn($s) => $s->type->isWebhook());
+        $whatsappSources = $allActiveSources->filter(fn ($s) => $s->type->isWhatsApp());
+        $webhookSources = $allActiveSources->filter(fn ($s) => $s->type->isWebhook());
 
         return Inertia::render('Campaigns/Show', [
             'campaign' => $campaign,
             'templates' => $templates,
             'clients' => $clients,
-            'whatsapp_sources' => $whatsappSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
-            'webhook_sources' => $webhookSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
+            'whatsapp_sources' => $whatsappSources->values()->map(fn ($s) => (new SourceResource($s))->resolve()),
+            'webhook_sources' => $webhookSources->values()->map(fn ($s) => (new SourceResource($s))->resolve()),
         ]);
     }
 

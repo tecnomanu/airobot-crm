@@ -45,7 +45,7 @@ class CallHistoryController extends Controller
     {
         $call = $this->callHistoryService->getCallById($id);
 
-        if (!$call) {
+        if (! $call) {
             abort(404, 'Llamada no encontrada');
         }
 

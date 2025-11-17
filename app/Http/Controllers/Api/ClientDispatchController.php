@@ -25,7 +25,7 @@ class ClientDispatchController extends Controller
     /**
      * Enviar un lead al webhook del cliente asociado a su campaña
      * POST /api/clients/{client}/leads/{lead}/dispatch
-     * 
+     *
      * Opciones:
      * - force_resend: boolean (reenviar aunque ya se haya enviado)
      * - custom_payload: object (payload personalizado)
@@ -36,7 +36,7 @@ class ClientDispatchController extends Controller
         try {
             $lead = $this->leadService->getLeadById($leadId);
 
-            if (!$lead) {
+            if (! $lead) {
                 return $this->notFoundResponse('Lead not found');
             }
 
@@ -48,7 +48,7 @@ class ClientDispatchController extends Controller
             $campaign = $lead->campaign;
 
             // Validar que el webhook está habilitado
-            if (!$campaign->webhook_enabled) {
+            if (! $campaign->webhook_enabled) {
                 return $this->errorResponse(
                     'Webhook is not enabled for this campaign',
                     '',
@@ -66,7 +66,7 @@ class ClientDispatchController extends Controller
             }
 
             // Validar si ya fue enviado (a menos que force_resend esté activado)
-            if ($lead->webhook_sent && !$request->input('force_resend', false)) {
+            if ($lead->webhook_sent && ! $request->input('force_resend', false)) {
                 return $this->errorResponse(
                     'Lead has already been sent to client. Use force_resend=true to retry.',
                     '',
@@ -158,7 +158,7 @@ class ClientDispatchController extends Controller
         try {
             $lead = $this->leadService->getLeadById($leadId);
 
-            if (!$lead) {
+            if (! $lead) {
                 return $this->notFoundResponse('Lead not found');
             }
 

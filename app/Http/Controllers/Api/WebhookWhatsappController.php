@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Controller para recibir webhooks de WhatsApp (Evolution API)
- * 
+ *
  * Webhook principal: POST /api/webhooks/whatsapp-incoming
- * 
+ *
  * Responsabilidades:
  * - Recibir mensajes entrantes de leads
  * - Identificar lead por número
@@ -32,12 +32,12 @@ class WebhookWhatsappController extends Controller
     /**
      * Webhook para Evolution API
      * POST /api/webhooks/whatsapp-incoming
-     * 
+     *
      * Evolution API envía diferentes eventos:
      * - messages.upsert: Nuevo mensaje recibido
      * - messages.update: Actualización de mensaje (leído, entregado, etc.)
      * - presence.update: Estado del contacto (online, escribiendo, etc.)
-     * 
+     *
      * Solo procesamos messages.upsert de leads (no mensajes nuestros)
      */
     public function incoming(Request $request): JsonResponse
@@ -52,8 +52,13 @@ class WebhookWhatsappController extends Controller
                 'has_data' => isset($payload['data']),
             ]);
 
+            // Log completo del payload para debugging
+            Log::info('Payload completo del webhook', [
+                'full_payload' => $payload,
+            ]);
+
             // Verificar que sea un evento de mensaje
-            if (!in_array($event, ['messages.upsert', 'messages.update'])) {
+            if (! in_array($event, ['messages.upsert', 'messages.update'])) {
                 return $this->successResponse(
                     ['processed' => false],
                     'Event not processed - not a message event'
@@ -63,7 +68,7 @@ class WebhookWhatsappController extends Controller
             // Procesar el mensaje
             $result = $this->whatsappService->processIncomingMessage($payload);
 
-            if (!$result) {
+            if (! $result) {
                 return $this->successResponse(
                     ['processed' => false],
                     'Message not processed - possibly not from a lead or sent by us'

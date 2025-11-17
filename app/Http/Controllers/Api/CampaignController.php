@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 class CampaignController extends Controller
 {
     use ApiResponse;
+
     public function __construct(
         private CampaignService $campaignService,
         private CampaignWhatsappTemplateService $templateService
@@ -38,7 +39,7 @@ class CampaignController extends Controller
     {
         $campaign = $this->campaignService->getCampaignById($id);
 
-        if (!$campaign) {
+        if (! $campaign) {
             return $this->notFoundResponse('Campaign not found');
         }
 
@@ -101,6 +102,7 @@ class CampaignController extends Controller
     {
         try {
             $templates = $this->templateService->getTemplatesByCampaign($campaignId);
+
             return $this->successResponse(
                 CampaignWhatsappTemplateResource::collection($templates),
                 'Templates retrieved successfully'
@@ -118,9 +120,9 @@ class CampaignController extends Controller
         try {
             $data = $request->validated();
             $data['campaign_id'] = $campaignId;
-            
+
             $template = $this->templateService->createTemplate($data);
-            
+
             return $this->createdResponse(
                 new CampaignWhatsappTemplateResource($template),
                 'Template creado exitosamente'
@@ -138,7 +140,7 @@ class CampaignController extends Controller
         try {
             $data = $request->validated();
             $template = $this->templateService->updateTemplate($templateId, $data);
-            
+
             return $this->updatedResponse(
                 new CampaignWhatsappTemplateResource($template),
                 'Template actualizado exitosamente'
@@ -155,11 +157,10 @@ class CampaignController extends Controller
     {
         try {
             $this->templateService->deleteTemplate($templateId);
-            
+
             return $this->deletedResponse('Template eliminado exitosamente');
         } catch (\Exception $e) {
             return $this->serverErrorResponse('Error deleting template', $e->getMessage());
         }
     }
 }
-
