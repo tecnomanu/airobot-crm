@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class MigrateCampaignDataToJson extends Command
 {
     protected $signature = 'campaigns:migrate-to-json {--dry-run : Ejecutar sin modificar la base de datos}';
+
     protected $description = 'Migra datos de campaña de columnas individuales a estructura JSON';
 
     public function handle()
@@ -22,6 +23,7 @@ class MigrateCampaignDataToJson extends Command
 
         if ($campaigns->isEmpty()) {
             $this->warn('No hay campañas para migrar');
+
             return 0;
         }
 
@@ -41,7 +43,7 @@ class MigrateCampaignDataToJson extends Command
             // Migrar automation_config
             $automationConfig = $this->buildAutomationConfig($campaign);
 
-            if (!$dryRun) {
+            if (! $dryRun) {
                 $campaign->update([
                     'agents_config' => $agentsConfig,
                     'options_config' => $optionsConfig,
@@ -70,13 +72,13 @@ class MigrateCampaignDataToJson extends Command
     {
         return [
             'call' => [
-                'enabled' => !empty($campaign->call_agent_name),
+                'enabled' => ! empty($campaign->call_agent_name),
                 'name' => $campaign->call_agent_name,
                 'provider' => $campaign->call_agent_provider,
                 'config' => $campaign->call_agent_config ?? [],
             ],
             'whatsapp' => [
-                'enabled' => !empty($campaign->whatsapp_agent_name),
+                'enabled' => ! empty($campaign->whatsapp_agent_name),
                 'name' => $campaign->whatsapp_agent_name,
                 'config' => $campaign->whatsapp_agent_config ?? [],
             ],
@@ -95,7 +97,7 @@ class MigrateCampaignDataToJson extends Command
             $action = $campaign->{"option_{$key}_action"};
 
             // Solo incluir si tiene una acción definida
-            if (!empty($action) && $action !== 'none') {
+            if (! empty($action) && $action !== 'none') {
                 $options[$key] = [
                     'action' => $action,
                     'source_id' => $campaign->{"option_{$key}_source_id"},
