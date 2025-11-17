@@ -53,8 +53,8 @@ class WebhookResultDTO
         return [
             'success' => $this->success,
             'status_code' => $this->statusCode,
-            'body' => strlen($this->responseBody) > 500 
-                ? substr($this->responseBody, 0, 500) . '...' 
+            'body' => strlen($this->responseBody) > 500
+                ? substr($this->responseBody, 0, 500).'...'
                 : $this->responseBody,
             'error' => $this->error,
             'sent_at' => now()->toIso8601String(),
@@ -62,4 +62,3 @@ class WebhookResultDTO
         ];
     }
 }
-

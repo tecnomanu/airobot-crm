@@ -8,7 +8,7 @@ namespace App\DTOs\Reporting;
 class ClientMonthlySummary
 {
     /**
-     * @param CampaignSummary[] $campaigns
+     * @param  CampaignSummary[]  $campaigns
      */
     public function __construct(
         public int $clientId,
@@ -36,7 +36,7 @@ class ClientMonthlySummary
                 'pending_leads' => $this->pendingLeads,
                 'contacted_leads' => $this->contactedLeads,
                 'converted_leads' => $this->convertedLeads,
-                'conversion_rate' => $this->totalLeads > 0 ? 
+                'conversion_rate' => $this->totalLeads > 0 ?
                     round(($this->convertedLeads / $this->totalLeads) * 100, 2) : 0,
                 'total_calls' => $this->totalCalls,
                 'completed_calls' => $this->completedCalls,
@@ -44,13 +44,12 @@ class ClientMonthlySummary
                 'total_duration_minutes' => round($this->totalDurationSeconds / 60, 2),
                 'total_duration_hours' => round($this->totalDurationSeconds / 3600, 2),
                 'total_cost' => round($this->totalCost, 2),
-                'avg_cost_per_lead' => $this->totalLeads > 0 ? 
+                'avg_cost_per_lead' => $this->totalLeads > 0 ?
                     round($this->totalCost / $this->totalLeads, 2) : 0,
-                'avg_cost_per_call' => $this->totalCalls > 0 ? 
+                'avg_cost_per_call' => $this->totalCalls > 0 ?
                     round($this->totalCost / $this->totalCalls, 2) : 0,
             ],
-            'campaigns' => array_map(fn($campaign) => $campaign->toArray(), $this->campaigns),
+            'campaigns' => array_map(fn ($campaign) => $campaign->toArray(), $this->campaigns),
         ];
     }
 }
-

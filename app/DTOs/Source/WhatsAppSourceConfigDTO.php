@@ -19,9 +19,6 @@ class WhatsAppSourceConfigDTO
 
     /**
      * Crea un DTO desde un array
-     * 
-     * @param array $data
-     * @return self
      */
     public static function fromArray(array $data): self
     {
@@ -36,8 +33,6 @@ class WhatsAppSourceConfigDTO
 
     /**
      * Convierte el DTO a array
-     * 
-     * @return array
      */
     public function toArray(): array
     {
@@ -47,19 +42,16 @@ class WhatsAppSourceConfigDTO
             'api_key' => $this->api_key,
             'phone_number' => $this->phone_number,
             'webhook_url' => $this->webhook_url,
-        ], fn($value) => $value !== null);
+        ], fn ($value) => $value !== null);
     }
 
     /**
      * Valida que todos los campos requeridos estén presentes
-     * 
-     * @return bool
      */
     public function isValid(): bool
     {
-        return !empty($this->instance_name) 
-            && !empty($this->api_url) 
-            && !empty($this->api_key);
+        return ! empty($this->instance_name)
+            && ! empty($this->api_url)
+            && ! empty($this->api_key);
     }
 }
-

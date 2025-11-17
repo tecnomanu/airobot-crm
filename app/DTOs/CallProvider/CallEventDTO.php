@@ -49,7 +49,7 @@ class CallEventDTO
             'recording_url' => $this->recordingUrl,
             'notes' => $this->disconnectionReason ? "Disconnection: {$this->disconnectionReason}" : null,
             'metadata' => $this->metadata,
-        ], fn($value) => $value !== null);
+        ], fn ($value) => $value !== null);
     }
 
     /**
@@ -80,7 +80,7 @@ class CallEventDTO
      */
     public function getLeadPhone(): ?string
     {
-        if (!$this->toNumber) {
+        if (! $this->toNumber) {
             return null;
         }
 

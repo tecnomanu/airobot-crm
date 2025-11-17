@@ -19,9 +19,6 @@ class MetaWhatsAppSourceConfigDTO
 
     /**
      * Crea un DTO desde un array
-     * 
-     * @param array $data
-     * @return self
      */
     public static function fromArray(array $data): self
     {
@@ -36,8 +33,6 @@ class MetaWhatsAppSourceConfigDTO
 
     /**
      * Convierte el DTO a array
-     * 
-     * @return array
      */
     public function toArray(): array
     {
@@ -47,19 +42,16 @@ class MetaWhatsAppSourceConfigDTO
             'verify_token' => $this->verify_token,
             'business_account_id' => $this->business_account_id,
             'webhook_url' => $this->webhook_url,
-        ], fn($value) => $value !== null);
+        ], fn ($value) => $value !== null);
     }
 
     /**
      * Valida que todos los campos requeridos estén presentes
-     * 
-     * @return bool
      */
     public function isValid(): bool
     {
-        return !empty($this->phone_number_id) 
-            && !empty($this->access_token) 
-            && !empty($this->verify_token);
+        return ! empty($this->phone_number_id)
+            && ! empty($this->access_token)
+            && ! empty($this->verify_token);
     }
 }
-

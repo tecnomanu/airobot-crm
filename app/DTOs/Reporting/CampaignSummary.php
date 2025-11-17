@@ -31,16 +31,15 @@ class CampaignSummary
             'pending_leads' => $this->pendingLeads,
             'contacted_leads' => $this->contactedLeads,
             'converted_leads' => $this->convertedLeads,
-            'conversion_rate' => $this->totalLeads > 0 ? 
+            'conversion_rate' => $this->totalLeads > 0 ?
                 round(($this->convertedLeads / $this->totalLeads) * 100, 2) : 0,
             'total_calls' => $this->totalCalls,
             'completed_calls' => $this->completedCalls,
             'total_duration_seconds' => $this->totalDurationSeconds,
             'total_duration_minutes' => round($this->totalDurationSeconds / 60, 2),
             'total_cost' => round($this->totalCost, 2),
-            'avg_cost_per_call' => $this->totalCalls > 0 ? 
+            'avg_cost_per_call' => $this->totalCalls > 0 ?
                 round($this->totalCost / $this->totalCalls, 2) : 0,
         ];
     }
 }
-
