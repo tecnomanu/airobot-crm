@@ -6,15 +6,15 @@ use App\Repositories\Eloquent\CallHistoryRepository;
 use App\Repositories\Eloquent\CampaignRepository;
 use App\Repositories\Eloquent\CampaignWhatsappTemplateRepository;
 use App\Repositories\Eloquent\ClientRepository;
-use App\Repositories\Eloquent\LeadRepository;
 use App\Repositories\Eloquent\LeadInteractionRepository;
+use App\Repositories\Eloquent\LeadRepository;
 use App\Repositories\Eloquent\SourceRepository;
 use App\Repositories\Interfaces\CallHistoryRepositoryInterface;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\CampaignWhatsappTemplateRepositoryInterface;
 use App\Repositories\Interfaces\ClientRepositoryInterface;
-use App\Repositories\Interfaces\LeadRepositoryInterface;
 use App\Repositories\Interfaces\LeadInteractionRepositoryInterface;
+use App\Repositories\Interfaces\LeadRepositoryInterface;
 use App\Repositories\Interfaces\SourceRepositoryInterface;
 use Illuminate\Support\ServiceProvider;
 
@@ -77,4 +77,3 @@ class RepositoryServiceProvider extends ServiceProvider
         //
     }
 }
-

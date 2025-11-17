@@ -8,7 +8,7 @@ use Illuminate\Support\ServiceProvider;
 
 /**
  * Service Provider para el sistema de eventos de webhook
- * 
+ *
  * Registra el WebhookEventManager como singleton y configura
  * todas las estrategias disponibles.
  */
@@ -21,7 +21,7 @@ class WebhookEventServiceProvider extends ServiceProvider
     {
         // Registrar el WebhookEventManager como singleton
         $this->app->singleton(WebhookEventManager::class, function ($app) {
-            $manager = new WebhookEventManager();
+            $manager = new WebhookEventManager;
 
             // Registrar todas las estrategias disponibles
             $this->registerStrategies($manager, $app);
@@ -40,14 +40,10 @@ class WebhookEventServiceProvider extends ServiceProvider
 
     /**
      * Registra todas las estrategias de eventos disponibles
-     * 
+     *
      * Para agregar una nueva estrategia:
      * 1. Crear clase que implemente WebhookEventStrategyInterface
      * 2. Agregarla aquí con $manager->registerStrategy()
-     * 
-     * @param WebhookEventManager $manager
-     * @param $app
-     * @return void
      */
     private function registerStrategies(WebhookEventManager $manager, $app): void
     {
@@ -61,4 +57,3 @@ class WebhookEventServiceProvider extends ServiceProvider
         // $manager->registerStrategy($app->make(OtraEstrategiaStrategy::class));
     }
 }
-

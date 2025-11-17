@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Job para enviar lead a webhook del cliente
- * 
+ *
  * NOTA: Ahora soporta tanto Sources (nuevo) como campos legacy de Campaign.
  * Se prioriza webhookSource si está configurado.
  */
@@ -59,6 +59,7 @@ class SendLeadToClientWebhook implements ShouldQueue
         // NUEVA LÓGICA: Priorizar webhookSource si existe
         if ($campaign->webhookSource) {
             $this->handleWithSource($campaign->webhookSource, $leadService, $webhookSender);
+
             return;
         }
 
@@ -84,6 +85,7 @@ class SendLeadToClientWebhook implements ShouldQueue
                 'source_id' => $source->id,
                 'status' => $source->status->value,
             ]);
+
             return;
         }
 
@@ -147,11 +149,12 @@ class SendLeadToClientWebhook implements ShouldQueue
     protected function handleLegacy($campaign, LeadService $leadService): void
     {
         // Validar que el webhook esté habilitado
-        if (!$campaign->webhook_enabled) {
+        if (! $campaign->webhook_enabled) {
             Log::info('Webhook no habilitado para campaña (legacy)', [
                 'lead_id' => $this->lead->id,
                 'campaign_id' => $campaign->id,
             ]);
+
             return;
         }
 
@@ -161,6 +164,7 @@ class SendLeadToClientWebhook implements ShouldQueue
                 'lead_id' => $this->lead->id,
                 'campaign_id' => $campaign->id,
             ]);
+
             return;
         }
 
@@ -190,7 +194,7 @@ class SendLeadToClientWebhook implements ShouldQueue
             // Registrar resultado
             $result = [
                 'status_code' => $statusCode,
-                'body' => strlen($responseBody) > 500 ? substr($responseBody, 0, 500) . '...' : $responseBody,
+                'body' => strlen($responseBody) > 500 ? substr($responseBody, 0, 500).'...' : $responseBody,
                 'sent_at' => now()->toIso8601String(),
                 'attempt' => $this->attempts(),
             ];
@@ -247,7 +251,7 @@ class SendLeadToClientWebhook implements ShouldQueue
     private function buildPayload(Lead $lead, $campaign): array
     {
         // Si hay template personalizado, usarlo
-        if (!empty($campaign->webhook_payload_template)) {
+        if (! empty($campaign->webhook_payload_template)) {
             return $this->applyTemplate($lead, $campaign->webhook_payload_template);
         }
 
@@ -304,7 +308,7 @@ class SendLeadToClientWebhook implements ShouldQueue
 
         // Intentar decodificar como JSON
         $decoded = json_decode($replaced, true);
-        
+
         return $decoded ?? ['data' => $replaced];
     }
 
