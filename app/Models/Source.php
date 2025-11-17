@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Representa una fuente/conector externo (WhatsApp, Webhook, etc.)
- * 
+ *
  * @property int $id
  * @property string $name
  * @property SourceType $type
@@ -23,7 +23,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $created_by
  * @property \Illuminate\Support\Carbon $created_at
  * @property \Illuminate\Support\Carbon $updated_at
- * 
  * @property-read Client|null $client
  * @property-read User|null $creator
  * @property-read \Illuminate\Database\Eloquent\Collection|Campaign[] $campaignsAsWhatsapp
@@ -92,6 +91,7 @@ class Source extends Model
     public function scopeOfType($query, SourceType|string $type)
     {
         $typeValue = $type instanceof SourceType ? $type->value : $type;
+
         return $query->where('type', $typeValue);
     }
 
@@ -191,14 +191,13 @@ class Source extends Model
     public function hasValidConfig(): bool
     {
         $required = $this->type->requiredConfigFields();
-        
+
         foreach ($required as $field) {
             if (empty($this->getConfigValue($field))) {
                 return false;
             }
         }
-        
+
         return true;
     }
 }
-

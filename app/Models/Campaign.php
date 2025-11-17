@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\CampaignStatus;
+use App\Enums\CampaignType;
+use App\Enums\ExportRule;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,11 +23,16 @@ class Campaign extends Model
         'status',
         'slug',
         'auto_process_enabled',
+        'country',
+        'campaign_type',
+        'export_rule',
         'created_by',
     ];
 
     protected $casts = [
         'status' => CampaignStatus::class,
+        'campaign_type' => CampaignType::class,
+        'export_rule' => ExportRule::class,
         'auto_process_enabled' => 'boolean',
     ];
 

@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Enums\LeadAutomationStatus;
-use App\Enums\LeadOptionSelected;
-use App\Enums\LeadSource;
+use App\Enums\LeadIntentionOrigin;
+use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,12 +20,17 @@ class Lead extends Model
         'phone',
         'name',
         'city',
+        'country',
         'option_selected',
         'campaign_id',
         'status',
         'source',
         'sent_at',
         'intention',
+        'intention_origin',
+        'intention_status',
+        'intention_decided_at',
+        'exported_at',
         'notes',
         'tags',
         'webhook_sent',
@@ -42,7 +47,11 @@ class Lead extends Model
         // option_selected y source son strings flexibles para integraciones custom
         'status' => LeadStatus::class,
         'automation_status' => LeadAutomationStatus::class,
+        'intention_origin' => LeadIntentionOrigin::class,
+        'intention_status' => LeadIntentionStatus::class,
         'sent_at' => 'datetime',
+        'intention_decided_at' => 'datetime',
+        'exported_at' => 'datetime',
         'next_action_at' => 'datetime',
         'last_automation_run_at' => 'datetime',
         'webhook_sent' => 'boolean',

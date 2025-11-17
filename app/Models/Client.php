@@ -53,4 +53,3 @@ class Client extends Model
         return $this->hasMany(CallHistory::class);
     }
 }
-
