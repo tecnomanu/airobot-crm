@@ -29,7 +29,7 @@ class CallHistoryResource extends JsonResource
             'transcript' => $this->transcript,
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
-            
+
             // Relaciones opcionales
             'campaign' => $this->whenLoaded('campaign', function () {
                 return [

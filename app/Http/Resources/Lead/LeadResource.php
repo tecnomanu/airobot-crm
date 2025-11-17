@@ -48,16 +48,16 @@ class LeadResource extends JsonResource
      */
     private function getOptionLabel(): ?string
     {
-        if (!$this->option_selected) {
+        if (! $this->option_selected) {
             return null;
         }
 
-        return match($this->option_selected) {
+        return match ($this->option_selected) {
             '1' => 'Opción 1',
             '2' => 'Opción 2',
             'i' => 'Interesado',
             't' => 'Transferir',
-            default => 'Opción ' . $this->option_selected,
+            default => 'Opción '.$this->option_selected,
         };
     }
 
@@ -66,7 +66,7 @@ class LeadResource extends JsonResource
      */
     private function getSourceLabel(): string
     {
-        if (!$this->source) {
+        if (! $this->source) {
             return 'Desconocido';
         }
 
@@ -95,7 +95,7 @@ class LeadResource extends JsonResource
     {
         // Reemplazar guiones bajos y guiones por espacios
         $formatted = str_replace(['_', '-'], ' ', $source);
-        
+
         // Capitalizar cada palabra
         return ucwords($formatted);
     }

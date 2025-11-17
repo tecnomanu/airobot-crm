@@ -22,9 +22,10 @@ class CampaignResource extends JsonResource
 
             // Agente de llamadas
             'call_agent' => $this->whenLoaded('callAgent', function () {
-                if (!$this->callAgent) {
+                if (! $this->callAgent) {
                     return null;
                 }
+
                 return [
                     'id' => $this->callAgent->id,
                     'name' => $this->callAgent->name,
@@ -37,9 +38,10 @@ class CampaignResource extends JsonResource
 
             // Agente de WhatsApp
             'whatsapp_agent' => $this->whenLoaded('whatsappAgent', function () {
-                if (!$this->whatsappAgent) {
+                if (! $this->whatsappAgent) {
                     return null;
                 }
+
                 return [
                     'id' => $this->whatsappAgent->id,
                     'name' => $this->whatsappAgent->name,
