@@ -2,6 +2,7 @@
 
 namespace App\Services\CallProvider;
 
+use App\DTOs\CallProvider\CallEndedEventDTO;
 use App\DTOs\CallProvider\CallEventDTO;
 use App\Enums\InteractionChannel;
 use App\Enums\InteractionDirection;
@@ -11,6 +12,7 @@ use App\Models\LeadInteraction;
 use App\Repositories\Interfaces\CallHistoryRepositoryInterface;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
+use App\Services\CallHistory\CallHistoryService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -25,9 +27,10 @@ class CallProviderManager
         private CallHistoryRepositoryInterface $callHistoryRepository,
         private CampaignRepositoryInterface $campaignRepository,
         private LeadRepositoryInterface $leadRepository,
+        private CallHistoryService $callHistoryService,
     ) {
         // Registrar proveedores disponibles
-        $this->registerProvider(new RetellCallProviderService());
+        $this->registerProvider(new RetellCallProviderService);
     }
 
     /**
@@ -53,12 +56,12 @@ class CallProviderManager
     {
         $provider = $this->getProvider($providerName);
 
-        if (!$provider) {
+        if (! $provider) {
             throw new \InvalidArgumentException("Proveedor no soportado: {$providerName}");
         }
 
         // Validar firma (si aplica)
-        if (!$provider->validateWebhookSignature($headers, $rawBody)) {
+        if (! $provider->validateWebhookSignature($headers, $rawBody)) {
             Log::warning("Webhook signature validation failed for provider: {$providerName}");
             // En producción, lanzar excepción
             // throw new \Exception('Invalid webhook signature');
@@ -67,7 +70,7 @@ class CallProviderManager
         // Parsear webhook a DTO
         $event = $provider->parseWebhook($payload);
 
-        Log::info("Call webhook received", [
+        Log::info('Call webhook received', [
             'provider' => $providerName,
             'event_type' => $event->eventType,
             'call_id' => $event->callIdExternal,
@@ -91,7 +94,8 @@ class CallProviderManager
         $existing = $this->callHistoryRepository->findByExternalId($event->callIdExternal);
 
         if ($existing) {
-            Log::info("Call already exists, skipping creation", ['call_id' => $event->callIdExternal]);
+            Log::info('Call already exists, skipping creation', ['call_id' => $event->callIdExternal]);
+
             return $existing;
         }
 
@@ -110,7 +114,7 @@ class CallProviderManager
             $clientId = $campaign?->client_id;
         }
 
-        if (!$campaignId || !$clientId) {
+        if (! $campaignId || ! $clientId) {
             throw new \InvalidArgumentException('No se pudo determinar campaign_id o client_id para la llamada');
         }
 
@@ -141,6 +145,11 @@ class CallProviderManager
                 $this->saveCallInteraction($updatedCall, $event);
             }
 
+            // Si el evento incluye información de intención, procesarla
+            if ($callHistory->lead_id && $this->hasIntentInformation($event)) {
+                $this->processIntentFromCall($callHistory, $event);
+            }
+
             return $updatedCall;
         }
 
@@ -153,7 +162,68 @@ class CallProviderManager
             $this->saveCallInteraction($newCall, $event);
         }
 
+        // Procesar intención si existe
+        if ($newCall->lead_id && $this->hasIntentInformation($event)) {
+            $this->processIntentFromCall($newCall, $event);
+        }
+
         return $newCall;
+    }
+
+    /**
+     * Verificar si el evento tiene información de intención
+     */
+    private function hasIntentInformation(CallEventDTO $event): bool
+    {
+        // Verificar si el metadata contiene intent o si hay análisis de sentimiento
+        $metadata = $event->metadata ?? [];
+
+        return isset($metadata['intent']) || isset($metadata['summary']) || isset($metadata['analysis']);
+    }
+
+    /**
+     * Procesar intención del lead desde evento de llamada
+     */
+    private function processIntentFromCall(CallHistory $callHistory, CallEventDTO $event): void
+    {
+        try {
+            $metadata = $event->metadata ?? [];
+
+            // Extraer intent del metadata (puede venir en diferentes formatos según proveedor)
+            $intent = $metadata['intent']
+                ?? $metadata['analysis']['intent']
+                ?? $metadata['result']
+                ?? 'not_interested'; // Default si no se puede determinar
+
+            // Crear DTO para el evento call_ended
+            $callEndedDTO = CallEndedEventDTO::fromArray([
+                'lead_id' => $callHistory->lead_id,
+                'call_id_external' => $event->callIdExternal,
+                'duration_seconds' => $event->durationSeconds ?? 0,
+                'intent' => $intent,
+                'summary' => $metadata['summary'] ?? $event->transcript ?? null,
+                'recording_url' => $event->recordingUrl,
+                'transcript' => $event->transcript,
+                'metadata' => $metadata,
+            ]);
+
+            // Procesar evento con el servicio especializado
+            $this->callHistoryService->processCallEndedEvent($callEndedDTO);
+
+            Log::info('Intent procesado desde llamada', [
+                'lead_id' => $callHistory->lead_id,
+                'call_id' => $callHistory->id,
+                'intent' => $intent,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error procesando intent desde llamada', [
+                'lead_id' => $callHistory->lead_id,
+                'call_id' => $callHistory->id,
+                'error' => $e->getMessage(),
+            ]);
+            // No lanzar excepción para no bloquear el webhook
+        }
     }
 
     /**
@@ -169,9 +239,10 @@ class CallProviderManager
             if ($event->transcript) {
                 $updates['transcript'] = $event->transcript;
             }
-            if (!empty($updates)) {
+            if (! empty($updates)) {
                 return $this->callHistoryRepository->update($callHistory, $updates);
             }
+
             return $callHistory;
         }
 
@@ -184,7 +255,7 @@ class CallProviderManager
      */
     private function findLeadByPhone(?string $phone): ?Lead
     {
-        if (!$phone) {
+        if (! $phone) {
             return null;
         }
 
@@ -196,7 +267,7 @@ class CallProviderManager
      */
     private function saveCallInteraction(CallHistory $callHistory, CallEventDTO $event): void
     {
-        if (!$callHistory->lead) {
+        if (! $callHistory->lead) {
             return;
         }
 
@@ -239,8 +310,8 @@ class CallProviderManager
     {
         $parts = [];
 
-        $parts[] = "📞 Llamada finalizada";
-        $parts[] = "Estado: " . ($event->callStatus ?? 'desconocido');
+        $parts[] = '📞 Llamada finalizada';
+        $parts[] = 'Estado: '.($event->callStatus ?? 'desconocido');
 
         if ($event->durationMs) {
             $seconds = round($event->durationMs / 1000);
@@ -263,31 +334,31 @@ class CallProviderManager
      */
     private function updateLeadIntentionFromCall(Lead $lead, CallEventDTO $event): void
     {
-        if (!$event->transcript) {
+        if (! $event->transcript) {
             return;
         }
 
         // Concatenar con la intención anterior si existe
         $previousIntention = $lead->intention ?? '';
 
-        $callSummary = "[" . now()->format('Y-m-d H:i') . "] Llamada";
+        $callSummary = '['.now()->format('Y-m-d H:i').'] Llamada';
 
         if ($event->disconnectionReason === 'voicemail_reached') {
-            $callSummary .= " (buzón de voz)";
+            $callSummary .= ' (buzón de voz)';
         } elseif ($event->disconnectionReason === 'agent_hangup') {
-            $callSummary .= " (completada)";
+            $callSummary .= ' (completada)';
         }
 
-        $callSummary .= ":\n" . $event->transcript;
+        $callSummary .= ":\n".$event->transcript;
 
         $newIntention = $previousIntention
-            ? $previousIntention . "\n\n" . $callSummary
+            ? $previousIntention."\n\n".$callSummary
             : $callSummary;
 
         // Limitar longitud para no llenar demasiado la DB
         if (strlen($newIntention) > 5000) {
             // Mantener solo los últimos 5000 caracteres
-            $newIntention = '...' . substr($newIntention, -4997);
+            $newIntention = '...'.substr($newIntention, -4997);
         }
 
         $lead->update([

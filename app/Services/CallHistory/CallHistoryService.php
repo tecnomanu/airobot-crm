@@ -2,10 +2,17 @@
 
 namespace App\Services\CallHistory;
 
+use App\DTOs\CallProvider\CallEndedEventDTO;
+use App\Enums\InteractionChannel;
+use App\Enums\InteractionDirection;
+use App\Enums\LeadIntentionOrigin;
+use App\Enums\LeadIntentionStatus;
 use App\Models\CallHistory;
+use App\Models\LeadInteraction;
 use App\Repositories\Interfaces\CallHistoryRepositoryInterface;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 class CallHistoryService
 {
@@ -38,7 +45,7 @@ class CallHistoryService
     public function registerIncomingCall(array $data): CallHistory
     {
         // Buscar lead por teléfono si no se proporciona lead_id
-        if (empty($data['lead_id']) && !empty($data['phone'])) {
+        if (empty($data['lead_id']) && ! empty($data['phone'])) {
             $lead = $this->leadRepository->findByPhone($data['phone']);
             if ($lead) {
                 $data['lead_id'] = $lead->id;
@@ -66,7 +73,7 @@ class CallHistoryService
     {
         $call = $this->callHistoryRepository->findById($id);
 
-        if (!$call) {
+        if (! $call) {
             throw new \InvalidArgumentException('Llamada no encontrada');
         }
 
@@ -80,7 +87,7 @@ class CallHistoryService
     {
         $call = $this->callHistoryRepository->findByExternalId($externalId);
 
-        if (!$call) {
+        if (! $call) {
             return null;
         }
 
@@ -125,5 +132,91 @@ class CallHistoryService
     public function getCallCountsByStatus(?string $clientId = null): array
     {
         return $this->callHistoryRepository->countByStatus($clientId);
+    }
+
+    /**
+     * Procesar evento de llamada finalizada
+     * Registra el historial de llamada, la interacción y actualiza la intención del lead
+     */
+    public function processCallEndedEvent(CallEndedEventDTO $dto): void
+    {
+        Log::info('Procesando evento de llamada finalizada', [
+            'lead_id' => $dto->leadId,
+            'call_id' => $dto->callIdExternal,
+            'intent' => $dto->intent,
+        ]);
+
+        // Buscar lead por ID
+        $lead = $this->leadRepository->findById($dto->leadId);
+
+        if (! $lead) {
+            Log::error('Lead no encontrado para procesar call_ended', [
+                'lead_id' => $dto->leadId,
+                'call_id' => $dto->callIdExternal,
+            ]);
+            throw new \InvalidArgumentException('Lead no encontrado');
+        }
+
+        // Actualizar o crear CallHistory
+        $callHistory = $this->updateCallByExternalId($dto->callIdExternal, [
+            'duration_seconds' => $dto->durationSeconds,
+            'recording_url' => $dto->recordingUrl,
+            'transcript' => $dto->transcript,
+            'notes' => $dto->summary,
+        ]);
+
+        // Si no existe CallHistory, crear uno nuevo
+        if (! $callHistory) {
+            $callHistory = $this->registerIncomingCall([
+                'phone' => $lead->phone,
+                'lead_id' => $lead->id,
+                'campaign_id' => $lead->campaign_id,
+                'client_id' => $lead->campaign->client_id,
+                'call_date' => now(),
+                'duration_seconds' => $dto->durationSeconds,
+                'call_id_external' => $dto->callIdExternal,
+                'recording_url' => $dto->recordingUrl,
+                'transcript' => $dto->transcript,
+                'notes' => $dto->summary,
+                'status' => 'completed',
+            ]);
+
+            Log::info('CallHistory creado para evento call_ended', [
+                'call_history_id' => $callHistory->id,
+                'lead_id' => $lead->id,
+            ]);
+        }
+
+        // Crear LeadInteraction
+        $interaction = LeadInteraction::create([
+            'lead_id' => $lead->id,
+            'campaign_id' => $lead->campaign_id,
+            'channel' => InteractionChannel::CALL,
+            'direction' => InteractionDirection::OUTBOUND,
+            'content' => $dto->summary ?: 'Llamada finalizada',
+            'payload' => $dto->toArray(),
+            'external_id' => $dto->callIdExternal,
+            'phone' => $lead->phone,
+        ]);
+
+        Log::info('LeadInteraction creada para call_ended', [
+            'interaction_id' => $interaction->id,
+            'lead_id' => $lead->id,
+        ]);
+
+        // Actualizar intención del lead
+        $lead->update([
+            'intention' => $dto->intent,
+            'intention_origin' => LeadIntentionOrigin::AGENT_IA,
+            'intention_status' => LeadIntentionStatus::FINALIZED,
+            'intention_decided_at' => now(),
+            'notes' => $dto->summary ?: $lead->notes,
+        ]);
+
+        Log::info('Lead actualizado con intención desde agente IA', [
+            'lead_id' => $lead->id,
+            'intent' => $dto->intent,
+            'summary' => $dto->summary,
+        ]);
     }
 }

@@ -36,7 +36,7 @@ class HttpWebhookSender implements WebhookSenderInterface
         $method = strtoupper($source->getConfigValue('method', 'POST'));
         $secret = $source->getConfigValue('secret');
 
-        if (!$url) {
+        if (! $url) {
             throw new \InvalidArgumentException('Source Webhook no tiene URL configurada');
         }
 
@@ -68,7 +68,7 @@ class HttpWebhookSender implements WebhookSenderInterface
             }
 
             // Realizar petición según método
-            $response = match($method) {
+            $response = match ($method) {
                 'POST' => $request->post($url, $payload),
                 'PUT' => $request->put($url, $payload),
                 'PATCH' => $request->patch($url, $payload),
@@ -97,7 +97,7 @@ class HttpWebhookSender implements WebhookSenderInterface
                 ]);
 
                 return WebhookResultDTO::failed(
-                    "HTTP {$statusCode}: " . substr($responseBody, 0, 200),
+                    "HTTP {$statusCode}: ".substr($responseBody, 0, 200),
                     $statusCode
                 );
             }
@@ -141,7 +141,7 @@ class HttpWebhookSender implements WebhookSenderInterface
 
         // Si la Source tiene un payload_template personalizado en config, usarlo
         $payloadTemplate = $source->getConfigValue('payload_template');
-        
+
         if ($payloadTemplate) {
             return $this->applyTemplate($lead, $payloadTemplate, $extraPayload);
         }
@@ -184,11 +184,10 @@ class HttpWebhookSender implements WebhookSenderInterface
 
         // Intentar decodificar como JSON
         $decoded = json_decode($replaced, true);
-        
+
         $result = $decoded ?? ['data' => $replaced];
 
         // Merge con extra payload
         return array_merge($result, $extraPayload);
     }
 }
-

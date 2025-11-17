@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Validator;
 
 /**
  * Estrategia para procesar el evento "webhook_register_phone"
- * 
+ *
  * Este evento registra un nuevo lead desde una llamada IVR o chatbot.
  */
 class RegisterPhoneEventStrategy implements WebhookEventStrategyInterface
@@ -116,4 +116,3 @@ class RegisterPhoneEventStrategy implements WebhookEventStrategyInterface
         return [];
     }
 }
-

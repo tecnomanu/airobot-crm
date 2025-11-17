@@ -22,7 +22,7 @@ class WhatsAppSenderService
         $apiKey = $source->getConfigValue('api_key');
         $instanceName = $source->getConfigValue('instance_name');
 
-        if (!$apiUrl || !$apiKey || !$instanceName) {
+        if (! $apiUrl || ! $apiKey || ! $instanceName) {
             throw new \Exception('Configuración de WhatsApp incompleta en la fuente');
         }
 
@@ -67,8 +67,7 @@ class WhatsAppSenderService
                 'response' => $response->body(),
             ]);
 
-            throw new \Exception('Error al enviar mensaje: ' . $response->body());
-
+            throw new \Exception('Error al enviar mensaje: '.$response->body());
         } catch (\Exception $e) {
             Log::error('Excepción al enviar mensaje WhatsApp', [
                 'lead_id' => $lead->id,
@@ -88,7 +87,7 @@ class WhatsAppSenderService
         $apiKey = $source->getConfigValue('api_key');
         $instanceName = $source->getConfigValue('instance_name');
 
-        if (!$apiUrl || !$apiKey || !$instanceName) {
+        if (! $apiUrl || ! $apiKey || ! $instanceName) {
             return [
                 'success' => false,
                 'error' => 'Configuración incompleta',
@@ -121,4 +120,3 @@ class WhatsAppSenderService
         }
     }
 }
-

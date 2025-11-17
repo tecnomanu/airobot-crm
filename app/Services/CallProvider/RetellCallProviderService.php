@@ -17,7 +17,7 @@ class RetellCallProviderService implements CallProviderServiceInterface
 
         // Extraer variables dinámicas (campaign_id, lead info, etc.)
         $dynamicVars = $call['retell_llm_dynamic_variables'] ?? [];
-        
+
         // Calcular costo total
         $cost = null;
         if (isset($call['call_cost']['combined_cost'])) {
@@ -33,7 +33,7 @@ class RetellCallProviderService implements CallProviderServiceInterface
         }
 
         // Timestamps
-        $startedAt = isset($call['start_timestamp']) 
+        $startedAt = isset($call['start_timestamp'])
             ? Carbon::createFromTimestampMs($call['start_timestamp'])
             : null;
 
@@ -79,22 +79,22 @@ class RetellCallProviderService implements CallProviderServiceInterface
         // Retell envía firma en header x-retell-signature
         // Formato: "v=timestamp,d=hash"
         $signature = $headers['x-retell-signature'] ?? $headers['X-Retell-Signature'] ?? null;
-        
-        if (!$signature) {
+
+        if (! $signature) {
             return false;
         }
 
         // TODO: Implementar validación real con secret de Retell
         // Por ahora, solo verificamos que exista la firma
         $secret = config('services.retell.webhook_secret', env('RETELL_WEBHOOK_SECRET'));
-        
-        if (!$secret) {
+
+        if (! $secret) {
             // Si no hay secret configurado, aceptar (modo desarrollo)
             return true;
         }
 
         // Parsear firma: v=timestamp,d=hash
-        if (!preg_match('/v=(\d+),d=([a-f0-9]+)/', $signature, $matches)) {
+        if (! preg_match('/v=(\d+),d=([a-f0-9]+)/', $signature, $matches)) {
             return false;
         }
 
@@ -102,7 +102,7 @@ class RetellCallProviderService implements CallProviderServiceInterface
         $receivedHash = $matches[2];
 
         // Construir payload firmado: timestamp.body
-        $signedPayload = $timestamp . '.' . $rawBody;
+        $signedPayload = $timestamp.'.'.$rawBody;
 
         // Calcular hash esperado
         $expectedHash = hash_hmac('sha256', $signedPayload, $secret);
@@ -131,7 +131,7 @@ class RetellCallProviderService implements CallProviderServiceInterface
 
         // Si terminó, usar disconnection_reason para determinar status
         if ($callStatus === 'ended') {
-            return match($disconnectionReason) {
+            return match ($disconnectionReason) {
                 'agent_hangup', 'user_hangup' => 'completed',
                 'voicemail_reached' => 'voicemail_reached',
                 'no_answer' => 'no_answer',
@@ -144,4 +144,3 @@ class RetellCallProviderService implements CallProviderServiceInterface
         return $callStatus;
     }
 }
-

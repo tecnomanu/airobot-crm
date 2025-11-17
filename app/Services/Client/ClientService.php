@@ -33,7 +33,7 @@ class ClientService
     public function createClient(array $data): Client
     {
         // Validar que el email sea único si se proporciona
-        if (!empty($data['email'])) {
+        if (! empty($data['email'])) {
             $existing = $this->clientRepository->findByEmail($data['email']);
             if ($existing) {
                 throw new \InvalidArgumentException('Ya existe un cliente con ese email');
@@ -50,12 +50,12 @@ class ClientService
     {
         $client = $this->clientRepository->findById($id);
 
-        if (!$client) {
+        if (! $client) {
             throw new \InvalidArgumentException('Cliente no encontrado');
         }
 
         // Validar email único si se está cambiando
-        if (!empty($data['email']) && $data['email'] !== $client->email) {
+        if (! empty($data['email']) && $data['email'] !== $client->email) {
             $existing = $this->clientRepository->findByEmail($data['email']);
             if ($existing) {
                 throw new \InvalidArgumentException('Ya existe un cliente con ese email');
@@ -73,7 +73,7 @@ class ClientService
     {
         $client = $this->clientRepository->findById($id);
 
-        if (!$client) {
+        if (! $client) {
             throw new \InvalidArgumentException('Cliente no encontrado');
         }
 
@@ -104,7 +104,7 @@ class ClientService
     {
         $client = $this->clientRepository->findById($id);
 
-        if (!$client) {
+        if (! $client) {
             throw new \InvalidArgumentException('Cliente no encontrado');
         }
 
@@ -115,4 +115,3 @@ class ClientService
         ]);
     }
 }
-

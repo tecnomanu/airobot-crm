@@ -39,7 +39,7 @@ class CampaignWhatsappTemplateService
                 $data['campaign_id'],
                 $data['code']
             );
-            
+
             if ($existing) {
                 throw new \InvalidArgumentException(
                     'Ya existe un template con ese código en esta campaña'
@@ -56,8 +56,8 @@ class CampaignWhatsappTemplateService
     public function updateTemplate(string $id, array $data): CampaignWhatsappTemplate
     {
         $template = $this->templateRepository->findById($id);
-        
-        if (!$template) {
+
+        if (! $template) {
             throw new \InvalidArgumentException('Template no encontrado');
         }
 
@@ -67,7 +67,7 @@ class CampaignWhatsappTemplateService
                 $template->campaign_id,
                 $data['code']
             );
-            
+
             if ($existing) {
                 throw new \InvalidArgumentException(
                     'Ya existe un template con ese código en esta campaña'
@@ -84,12 +84,11 @@ class CampaignWhatsappTemplateService
     public function deleteTemplate(string $id): bool
     {
         $template = $this->templateRepository->findById($id);
-        
-        if (!$template) {
+
+        if (! $template) {
             throw new \InvalidArgumentException('Template no encontrado');
         }
 
         return $this->templateRepository->delete($template);
     }
 }
-

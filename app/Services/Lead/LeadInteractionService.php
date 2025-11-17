@@ -30,10 +30,11 @@ class LeadInteractionService
             $phone = PhoneHelper::normalize($data['phone']);
 
             // Evitar duplicados por external_id
-            if (!empty($data['external_id'])) {
+            if (! empty($data['external_id'])) {
                 $existing = $this->interactionRepository->findByExternalId($data['external_id']);
                 if ($existing) {
                     Log::info('Interacción duplicada, ignorando', ['external_id' => $data['external_id']]);
+
                     return $existing;
                 }
             }
@@ -44,7 +45,7 @@ class LeadInteractionService
 
             if ($lead) {
                 $campaign = $lead->campaign;
-            } elseif (!empty($data['campaign_id'])) {
+            } elseif (! empty($data['campaign_id'])) {
                 $campaign = $this->campaignRepository->findById($data['campaign_id']);
             }
 
@@ -105,4 +106,3 @@ class LeadInteractionService
         return $this->interactionRepository->create($interactionData);
     }
 }
-

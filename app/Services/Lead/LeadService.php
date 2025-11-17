@@ -19,7 +19,7 @@ class LeadService
         private ?LeadOptionProcessorService $optionProcessor = null
     ) {
         // Lazy load del servicio para evitar dependencias circulares
-        if (!$this->optionProcessor) {
+        if (! $this->optionProcessor) {
             $this->optionProcessor = app(LeadOptionProcessorService::class);
         }
     }
@@ -48,8 +48,8 @@ class LeadService
     {
         // Validar que la campaña exista
         $campaign = $this->campaignRepository->findById($data['campaign_id']);
-        
-        if (!$campaign) {
+
+        if (! $campaign) {
             throw new \InvalidArgumentException('Campaña no encontrada');
         }
 
@@ -67,7 +67,7 @@ class LeadService
     {
         $lead = $this->leadRepository->findById($id);
 
-        if (!$lead) {
+        if (! $lead) {
             throw new \InvalidArgumentException('Lead no encontrado');
         }
 
@@ -81,7 +81,7 @@ class LeadService
     {
         $lead = $this->leadRepository->findById($id);
 
-        if (!$lead) {
+        if (! $lead) {
             throw new \InvalidArgumentException('Lead no encontrado');
         }
 
@@ -96,11 +96,12 @@ class LeadService
     {
         $campaign = $this->campaignRepository->findByMatchPattern($pattern);
 
-        if (!$campaign) {
+        if (! $campaign) {
             return null;
         }
 
         $leadData['campaign_id'] = $campaign->id;
+
         return $this->createLead($leadData);
     }
 
@@ -111,7 +112,7 @@ class LeadService
     {
         $lead = $this->leadRepository->findById($leadId);
 
-        if (!$lead) {
+        if (! $lead) {
             throw new \InvalidArgumentException('Lead no encontrado');
         }
 
@@ -163,15 +164,15 @@ class LeadService
         return DB::transaction(function () use ($leadData) {
             // Normalizar teléfono
             $phone = PhoneHelper::normalize($leadData['phone']);
-            
-            if (!PhoneHelper::isValid($phone)) {
-                throw new \InvalidArgumentException('Número de teléfono inválido: ' . $leadData['phone']);
+
+            if (! PhoneHelper::isValid($phone)) {
+                throw new \InvalidArgumentException('Número de teléfono inválido: '.$leadData['phone']);
             }
 
             // Buscar campaña
             $campaign = $this->findCampaignForLead($leadData);
 
-            if (!$campaign) {
+            if (! $campaign) {
                 Log::warning('No se encontró campaña para lead', [
                     'phone' => $phone,
                     'campaign_slug' => $leadData['slug'] ?? $leadData['campaign'] ?? $leadData['campaign_slug'] ?? null,
@@ -201,7 +202,7 @@ class LeadService
                     'lead_id' => $existingLead->id,
                     'phone' => $phone,
                 ]);
-                
+
                 $lead = $this->leadRepository->update($existingLead, $data);
             } else {
                 // Crear nuevo lead
@@ -232,39 +233,43 @@ class LeadService
         $campaign = $lead->campaign;
 
         // Verificar si el auto-proceso está habilitado
-        if (!$campaign || !$campaign->auto_process_enabled) {
+        if (! $campaign || ! $campaign->auto_process_enabled) {
             Log::info('Auto-proceso deshabilitado para esta campaña', [
                 'lead_id' => $lead->id,
                 'campaign_id' => $campaign?->id,
             ]);
+
             return;
         }
 
         // Verificar si el lead tiene una opción seleccionada
-        if (!$lead->option_selected) {
+        if (! $lead->option_selected) {
             Log::info('Lead no tiene opción seleccionada, no se auto-procesa', [
                 'lead_id' => $lead->id,
             ]);
+
             return;
         }
 
         // Buscar la configuración de la opción
         $option = $campaign->getOption($lead->option_selected);
 
-        if (!$option) {
+        if (! $option) {
             Log::warning('No se encontró configuración para la opción seleccionada', [
                 'lead_id' => $lead->id,
                 'option_selected' => $lead->option_selected,
             ]);
+
             return;
         }
 
         // Verificar que la opción esté habilitada
-        if (!$option->enabled) {
+        if (! $option->enabled) {
             Log::info('Opción deshabilitada, no se procesa', [
                 'lead_id' => $lead->id,
                 'option_key' => $option->option_key,
             ]);
+
             return;
         }
 
@@ -323,4 +328,3 @@ class LeadService
         return null;
     }
 }
-

@@ -25,4 +25,3 @@ interface CallProviderServiceInterface
      */
     public function getProviderName(): string;
 }
-

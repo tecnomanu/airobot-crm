@@ -15,11 +15,12 @@ interface WebhookSenderInterface
 {
     /**
      * Enviar lead a destino configurado en Source
-     * 
-     * @param Source $source Fuente tipo WEBHOOK con config (url, method, secret)
-     * @param Lead $lead Lead a enviar
-     * @param array $extraPayload Datos adicionales para incluir en el payload
+     *
+     * @param  Source  $source  Fuente tipo WEBHOOK con config (url, method, secret)
+     * @param  Lead  $lead  Lead a enviar
+     * @param  array  $extraPayload  Datos adicionales para incluir en el payload
      * @return WebhookResultDTO Resultado del envío
+     *
      * @throws \Exception Si el envío falla
      */
     public function sendLeadToDestination(
@@ -28,4 +29,3 @@ interface WebhookSenderInterface
         array $extraPayload = []
     ): WebhookResultDTO;
 }
-

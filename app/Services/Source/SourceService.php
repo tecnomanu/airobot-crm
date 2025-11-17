@@ -28,10 +28,8 @@ class SourceService
 
     /**
      * Lista fuentes con paginación y filtros
-     * 
-     * @param array $filters [type, status, client_id, search, active_only]
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     *
+     * @param  array  $filters  [type, status, client_id, search, active_only]
      */
     public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
@@ -40,9 +38,6 @@ class SourceService
 
     /**
      * Obtiene todas las fuentes sin paginación
-     * 
-     * @param array $filters
-     * @return Collection
      */
     public function getAll(array $filters = []): Collection
     {
@@ -51,9 +46,7 @@ class SourceService
 
     /**
      * Obtiene una fuente por ID
-     * 
-     * @param int $id
-     * @return Source
+     *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function getById(int $id): Source
@@ -63,9 +56,7 @@ class SourceService
 
     /**
      * Crea una nueva fuente
-     * 
-     * @param array $data
-     * @return Source
+     *
      * @throws ValidationException
      */
     public function create(array $data): Source
@@ -80,7 +71,7 @@ class SourceService
         $this->validateConfig($type, $data['config'] ?? []);
 
         // Establecer estado inicial si no viene
-        if (!isset($data['status'])) {
+        if (! isset($data['status'])) {
             $data['status'] = SourceStatus::PENDING_SETUP->value;
         }
 
@@ -99,10 +90,7 @@ class SourceService
 
     /**
      * Actualiza una fuente existente
-     * 
-     * @param int $id
-     * @param array $data
-     * @return Source
+     *
      * @throws ValidationException
      */
     public function update(int $id, array $data): Source
@@ -112,7 +100,7 @@ class SourceService
         // Si cambia el tipo, validarlo
         if (isset($data['type'])) {
             $type = $this->validateAndGetType($data['type']);
-            
+
             // Si cambia el tipo, validar nueva config
             if ($source->type->value !== $type->value && isset($data['config'])) {
                 $this->validateConfig($type, $data['config']);
@@ -130,13 +118,13 @@ class SourceService
 
         // Si actualiza config, validar según tipo actual o nuevo
         if (isset($data['config'])) {
-            $typeForValidation = isset($data['type']) 
-                ? $this->validateAndGetType($data['type']) 
+            $typeForValidation = isset($data['type'])
+                ? $this->validateAndGetType($data['type'])
                 : $source->type;
             $this->validateConfig($typeForValidation, $data['config']);
         }
 
-        return DB::transaction(function () use ($id, $data, $source) {
+        return DB::transaction(function () use ($id, $data) {
             $updated = $this->sourceRepository->update($id, $data);
 
             Log::info('Source updated', [
@@ -150,9 +138,6 @@ class SourceService
 
     /**
      * Elimina una fuente
-     * 
-     * @param int $id
-     * @return bool
      */
     public function delete(int $id): bool
     {
@@ -174,9 +159,7 @@ class SourceService
 
     /**
      * Activa una fuente
-     * 
-     * @param int $id
-     * @return Source
+     *
      * @throws ValidationException
      */
     public function activate(int $id): Source
@@ -184,7 +167,7 @@ class SourceService
         $source = $this->sourceRepository->findOrFail($id);
 
         // Validar que tenga configuración válida antes de activar
-        if (!$source->hasValidConfig()) {
+        if (! $source->hasValidConfig()) {
             throw new ValidationException(
                 'No se puede activar la fuente sin una configuración válida'
             );
@@ -195,9 +178,6 @@ class SourceService
 
     /**
      * Desactiva una fuente
-     * 
-     * @param int $id
-     * @return Source
      */
     public function deactivate(int $id): Source
     {
@@ -206,10 +186,6 @@ class SourceService
 
     /**
      * Marca una fuente con error
-     * 
-     * @param int $id
-     * @param string|null $errorMessage
-     * @return Source
      */
     public function markAsError(int $id, ?string $errorMessage = null): Source
     {
@@ -227,10 +203,6 @@ class SourceService
 
     /**
      * Obtiene fuentes por tipo
-     * 
-     * @param SourceType|string $type
-     * @param bool $activeOnly
-     * @return Collection
      */
     public function getByType(SourceType|string $type, bool $activeOnly = false): Collection
     {
@@ -241,10 +213,6 @@ class SourceService
 
     /**
      * Obtiene fuentes por cliente
-     * 
-     * @param string|int $clientId
-     * @param bool $activeOnly
-     * @return Collection
      */
     public function getByClient(string|int $clientId, bool $activeOnly = false): Collection
     {
@@ -255,8 +223,6 @@ class SourceService
 
     /**
      * Obtiene estadísticas de fuentes
-     * 
-     * @return array
      */
     public function getStats(): array
     {
@@ -275,9 +241,7 @@ class SourceService
 
     /**
      * Valida y obtiene el tipo de fuente
-     * 
-     * @param string $typeValue
-     * @return SourceType
+     *
      * @throws ValidationException
      */
     protected function validateAndGetType(string $typeValue): SourceType
@@ -291,10 +255,7 @@ class SourceService
 
     /**
      * Valida que el nombre sea único para el cliente
-     * 
-     * @param string $name
-     * @param string|int|null $clientId
-     * @param int|null $excludeId
+     *
      * @throws ValidationException
      */
     protected function validateUniqueName(string $name, string|int|null $clientId = null, ?int $excludeId = null): void
@@ -308,9 +269,7 @@ class SourceService
 
     /**
      * Valida la configuración según el tipo de fuente
-     * 
-     * @param SourceType $type
-     * @param array $config
+     *
      * @throws ValidationException
      */
     protected function validateConfig(SourceType $type, array $config): void
@@ -324,9 +283,9 @@ class SourceService
             }
         }
 
-        if (!empty($missing)) {
+        if (! empty($missing)) {
             throw new ValidationException(
-                'Configuración incompleta. Campos requeridos faltantes: ' . implode(', ', $missing)
+                'Configuración incompleta. Campos requeridos faltantes: '.implode(', ', $missing)
             );
         }
 
@@ -344,12 +303,12 @@ class SourceService
      */
     protected function validateWebhookConfig(array $config): void
     {
-        if (!filter_var($config['url'], FILTER_VALIDATE_URL)) {
+        if (! filter_var($config['url'], FILTER_VALIDATE_URL)) {
             throw new ValidationException('URL de webhook inválida');
         }
 
         $validMethods = ['GET', 'POST', 'PUT', 'PATCH'];
-        if (!in_array(strtoupper($config['method']), $validMethods)) {
+        if (! in_array(strtoupper($config['method']), $validMethods)) {
             throw new ValidationException('Método HTTP inválido');
         }
     }
@@ -359,7 +318,7 @@ class SourceService
      */
     protected function validateWhatsappConfig(array $config): void
     {
-        if (!filter_var($config['api_url'], FILTER_VALIDATE_URL)) {
+        if (! filter_var($config['api_url'], FILTER_VALIDATE_URL)) {
             throw new ValidationException('URL de Evolution API inválida');
         }
     }
@@ -369,17 +328,13 @@ class SourceService
      */
     protected function validateMetaWhatsappConfig(array $config): void
     {
-        if (!is_numeric($config['phone_number_id'])) {
+        if (! is_numeric($config['phone_number_id'])) {
             throw new ValidationException('Phone Number ID inválido');
         }
     }
 
     /**
      * Actualiza el estado de una fuente
-     * 
-     * @param int $id
-     * @param SourceStatus $status
-     * @return Source
      */
     protected function updateStatus(int $id, SourceStatus $status): Source
     {
@@ -388,4 +343,3 @@ class SourceService
         ]);
     }
 }
-

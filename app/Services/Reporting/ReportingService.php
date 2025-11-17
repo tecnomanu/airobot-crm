@@ -7,7 +7,6 @@ use App\DTOs\Reporting\ClientMonthlySummary;
 use App\DTOs\Reporting\GlobalMetrics;
 use App\Enums\CampaignStatus;
 use App\Enums\ClientStatus;
-use App\Enums\LeadStatus;
 use App\Models\Campaign;
 use App\Models\Client;
 use App\Repositories\Interfaces\CallHistoryRepositoryInterface;
@@ -84,7 +83,7 @@ class ReportingService
             return new ClientMonthlySummary(
                 clientId: $client->id,
                 clientName: $client->name,
-                period: $from->format('Y-m') . ' - ' . $to->format('Y-m'),
+                period: $from->format('Y-m').' - '.$to->format('Y-m'),
                 totalLeads: 0,
                 pendingLeads: 0,
                 contactedLeads: 0,
@@ -186,7 +185,7 @@ class ReportingService
         return new ClientMonthlySummary(
             clientId: $client->id,
             clientName: $client->name,
-            period: $from->format('M Y') . ' - ' . $to->format('M Y'),
+            period: $from->format('M Y').' - '.$to->format('M Y'),
             totalLeads: $totals['leads'],
             pendingLeads: $totals['pending'],
             contactedLeads: $totals['contacted'],

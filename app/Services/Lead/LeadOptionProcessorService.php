@@ -3,10 +3,15 @@
 namespace App\Services\Lead;
 
 use App\Enums\CampaignActionType;
+use App\Enums\InteractionChannel;
+use App\Enums\InteractionDirection;
+use App\Enums\LeadIntentionOrigin;
+use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadStatus;
 use App\Enums\SourceStatus;
 use App\Models\CampaignOption;
 use App\Models\Lead;
+use App\Models\LeadInteraction;
 use App\Services\WhatsAppSenderService;
 use Illuminate\Support\Facades\Log;
 
@@ -46,22 +51,24 @@ class LeadOptionProcessorService
     protected function processWhatsAppAction(Lead $lead, CampaignOption $option): void
     {
         // Verificar que haya un source_id configurado
-        if (!$option->source_id) {
+        if (! $option->source_id) {
             Log::warning('No hay source_id configurado para opción de WhatsApp', [
                 'lead_id' => $lead->id,
                 'option_id' => $option->id,
             ]);
+
             return;
         }
 
         // Obtener la fuente de WhatsApp
         $source = $option->source;
-        
-        if (!$source) {
+
+        if (! $source) {
             Log::warning('Source no encontrado', [
                 'lead_id' => $lead->id,
                 'source_id' => $option->source_id,
             ]);
+
             return;
         }
 
@@ -72,17 +79,19 @@ class LeadOptionProcessorService
                 'source_id' => $source->id,
                 'source_status' => $source->status->value,
             ]);
+
             return;
         }
 
         // Obtener el mensaje
         $message = $this->getMessage($option);
 
-        if (!$message) {
+        if (! $message) {
             Log::warning('No hay mensaje configurado', [
                 'lead_id' => $lead->id,
                 'option_id' => $option->id,
             ]);
+
             return;
         }
 
@@ -100,11 +109,33 @@ class LeadOptionProcessorService
                 'result' => $result,
             ]);
 
-            // Actualizar estado del lead
+            // Registrar interacción outbound
+            LeadInteraction::create([
+                'lead_id' => $lead->id,
+                'campaign_id' => $lead->campaign_id,
+                'channel' => InteractionChannel::WHATSAPP,
+                'direction' => InteractionDirection::OUTBOUND,
+                'content' => $message,
+                'payload' => [
+                    'source_id' => $source->id,
+                    'option_key' => $option->option_key,
+                    'result' => $result,
+                ],
+                'phone' => $lead->phone,
+            ]);
+
+            // Actualizar estado de intención del lead
             $lead->update([
                 'status' => LeadStatus::IN_PROGRESS,
                 'automation_status' => 'completed',
                 'last_automation_run_at' => now(),
+                'intention_status' => LeadIntentionStatus::PENDING,
+                'intention_origin' => LeadIntentionOrigin::WHATSAPP,
+            ]);
+
+            Log::info('Intent registrado como PENDING para lead', [
+                'lead_id' => $lead->id,
+                'origin' => 'whatsapp',
             ]);
 
         } catch (\Exception $e) {
@@ -188,4 +219,3 @@ class LeadOptionProcessorService
         return 'Gracias por tu interés. Un asesor se contactará contigo pronto.';
     }
 }
-

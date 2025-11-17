@@ -6,9 +6,6 @@ use App\Enums\SourceStatus;
 use App\Enums\SourceType;
 use App\Exceptions\Business\ValidationException;
 use App\Models\Campaign;
-use App\Models\CampaignCallAgent;
-use App\Models\CampaignOption;
-use App\Models\CampaignWhatsappAgent;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\ClientRepositoryInterface;
 use App\Repositories\Interfaces\SourceRepositoryInterface;
@@ -43,7 +40,7 @@ class CampaignService
             'whatsappAgent.source',
             'options.source',
             'options.template',
-            'whatsappTemplates'
+            'whatsappTemplates',
         ]);
     }
 
@@ -54,15 +51,15 @@ class CampaignService
     {
         // Validar que el cliente exista
         $client = $this->clientRepository->findById($data['client_id']);
-        
-        if (!$client) {
+
+        if (! $client) {
             throw new \InvalidArgumentException('Cliente no encontrado');
         }
 
         return DB::transaction(function () use ($data) {
             // Generar slug único si no se proporciona
             $slug = $data['slug'] ?? $this->generateUniqueSlug($data['name']);
-            
+
             // Crear campaña base
             $campaign = $this->campaignRepository->create([
                 'name' => $data['name'],
@@ -92,7 +89,7 @@ class CampaignService
                 'callAgent',
                 'whatsappAgent.source',
                 'options.source',
-                'options.template'
+                'options.template',
             ]);
         });
     }
@@ -104,20 +101,20 @@ class CampaignService
     {
         $campaign = $this->campaignRepository->findById($id);
 
-        if (!$campaign) {
+        if (! $campaign) {
             throw new \InvalidArgumentException('Campaña no encontrada');
         }
 
         return DB::transaction(function () use ($campaign, $data) {
             // Actualizar datos base de la campaña
-        $baseData = array_intersect_key($data, array_flip([
-            'name',
-            'description',
-            'status',
-            'auto_process_enabled'
-        ]));
+            $baseData = array_intersect_key($data, array_flip([
+                'name',
+                'description',
+                'status',
+                'auto_process_enabled',
+            ]));
 
-            if (!empty($baseData)) {
+            if (! empty($baseData)) {
                 $campaign = $this->campaignRepository->update($campaign, $baseData);
             }
 
@@ -140,7 +137,7 @@ class CampaignService
                 'callAgent',
                 'whatsappAgent.source',
                 'options.source',
-                'options.template'
+                'options.template',
             ]);
         });
     }
@@ -153,7 +150,7 @@ class CampaignService
     {
         $campaign = $this->campaignRepository->findById($id);
 
-        if (!$campaign) {
+        if (! $campaign) {
             throw new \InvalidArgumentException('Campaña no encontrada');
         }
 
@@ -183,7 +180,7 @@ class CampaignService
     {
         $campaign = $this->campaignRepository->findById($id);
 
-        if (!$campaign) {
+        if (! $campaign) {
             throw new \InvalidArgumentException('Campaña no encontrada');
         }
 
@@ -247,9 +244,9 @@ class CampaignService
     {
         foreach ($options as $optionData) {
             // Validar fuente si se proporciona
-            if (isset($optionData['source_id']) && !empty($optionData['source_id'])) {
+            if (isset($optionData['source_id']) && ! empty($optionData['source_id'])) {
                 $source = $this->sourceRepository->findById($optionData['source_id']);
-                if (!$source) {
+                if (! $source) {
                     throw new ValidationException('Una de las fuentes seleccionadas no existe');
                 }
             }
@@ -257,7 +254,7 @@ class CampaignService
             $campaign->options()->updateOrCreate(
                 [
                     'campaign_id' => $campaign->id,
-                    'option_key' => $optionData['option_key']
+                    'option_key' => $optionData['option_key'],
                 ],
                 [
                     'action' => $optionData['action'] ?? 'none',
@@ -295,19 +292,19 @@ class CampaignService
 
         $source = $this->sourceRepository->findById($sourceId);
 
-        if (!$source) {
+        if (! $source) {
             throw new ValidationException('La fuente de WhatsApp seleccionada no existe');
         }
 
         if ($source->status !== SourceStatus::ACTIVE) {
             throw new ValidationException(
-                'La fuente de WhatsApp debe estar activa. Estado actual: ' . $source->status->label()
+                'La fuente de WhatsApp debe estar activa. Estado actual: '.$source->status->label()
             );
         }
 
-        if (!$source->type->isMessaging()) {
+        if (! $source->type->isMessaging()) {
             throw new ValidationException(
-                'La fuente seleccionada no es de tipo WhatsApp. Tipo actual: ' . $source->type->label()
+                'La fuente seleccionada no es de tipo WhatsApp. Tipo actual: '.$source->type->label()
             );
         }
     }
@@ -323,19 +320,19 @@ class CampaignService
 
         $source = $this->sourceRepository->findById($sourceId);
 
-        if (!$source) {
+        if (! $source) {
             throw new ValidationException('La fuente de Webhook seleccionada no existe');
         }
 
         if ($source->status !== SourceStatus::ACTIVE) {
             throw new ValidationException(
-                'La fuente de Webhook debe estar activa. Estado actual: ' . $source->status->label()
+                'La fuente de Webhook debe estar activa. Estado actual: '.$source->status->label()
             );
         }
 
         if ($source->type !== SourceType::WEBHOOK) {
             throw new ValidationException(
-                'La fuente seleccionada no es de tipo Webhook. Tipo actual: ' . $source->type->label()
+                'La fuente seleccionada no es de tipo Webhook. Tipo actual: '.$source->type->label()
             );
         }
     }
@@ -351,7 +348,7 @@ class CampaignService
 
         // Asegurar que el slug sea único
         while (Campaign::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
 

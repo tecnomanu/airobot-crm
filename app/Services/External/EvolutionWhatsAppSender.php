@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\External;
 
-use App\Enums\SourceType;
 use App\Models\Lead;
 use App\Models\Source;
 use Illuminate\Support\Facades\Http;
@@ -19,13 +18,13 @@ class EvolutionWhatsAppSender implements WhatsAppSenderInterface
      * {@inheritDoc}
      */
     public function sendMessage(
-        Source $source, 
-        Lead $lead, 
-        string $body, 
+        Source $source,
+        Lead $lead,
+        string $body,
         array $attachments = []
     ): array {
         // Validar que la fuente sea de WhatsApp
-        if (!$source->type->isMessaging()) {
+        if (! $source->type->isMessaging()) {
             throw new \InvalidArgumentException(
                 "Source debe ser de tipo WhatsApp. Tipo actual: {$source->type->label()}"
             );
@@ -36,7 +35,7 @@ class EvolutionWhatsAppSender implements WhatsAppSenderInterface
         $apiKey = $source->getConfigValue('api_key');
         $instanceName = $source->getConfigValue('instance_name');
 
-        if (!$apiUrl || !$apiKey || !$instanceName) {
+        if (! $apiUrl || ! $apiKey || ! $instanceName) {
             throw new \InvalidArgumentException(
                 'Source WhatsApp no tiene configuración completa (api_url, api_key, instance_name)'
             );
@@ -51,7 +50,7 @@ class EvolutionWhatsAppSender implements WhatsAppSenderInterface
 
         // Construir endpoint según Evolution API
         // Formato típico: {base_url}/message/sendText/{instance}
-        $endpoint = rtrim($apiUrl, '/') . "/message/sendText/{$instanceName}";
+        $endpoint = rtrim($apiUrl, '/')."/message/sendText/{$instanceName}";
 
         try {
             $response = Http::timeout(30)
@@ -66,7 +65,7 @@ class EvolutionWhatsAppSender implements WhatsAppSenderInterface
                     ],
                 ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 throw new \Exception(
                     "Evolution API error: HTTP {$response->status()} - {$response->body()}"
                 );
@@ -103,7 +102,7 @@ class EvolutionWhatsAppSender implements WhatsAppSenderInterface
         array $variables = []
     ): array {
         // Validar fuente
-        if (!$source->type->isMessaging()) {
+        if (! $source->type->isMessaging()) {
             throw new \InvalidArgumentException(
                 "Source debe ser de tipo WhatsApp. Tipo actual: {$source->type->label()}"
             );
@@ -113,7 +112,7 @@ class EvolutionWhatsAppSender implements WhatsAppSenderInterface
         $apiKey = $source->getConfigValue('api_key');
         $instanceName = $source->getConfigValue('instance_name');
 
-        if (!$apiUrl || !$apiKey || !$instanceName) {
+        if (! $apiUrl || ! $apiKey || ! $instanceName) {
             throw new \InvalidArgumentException(
                 'Source WhatsApp no tiene configuración completa'
             );
@@ -130,4 +129,3 @@ class EvolutionWhatsAppSender implements WhatsAppSenderInterface
         throw new \Exception('Envío de templates no implementado aún');
     }
 }
-
