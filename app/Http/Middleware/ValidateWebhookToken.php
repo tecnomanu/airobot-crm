@@ -17,11 +17,11 @@ class ValidateWebhookToken
     {
         $token = $request->header('X-Webhook-Token');
         $expectedToken = config('services.whatsapp.webhook_token', env('WHATSAPP_WEBHOOK_TOKEN'));
-        
-        if (!$token || $token !== $expectedToken) {
+
+        if (! $token || $token !== $expectedToken) {
             return response()->json([
                 'error' => 'Unauthorized',
-                'message' => 'Invalid webhook token'
+                'message' => 'Invalid webhook token',
             ], 401);
         }
 

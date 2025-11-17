@@ -11,11 +11,11 @@ class ValidateWebhookSignature
 {
     /**
      * Handle an incoming request.
-     * 
+     *
      * Valida webhooks entrantes usando:
      * 1. Token simple en header (X-Webhook-Token)
      * 2. Firma HMAC en header (X-Webhook-Signature)
-     * 
+     *
      * Configuración en .env:
      * WEBHOOK_TOKEN=tu_token_secreto
      * WEBHOOK_SECRET=tu_secret_para_hmac
@@ -24,7 +24,7 @@ class ValidateWebhookSignature
     public function handle(Request $request, Closure $next): Response
     {
         // Si la validación está deshabilitada, permitir
-        if (!config('webhooks.validation_enabled', true)) {
+        if (! config('webhooks.validation_enabled', true)) {
             return $next($request);
         }
 
@@ -51,11 +51,12 @@ class ValidateWebhookSignature
                 'ip' => $request->ip(),
                 'path' => $request->path(),
             ]);
+
             return $next($request);
         }
 
         // Validar token
-        if (empty($token) || !hash_equals($expectedToken, $token)) {
+        if (empty($token) || ! hash_equals($expectedToken, $token)) {
             Log::warning('Webhook con token inválido rechazado', [
                 'ip' => $request->ip(),
                 'path' => $request->path(),
@@ -73,7 +74,7 @@ class ValidateWebhookSignature
 
     /**
      * Validar usando firma HMAC
-     * 
+     *
      * El servidor externo debe enviar:
      * X-Webhook-Signature: sha256=<hash_hmac_sha256(body, secret)>
      */
@@ -87,6 +88,7 @@ class ValidateWebhookSignature
                 'ip' => $request->ip(),
                 'path' => $request->path(),
             ]);
+
             return $next($request);
         }
 
@@ -104,10 +106,10 @@ class ValidateWebhookSignature
 
         // Calcular firma esperada
         $payload = $request->getContent();
-        $expectedSignature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
+        $expectedSignature = 'sha256='.hash_hmac('sha256', $payload, $secret);
 
         // Comparar firmas de forma segura
-        if (!hash_equals($expectedSignature, $signature)) {
+        if (! hash_equals($expectedSignature, $signature)) {
             Log::warning('Webhook con firma inválida rechazado', [
                 'ip' => $request->ip(),
                 'path' => $request->path(),

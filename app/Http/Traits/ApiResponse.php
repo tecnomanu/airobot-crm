@@ -10,12 +10,10 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 
 /**
  * Trait para estandarizar respuestas API
- * 
+ *
  * Formato de respuestas:
  * - Success: { success: true, message: "", data: {}, metadata: {} }
  * - Error: { success: false, message: "", error: "" }
- * 
- * @package App\Http\Traits
  */
 trait ApiResponse
 {
@@ -41,7 +39,7 @@ trait ApiResponse
         }
 
         // Agregar metadata si existe
-        if (!empty($metadata)) {
+        if (! empty($metadata)) {
             $response['metadata'] = $metadata;
         }
 
@@ -93,11 +91,11 @@ trait ApiResponse
             'message' => $message,
         ];
 
-        if (!empty($error)) {
+        if (! empty($error)) {
             $response['error'] = $error;
         }
 
-        if (!empty($metadata)) {
+        if (! empty($metadata)) {
             $response['metadata'] = $metadata;
         }
 
@@ -156,4 +154,3 @@ trait ApiResponse
         return $this->errorResponse($message, $error, 500);
     }
 }
-

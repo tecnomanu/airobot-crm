@@ -13,10 +13,6 @@ class ValidationException extends Exception
 {
     /**
      * Constructor
-     * 
-     * @param string $message
-     * @param int $code
-     * @param \Throwable|null $previous
      */
     public function __construct(
         string $message = 'Validation error',
@@ -26,4 +22,3 @@ class ValidationException extends Exception
         parent::__construct($message, $code, $previous);
     }
 }
-
