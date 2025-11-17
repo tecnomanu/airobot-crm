@@ -15,8 +15,9 @@ class CampaignWhatsappTemplateSeeder extends Seeder
     {
         $campaign = Campaign::first();
 
-        if (!$campaign) {
+        if (! $campaign) {
             $this->command->warn('⚠️  No hay campañas. Ejecuta DatabaseSeeder primero.');
+
             return;
         }
 
@@ -70,11 +71,10 @@ class CampaignWhatsappTemplateSeeder extends Seeder
             'campaign_id' => $campaign->id,
             'code' => 'draft_example',
             'name' => 'Plantilla Borrador',
-            'body' => "Esta es una plantilla en borrador que aún no está lista para usar.",
+            'body' => 'Esta es una plantilla en borrador que aún no está lista para usar.',
             'is_default' => false,
         ]);
 
         $this->command->info('✅ Plantillas de WhatsApp creadas exitosamente');
     }
 }
-

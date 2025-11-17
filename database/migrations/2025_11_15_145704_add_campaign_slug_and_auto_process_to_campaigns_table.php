@@ -27,7 +27,7 @@ return new class extends Migration
 
             // Asegurar que el slug sea único
             while (\App\Models\Campaign::where('campaign_slug', $slug)->where('id', '!=', $campaign->id)->exists()) {
-                $slug = $baseSlug . '-' . $counter;
+                $slug = $baseSlug.'-'.$counter;
                 $counter++;
             }
 

@@ -21,7 +21,7 @@ class SourceFactory extends Factory
     public function definition(): array
     {
         $type = fake()->randomElement(SourceType::cases());
-        
+
         return [
             'name' => fake()->words(3, true),
             'type' => $type->value,

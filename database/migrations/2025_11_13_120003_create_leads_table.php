@@ -22,14 +22,14 @@ return new class extends Migration
             $table->text('intention')->nullable();
             $table->text('notes')->nullable();
             $table->json('tags')->nullable();
-            
+
             // Webhook tracking
             $table->boolean('webhook_sent')->default(false);
             $table->text('webhook_result')->nullable();
 
             // Automation fields
             $table->string('automation_status')->default('pending')
-                  ->comment('pending, processing, completed, failed, skipped');
+                ->comment('pending, processing, completed, failed, skipped');
             $table->timestamp('next_action_at')->nullable();
             $table->timestamp('last_automation_run_at')->nullable();
             $table->integer('automation_attempts')->default(0);
@@ -51,4 +51,3 @@ return new class extends Migration
         Schema::dropIfExists('leads');
     }
 };
-

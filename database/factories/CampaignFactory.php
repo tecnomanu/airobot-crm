@@ -35,7 +35,7 @@ class CampaignFactory extends Factory
      */
     public function active(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => CampaignStatus::ACTIVE->value,
         ]);
     }
@@ -45,7 +45,7 @@ class CampaignFactory extends Factory
      */
     public function paused(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => CampaignStatus::PAUSED->value,
         ]);
     }

@@ -2,18 +2,18 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Client;
-use App\Models\Campaign;
-use App\Models\Lead;
-use App\Models\CallHistory;
-use App\Enums\ClientStatus;
-use App\Enums\CampaignStatus;
 use App\Enums\CallAgentProvider;
-use App\Enums\LeadStatus;
-use App\Enums\LeadSource;
-use App\Enums\LeadOptionSelected;
 use App\Enums\CallStatus;
+use App\Enums\CampaignStatus;
+use App\Enums\ClientStatus;
+use App\Enums\LeadOptionSelected;
+use App\Enums\LeadSource;
+use App\Enums\LeadStatus;
+use App\Models\CallHistory;
+use App\Models\Campaign;
+use App\Models\Client;
+use App\Models\Lead;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 

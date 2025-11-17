@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
-            
+
             $table->index('email');
             $table->index('status');
         });
@@ -30,4 +30,3 @@ return new class extends Migration
         Schema::dropIfExists('clients');
     }
 };
-
