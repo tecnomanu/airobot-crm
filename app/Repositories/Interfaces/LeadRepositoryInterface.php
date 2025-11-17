@@ -62,4 +62,10 @@ interface LeadRepositoryInterface
      * Buscar lead por teléfono y campaña (campaignId opcional)
      */
     public function findByPhoneAndCampaign(string $phone, ?string $campaignId = null): ?Lead;
+
+    /**
+     * Buscar lead por teléfono con variantes (búsqueda flexible)
+     * Intenta múltiples formatos de teléfono para encontrar coincidencias
+     */
+    public function findByPhoneWithVariants(string $phone): ?Lead;
 }

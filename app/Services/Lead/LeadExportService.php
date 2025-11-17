@@ -3,6 +3,7 @@
 namespace App\Services\Lead;
 
 use App\Enums\ExportRule;
+use App\Enums\LeadIntention;
 use App\Enums\LeadIntentionStatus;
 use App\Models\Campaign;
 use App\Models\Lead;
@@ -68,21 +69,24 @@ class LeadExportService
 
         // Regla INTERESTED_ONLY: solo interesados
         if ($campaign->export_rule === ExportRule::INTERESTED_ONLY) {
-            return $lead->intention === 'interested';
+            return $lead->intention === LeadIntention::INTERESTED->value;
         }
 
         // Regla NOT_INTERESTED_ONLY: solo no interesados
         if ($campaign->export_rule === ExportRule::NOT_INTERESTED_ONLY) {
-            return $lead->intention === 'not_interested';
+            return $lead->intention === LeadIntention::NOT_INTERESTED->value;
         }
 
         // Regla BOTH: ambos tipos (interesados y no interesados)
         if ($campaign->export_rule === ExportRule::BOTH) {
-            return in_array($lead->intention, ['interested', 'not_interested']);
+            return in_array($lead->intention, [
+                LeadIntention::INTERESTED->value,
+                LeadIntention::NOT_INTERESTED->value,
+            ]);
         }
 
         // Por defecto, solo exportar interesados
-        return $lead->intention === 'interested';
+        return $lead->intention === LeadIntention::INTERESTED->value;
     }
 
     /**
@@ -211,9 +215,9 @@ class LeadExportService
             'finalized' => $finalized->count(),
             'exported' => $exported->count(),
             'by_intention' => [
-                'interested' => $finalized->where('intention', 'interested')->count(),
-                'not_interested' => $finalized->where('intention', 'not_interested')->count(),
-                'no_response' => $finalized->where('intention', 'no_response')->count(),
+                'interested' => $finalized->where('intention', LeadIntention::INTERESTED->value)->count(),
+                'not_interested' => $finalized->where('intention', LeadIntention::NOT_INTERESTED->value)->count(),
+                'no_response' => $finalized->whereNull('intention')->count(),
             ],
             'exportable' => $finalized->filter(fn ($lead) => $this->shouldExportLead($lead))->count(),
         ];

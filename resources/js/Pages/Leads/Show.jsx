@@ -3,7 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link } from "@inertiajs/react";
-import { ArrowLeft, Calendar, MapPin, MessageSquare, Phone, User } from "lucide-react";
+import {
+    ArrowLeft,
+    Calendar,
+    MapPin,
+    MessageSquare,
+    Phone,
+    User,
+} from "lucide-react";
 
 export default function LeadShow({ lead }) {
     const getStatusColor = (status) => {
@@ -68,7 +75,9 @@ export default function LeadShow({ lead }) {
                             <div className="flex items-start gap-3">
                                 <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium">Nombre</p>
+                                    <p className="text-sm font-medium">
+                                        Nombre
+                                    </p>
                                     <p className="text-sm text-muted-foreground">
                                         {lead.name || "-"}
                                     </p>
@@ -78,7 +87,9 @@ export default function LeadShow({ lead }) {
                             <div className="flex items-start gap-3">
                                 <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium">Teléfono</p>
+                                    <p className="text-sm font-medium">
+                                        Teléfono
+                                    </p>
                                     <p className="text-sm text-muted-foreground">
                                         {lead.phone}
                                     </p>
@@ -88,7 +99,9 @@ export default function LeadShow({ lead }) {
                             <div className="flex items-start gap-3">
                                 <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium">Ciudad</p>
+                                    <p className="text-sm font-medium">
+                                        Ciudad
+                                    </p>
                                     <p className="text-sm text-muted-foreground">
                                         {lead.city || "-"}
                                     </p>
@@ -98,7 +111,9 @@ export default function LeadShow({ lead }) {
                             <div className="flex items-start gap-3">
                                 <MessageSquare className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium">Fuente</p>
+                                    <p className="text-sm font-medium">
+                                        Fuente
+                                    </p>
                                     <p className="text-sm text-muted-foreground capitalize">
                                         {lead.source_label || "-"}
                                     </p>
@@ -111,7 +126,9 @@ export default function LeadShow({ lead }) {
                                         📋
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium">Opción Seleccionada</p>
+                                        <p className="text-sm font-medium">
+                                            Opción Seleccionada
+                                        </p>
                                         <Badge variant="outline">
                                             Opción {lead.option_selected}
                                         </Badge>
@@ -125,10 +142,15 @@ export default function LeadShow({ lead }) {
                                         🏷️
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium">Tags</p>
+                                        <p className="text-sm font-medium">
+                                            Tags
+                                        </p>
                                         <div className="flex flex-wrap gap-2 mt-1">
                                             {lead.tags.map((tag, index) => (
-                                                <Badge key={index} variant="secondary">
+                                                <Badge
+                                                    key={index}
+                                                    variant="secondary"
+                                                >
                                                     {tag}
                                                 </Badge>
                                             ))}
@@ -147,9 +169,14 @@ export default function LeadShow({ lead }) {
                         <CardContent className="space-y-4">
                             {lead.campaign && (
                                 <div>
-                                    <p className="text-sm font-medium mb-2">Campaña</p>
+                                    <p className="text-sm font-medium mb-2">
+                                        Campaña
+                                    </p>
                                     <Link
-                                        href={route("campaigns.show", lead.campaign.id)}
+                                        href={route(
+                                            "campaigns.show",
+                                            lead.campaign.id
+                                        )}
                                         className="text-blue-600 hover:underline"
                                     >
                                         {lead.campaign.name}
@@ -165,7 +192,9 @@ export default function LeadShow({ lead }) {
                             <div className="flex items-start gap-3">
                                 <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium">Fecha de Creación</p>
+                                    <p className="text-sm font-medium">
+                                        Fecha de Creación
+                                    </p>
                                     <p className="text-sm text-muted-foreground">
                                         {formatDate(lead.created_at)}
                                     </p>
@@ -175,7 +204,9 @@ export default function LeadShow({ lead }) {
                             <div className="flex items-start gap-3">
                                 <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium">Última Actualización</p>
+                                    <p className="text-sm font-medium">
+                                        Última Actualización
+                                    </p>
                                     <p className="text-sm text-muted-foreground">
                                         {formatDate(lead.updated_at)}
                                     </p>
@@ -186,7 +217,9 @@ export default function LeadShow({ lead }) {
                                 <div className="flex items-start gap-3">
                                     <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium">Fecha de Envío</p>
+                                        <p className="text-sm font-medium">
+                                            Fecha de Envío
+                                        </p>
                                         <p className="text-sm text-muted-foreground">
                                             {formatDate(lead.sent_at)}
                                         </p>
@@ -196,7 +229,10 @@ export default function LeadShow({ lead }) {
 
                             {lead.webhook_sent && (
                                 <div>
-                                    <Badge variant="outline" className="bg-green-50">
+                                    <Badge
+                                        variant="outline"
+                                        className="bg-green-50"
+                                    >
                                         ✓ Enviado a webhook del cliente
                                     </Badge>
                                 </div>
@@ -223,12 +259,113 @@ export default function LeadShow({ lead }) {
                 {lead.intention && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Intención del Lead</CardTitle>
+                            <CardTitle>Lead Intention</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">
-                                {lead.intention}
-                            </p>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">
+                                        Status:
+                                    </span>
+                                    {lead.intention === "interested" ||
+                                    lead.intention === "not_interested" ? (
+                                        <Badge
+                                            className={
+                                                lead.intention === "interested"
+                                                    ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                                    : "bg-red-100 text-red-800 hover:bg-red-100"
+                                            }
+                                        >
+                                            {lead.intention === "interested"
+                                                ? "Interested"
+                                                : "Not Interested"}
+                                        </Badge>
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">
+                                            {lead.intention}
+                                        </span>
+                                    )}
+                                </div>
+                                {lead.intention_origin && (
+                                    <div>
+                                        <span className="text-sm font-medium">
+                                            Origin:{" "}
+                                        </span>
+                                        <span className="text-sm text-muted-foreground capitalize">
+                                            {lead.intention_origin}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Chat History - Interactions */}
+                {lead.interactions && lead.interactions.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Chat History</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {lead.interactions.map((interaction) => (
+                                    <div
+                                        key={interaction.id}
+                                        className={`flex ${
+                                            interaction.direction === "inbound"
+                                                ? "justify-start"
+                                                : "justify-end"
+                                        }`}
+                                    >
+                                        <div
+                                            className={`max-w-[70%] rounded-lg px-4 py-3 ${
+                                                interaction.direction ===
+                                                "inbound"
+                                                    ? "bg-gray-100 text-gray-900"
+                                                    : "bg-blue-600 text-white"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Badge
+                                                    variant="outline"
+                                                    className={`text-xs ${
+                                                        interaction.direction ===
+                                                        "inbound"
+                                                            ? "bg-white"
+                                                            : "bg-blue-700 text-white border-blue-500"
+                                                    }`}
+                                                >
+                                                    {interaction.direction ===
+                                                    "inbound"
+                                                        ? "👤 Lead"
+                                                        : "🤖 AIRobot"}
+                                                </Badge>
+                                                <span
+                                                    className={`text-xs ${
+                                                        interaction.direction ===
+                                                        "inbound"
+                                                            ? "text-gray-500"
+                                                            : "text-blue-200"
+                                                    }`}
+                                                >
+                                                    {new Date(
+                                                        interaction.created_at
+                                                    ).toLocaleString("en-US", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm whitespace-pre-wrap break-words">
+                                                {interaction.content}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
                 )}
@@ -252,11 +389,19 @@ export default function LeadShow({ lead }) {
                                                     {formatDate(call.call_date)}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Duración: {Math.floor(call.duration_seconds / 60)}m{" "}
-                                                    {call.duration_seconds % 60}s
+                                                    Duración:{" "}
+                                                    {Math.floor(
+                                                        call.duration_seconds /
+                                                            60
+                                                    )}
+                                                    m{" "}
+                                                    {call.duration_seconds % 60}
+                                                    s
                                                 </p>
                                             </div>
-                                            <Badge variant="outline">{call.status}</Badge>
+                                            <Badge variant="outline">
+                                                {call.status}
+                                            </Badge>
                                         </div>
                                         {call.recording_url && (
                                             <a
@@ -285,4 +430,3 @@ export default function LeadShow({ lead }) {
         </AppLayout>
     );
 }
-

@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
 
     // Leads Intención
     Route::get('/leads-intencion', [LeadIntencionController::class, 'index'])->name('leads-intencion.index');
+    Route::get('/leads-intencion/{id}', [LeadIntencionController::class, 'show'])->name('leads-intencion.show');
 
     // Campaigns
     Route::prefix('campaigns')->name('campaigns.')->group(function () {

@@ -47,8 +47,13 @@ class LeadController extends Controller
             abort(404, 'Lead no encontrado');
         }
 
+        // Cargar interacciones para mostrar el historial completo
+        $lead->load(['interactions' => function ($query) {
+            $query->orderBy('created_at', 'desc');
+        }]);
+
         return Inertia::render('Leads/Show', [
-            'lead' => $lead,
+            'lead' => new LeadResource($lead),
         ]);
     }
 

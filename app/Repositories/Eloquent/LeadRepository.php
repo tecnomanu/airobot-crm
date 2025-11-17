@@ -24,9 +24,13 @@ class LeadRepository implements LeadRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
-        // Filtro por source
+        // Filtro por source (puede ser string único o CSV de múltiples)
         if (! empty($filters['source'])) {
-            $query->where('source', $filters['source']);
+            $sources = is_array($filters['source'])
+                ? $filters['source']
+                : explode(',', $filters['source']);
+
+            $query->whereIn('source', $sources);
         }
 
         // Búsqueda por texto (nombre o teléfono)
@@ -127,5 +131,39 @@ class LeadRepository implements LeadRepositoryInterface
         }
 
         return $query->first();
+    }
+
+    public function findByPhoneWithVariants(string $phone): ?Lead
+    {
+        // Buscar con el formato exacto
+        $lead = Lead::where('phone', $phone)->first();
+
+        if ($lead) {
+            return $lead;
+        }
+
+        // Limpiar número para búsqueda flexible
+        $cleanPhone = str_replace(['+', ' ', '-'], '', $phone);
+
+        // Buscar variantes comunes
+        return Lead::where(function ($query) use ($cleanPhone, $phone) {
+            $query->where('phone', $phone)
+                ->orWhere('phone', '+' . $cleanPhone)
+                ->orWhere('phone', $cleanPhone);
+
+            // Si empieza con 549, también buscar sin el 9 (Argentina)
+            if (str_starts_with($cleanPhone, '549')) {
+                $withoutNine = '54' . substr($cleanPhone, 3);
+                $query->orWhere('phone', '+' . $withoutNine)
+                    ->orWhere('phone', $withoutNine);
+            }
+
+            // Si empieza con 54 (sin 9), también buscar con el 9
+            if (str_starts_with($cleanPhone, '54') && ! str_starts_with($cleanPhone, '549')) {
+                $withNine = '549' . substr($cleanPhone, 2);
+                $query->orWhere('phone', '+' . $withNine)
+                    ->orWhere('phone', $withNine);
+            }
+        })->first();
     }
 }

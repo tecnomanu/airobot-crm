@@ -33,6 +33,21 @@ class LeadResource extends JsonResource
             'source_label' => $this->getSourceLabel(),
             'sent_at' => $this->sent_at?->toIso8601String(),
             'intention' => $this->intention,
+            'intention_status' => $this->intention_status?->value,
+            'intention_origin' => $this->intention_origin?->value,
+            'last_message' => $this->getLastInboundMessage(),
+            'interactions_count' => $this->whenCounted('interactions'),
+            'interactions' => $this->whenLoaded('interactions', function () {
+                return $this->interactions->map(function ($interaction) {
+                    return [
+                        'id' => $interaction->id,
+                        'direction' => $interaction->direction->value,
+                        'channel' => $interaction->channel->value,
+                        'content' => $interaction->content,
+                        'created_at' => $interaction->created_at->toIso8601String(),
+                    ];
+                });
+            }),
             'notes' => $this->notes,
             'tags' => $this->tags,
             'webhook_sent' => $this->webhook_sent,
@@ -57,7 +72,7 @@ class LeadResource extends JsonResource
             '2' => 'Opción 2',
             'i' => 'Interesado',
             't' => 'Transferir',
-            default => 'Opción '.$this->option_selected,
+            default => 'Opción ' . $this->option_selected,
         };
     }
 
@@ -98,5 +113,29 @@ class LeadResource extends JsonResource
 
         // Capitalizar cada palabra
         return ucwords($formatted);
+    }
+
+    /**
+     * Obtiene el último mensaje inbound (del usuario) para mostrar en la tabla
+     */
+    private function getLastInboundMessage(): ?string
+    {
+        // Si las interacciones ya están cargadas (eager loading), usar eso
+        if ($this->relationLoaded('interactions')) {
+            $lastInbound = $this->interactions
+                ->where('direction', 'inbound')
+                ->sortByDesc('created_at')
+                ->first();
+
+            return $lastInbound?->content;
+        }
+
+        // Fallback: hacer query si no están cargadas (no debería pasar)
+        $lastInbound = $this->interactions()
+            ->where('direction', 'inbound')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        return $lastInbound?->content;
     }
 }

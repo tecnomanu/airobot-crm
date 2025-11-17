@@ -32,7 +32,7 @@ export const getLeadIntencionColumns = () => [
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 >
-                    Teléfono
+                    Phone
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
@@ -41,34 +41,59 @@ export const getLeadIntencionColumns = () => [
     },
     {
         accessorKey: "name",
-        header: "Nombre",
+        header: "Name",
         cell: ({ row }) => <div>{row.getValue("name") || "-"}</div>,
     },
     {
-        accessorKey: "intention",
-        header: "Intención",
+        accessorKey: "last_message",
+        header: "Last Message",
         cell: ({ row }) => (
-            <div className="max-w-md truncate" title={row.getValue("intention")}>
-                {row.getValue("intention") || "-"}
+            <div className="max-w-xs truncate" title={row.getValue("last_message")}>
+                {row.getValue("last_message") || "-"}
             </div>
         ),
     },
     {
+        accessorKey: "intention",
+        header: "Intention",
+        cell: ({ row }) => {
+            const intention = row.getValue("intention");
+            const colors = {
+                interested: "bg-green-100 text-green-800 hover:bg-green-100",
+                not_interested: "bg-red-100 text-red-800 hover:bg-red-100",
+            };
+            
+            if (intention === "interested" || intention === "not_interested") {
+                return (
+                    <Badge className={colors[intention]}>
+                        {intention === "interested" ? "Interested" : "Not Interested"}
+                    </Badge>
+                );
+            }
+            
+            return (
+                <div className="max-w-xs truncate text-muted-foreground" title={intention}>
+                    {intention || "-"}
+                </div>
+            );
+        },
+    },
+    {
         accessorKey: "source",
-        header: "Origen",
+        header: "Source",
         cell: ({ row }) => (
             <Badge variant="outline">{row.original.source_label}</Badge>
         ),
     },
     {
         accessorKey: "campaign",
-        header: "Campaña",
+        header: "Campaign",
         cell: ({ row }) => <div>{row.original.campaign?.name || "-"}</div>,
         enableSorting: false,
     },
     {
         accessorKey: "status",
-        header: "Estado",
+        header: "Status",
         cell: ({ row }) => {
             const status = row.getValue("status");
             const colors = {
@@ -93,14 +118,14 @@ export const getLeadIntencionColumns = () => [
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                 >
-                    Fecha
+                    Date
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
         },
         cell: ({ row }) => (
             <div>
-                {new Date(row.getValue("created_at")).toLocaleDateString("es-ES")}
+                {new Date(row.getValue("created_at")).toLocaleDateString("en-US")}
             </div>
         ),
     },
@@ -114,7 +139,8 @@ export const getLeadIntencionColumns = () => [
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => router.visit(route("leads.show", lead.id))}
+                        onClick={() => router.visit(route("leads-intencion.show", lead.id))}
+                        title="View intention details"
                     >
                         <Eye className="h-4 w-4" />
                     </Button>

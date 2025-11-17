@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import {
     Select,
@@ -12,7 +13,6 @@ import AppLayout from "@/Layouts/AppLayout";
 import { Head, router } from "@inertiajs/react";
 import { Search, X } from "lucide-react";
 import { useState } from "react";
-import { DataTable } from "@/components/ui/data-table";
 import { getLeadIntencionColumns } from "./columns";
 
 export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
@@ -40,20 +40,19 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
         router.get(route("leads-intencion.index"), {}, { preserveState: true });
     };
 
-
     return (
         <AppLayout>
-            <Head title="Leads por Intención" />
+            <Head title="Leads with Intention" />
 
             <div className="space-y-6">
                 {/* Header */}
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">
-                        Leads por Intención
+                        Leads with Intention
                     </h1>
                     <p className="text-muted-foreground">
-                        Leads capturados a través de WhatsApp y Agente IA con
-                        intención registrada
+                        Leads captured through WhatsApp and AI Agent with
+                        registered intention
                     </p>
                 </div>
 
@@ -66,7 +65,7 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
                                 className="flex gap-2"
                             >
                                 <Input
-                                    placeholder="Buscar teléfono o nombre..."
+                                    placeholder="Search by phone or name..."
                                     value={searchTerm}
                                     onChange={(e) =>
                                         setSearchTerm(e.target.value)
@@ -91,11 +90,11 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
                                 }
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Todas las campañas" />
+                                    <SelectValue placeholder="All campaigns" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">
-                                        Todas las campañas
+                                        All campaigns
                                     </SelectItem>
                                     {campaigns.map((c) => (
                                         <SelectItem
@@ -118,26 +117,26 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
                                 }
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Todos los estados" />
+                                    <SelectValue placeholder="All statuses" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">
-                                        Todos los estados
+                                        All statuses
                                     </SelectItem>
                                     <SelectItem value="pending">
-                                        Pendiente
+                                        Pending
                                     </SelectItem>
                                     <SelectItem value="in_progress">
-                                        En Progreso
+                                        In Progress
                                     </SelectItem>
                                     <SelectItem value="contacted">
-                                        Contactado
+                                        Contacted
                                     </SelectItem>
                                     <SelectItem value="closed">
-                                        Cerrado
+                                        Closed
                                     </SelectItem>
                                     <SelectItem value="invalid">
-                                        Inválido
+                                        Invalid
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -148,7 +147,7 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
                                 className="w-full"
                             >
                                 <X className="mr-2 h-4 w-4" />
-                                Limpiar
+                                Clear
                             </Button>
                         </div>
                     </CardContent>

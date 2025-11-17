@@ -2,6 +2,9 @@
 
 namespace App\Services\Lead;
 
+use App\Enums\LeadIntention;
+use App\Enums\LeadIntentionOrigin;
+use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Helpers\PhoneHelper;
@@ -91,10 +94,13 @@ class LeadService
     /**
      * Asociar lead a campaña según slug
      * Busca la campaña que coincida con el slug y asigna el lead
+     * 
+     * @deprecated Este método no se usa actualmente. Usar processIncomingWebhookLead() en su lugar.
      */
     public function assignToCampaignByPattern(string $pattern, array $leadData): ?Lead
     {
-        $campaign = $this->campaignRepository->findByMatchPattern($pattern);
+        // Usar findBySlug en lugar de findByMatchPattern
+        $campaign = $this->campaignRepository->findBySlug($pattern);
 
         if (! $campaign) {
             return null;
@@ -166,7 +172,7 @@ class LeadService
             $phone = PhoneHelper::normalize($leadData['phone']);
 
             if (! PhoneHelper::isValid($phone)) {
-                throw new \InvalidArgumentException('Número de teléfono inválido: '.$leadData['phone']);
+                throw new \InvalidArgumentException('Número de teléfono inválido: ' . $leadData['phone']);
             }
 
             // Buscar campaña
@@ -304,7 +310,7 @@ class LeadService
     {
         // 1. Intentar por campaign_id directo
         if (isset($leadData['campaign_id'])) {
-            $campaign = $this->campaignRepository->find($leadData['campaign_id']);
+            $campaign = $this->campaignRepository->findById($leadData['campaign_id']);
             if ($campaign) {
                 return $campaign;
             }
@@ -326,5 +332,250 @@ class LeadService
         }
 
         return null;
+    }
+
+    /**
+     * Buscar o crear lead desde mensaje de WhatsApp
+     * Si no existe el lead, lo crea con los datos disponibles
+     */
+    public function findOrCreateFromWhatsApp(
+        string $phone,
+        ?array $whatsappData = null,
+        ?int $defaultCampaignId = null
+    ): Lead {
+        // Normalizar teléfono
+        $normalizedPhone = PhoneHelper::normalizeWithCountry($phone, 'AR');
+
+        // Buscar lead con variantes de teléfono
+        $lead = $this->leadRepository->findByPhoneWithVariants($normalizedPhone);
+
+        if ($lead) {
+            Log::info('Lead encontrado por teléfono', [
+                'lead_id' => $lead->id,
+                'phone' => $normalizedPhone,
+            ]);
+
+            return $lead;
+        }
+
+        // Si no existe, crear un nuevo lead
+        Log::info('Creando nuevo lead desde WhatsApp', [
+            'phone' => $normalizedPhone,
+            'has_whatsapp_data' => (bool) $whatsappData,
+        ]);
+
+        // Extraer nombre del pushName de WhatsApp si está disponible
+        $name = $whatsappData['pushName'] ?? $whatsappData['name'] ?? 'Lead desde WhatsApp';
+
+        // Determinar campaña
+        $campaignId = $defaultCampaignId;
+        if (! $campaignId) {
+            // Buscar primera campaña activa como fallback
+            $activeCampaigns = $this->campaignRepository->getActive();
+            if ($activeCampaigns->isNotEmpty()) {
+                $campaignId = $activeCampaigns->first()->id;
+            } else {
+                throw new \Exception('No hay campañas activas disponibles para asociar el lead');
+            }
+        }
+
+        return $this->leadRepository->create([
+            'phone' => $normalizedPhone,
+            'name' => $name,
+            'campaign_id' => $campaignId,
+            'status' => LeadStatus::PENDING,
+            'source' => LeadSource::WHATSAPP,
+            'sent_at' => now(),
+        ]);
+    }
+
+    /**
+     * Actualizar intención del lead basado en mensaje recibido
+     */
+    public function updateIntentionFromMessage(Lead $lead, string $messageContent): void
+    {
+        // Analizar palabras clave para determinar intención
+        $detectedIntention = $this->analyzeIntention($messageContent);
+
+        // Preparar datos de actualización
+        $updateData = [];
+
+        // Si detectamos una intención clara, guardarla como string simple
+        if ($detectedIntention) {
+            $updateData['intention'] = $detectedIntention;
+            $updateData['intention_status'] = LeadIntentionStatus::FINALIZED;
+            $updateData['intention_decided_at'] = now();
+
+            // Si no tenía origin, asignar WhatsApp
+            if (! $lead->intention_origin) {
+                $updateData['intention_origin'] = LeadIntentionOrigin::WHATSAPP;
+            }
+
+            // Auto-cambiar status según intención detectada
+            if ($detectedIntention === LeadIntention::INTERESTED->value) {
+                // Si está interesado, pasar a IN_PROGRESS para que un agente lo atienda
+                if ($lead->status === LeadStatus::PENDING) {
+                    $updateData['status'] = LeadStatus::IN_PROGRESS;
+                }
+            } elseif ($detectedIntention === LeadIntention::NOT_INTERESTED->value) {
+                // Si no está interesado, cerrar automáticamente
+                $updateData['status'] = LeadStatus::CLOSED;
+            }
+        } else {
+            // Si no hay intención clara, solo actualizar si no tiene una ya finalizada
+            if (! $lead->intention_status || $lead->intention_status !== LeadIntentionStatus::FINALIZED) {
+                // Guardar el último mensaje como intención temporal
+                $updateData['intention'] = $messageContent;
+            }
+
+            // Si el lead responde por primera vez, moverlo a IN_PROGRESS
+            if ($lead->status === LeadStatus::PENDING) {
+                $updateData['status'] = LeadStatus::IN_PROGRESS;
+            }
+        }
+
+        // Asegurar que el source sea whatsapp si recibió mensaje por WhatsApp
+        if ($lead->source !== LeadSource::WHATSAPP) {
+            $updateData['source'] = LeadSource::WHATSAPP;
+        }
+
+        if (! empty($updateData)) {
+            $this->leadRepository->update($lead, $updateData);
+        }
+
+        Log::info('Intención del lead actualizada', [
+            'lead_id' => $lead->id,
+            'detected_intention' => $detectedIntention,
+            'new_status' => $updateData['status'] ?? 'unchanged',
+            'content_length' => strlen($messageContent),
+            'finalized' => (bool) $detectedIntention,
+        ]);
+    }
+
+    /**
+     * Analizar contenido del mensaje para detectar intención
+     */
+    protected function analyzeIntention(string $content): ?string
+    {
+        $contentLower = mb_strtolower($content);
+
+        // Palabras clave para "interested"
+        $interestedKeywords = [
+            'sí',
+            'si',
+            'yes',
+            'interesado',
+            'interesada',
+            'quiero',
+            'me interesa',
+            'info',
+            'información',
+            'mas info',
+            'más info',
+            'dame',
+            'llamame',
+            'llámame',
+            'contactame',
+            'contáctame',
+            'ok',
+            'dale',
+            'perfecto',
+        ];
+
+        foreach ($interestedKeywords as $keyword) {
+            if (str_contains($contentLower, $keyword)) {
+                return LeadIntention::INTERESTED->value;
+            }
+        }
+
+        // Palabras clave para "not_interested"
+        $notInterestedKeywords = [
+            'no',
+            'nope',
+            'no gracias',
+            'no me interesa',
+            'no quiero',
+            'no estoy interesado',
+            'no estoy interesada',
+            'baja',
+            'borrar',
+            'eliminar',
+            'remover',
+            'stop',
+            'cancelar',
+            'no molesten',
+        ];
+
+        foreach ($notInterestedKeywords as $keyword) {
+            if (str_contains($contentLower, $keyword)) {
+                return LeadIntention::NOT_INTERESTED->value;
+            }
+        }
+
+        // Si no detectamos intención clara, retornar null
+        return null;
+    }
+
+    /**
+     * Actualizar información de contacto del lead desde WhatsApp
+     */
+    public function updateContactInfoFromWhatsApp(Lead $lead, array $whatsappData): void
+    {
+        // Extraer pushName (nombre del contacto en WhatsApp)
+        $pushName = $whatsappData['pushName'] ?? $whatsappData['name'] ?? null;
+
+        if (! $pushName) {
+            return;
+        }
+
+        // Solo actualizar si el nombre actual es genérico o vacío
+        if ($this->shouldUpdateName($lead, $pushName)) {
+            $this->leadRepository->update($lead, [
+                'name' => $pushName,
+            ]);
+
+            Log::info('Nombre del lead actualizado desde WhatsApp', [
+                'lead_id' => $lead->id,
+                'old_name' => $lead->name,
+                'new_name' => $pushName,
+            ]);
+        }
+    }
+
+    /**
+     * Determinar si debemos actualizar el nombre del lead
+     */
+    protected function shouldUpdateName(Lead $lead, string $newName): bool
+    {
+        // Si no tiene nombre, actualizar
+        if (empty($lead->name)) {
+            return true;
+        }
+
+        // Lista de nombres genéricos/placeholder que pueden sobrescribirse
+        $genericNames = [
+            'Lead sin nombre',
+            'Sin nombre',
+            'Unknown',
+            'N/A',
+            'lead',
+            'Lead desde WhatsApp',
+        ];
+
+        $currentName = trim(strtolower($lead->name));
+
+        foreach ($genericNames as $generic) {
+            if (str_contains($currentName, strtolower($generic))) {
+                return true;
+            }
+        }
+
+        // Si el nombre actual es solo el teléfono, actualizar
+        if ($lead->name === $lead->phone) {
+            return true;
+        }
+
+        // No sobrescribir nombres reales
+        return false;
     }
 }
