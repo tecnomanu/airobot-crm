@@ -15,7 +15,7 @@ return [
         'api_path' => 'api',
         'api_domain' => null,
         'export_path' => 'api-external.json',
-        
+
         'info' => [
             'version' => env('API_VERSION', '1.0.0'),
             'title' => 'AIRobot API Externa',
@@ -47,7 +47,7 @@ Los webhooks usan validación por token en headers:
 - Webhooks de salida para entrega de leads procesados
             ',
         ],
-        
+
         'ui' => [
             'title' => 'AIRobot - API Externa',
             'theme' => 'light',
@@ -57,10 +57,10 @@ Los webhooks usan validación por token en headers:
             'try_it_credentials_policy' => 'omit',
             'layout' => 'responsive',
         ],
-        
+
         'servers' => null,
         'middleware' => ['web'],
-        
+
         // Solo documentar rutas de api-external.php
         'routes_path' => 'routes/api-external.php',
     ],
@@ -77,7 +77,7 @@ Los webhooks usan validación por token en headers:
         'api_path' => 'api',
         'api_domain' => null,
         'export_path' => 'api-admin.json',
-        
+
         'info' => [
             'version' => env('API_VERSION', '1.0.0'),
             'title' => 'AIRobot API Administrativa',
@@ -122,7 +122,7 @@ Estadísticas globales, por campaña y por cliente.
 - Gestión de API Keys
             ',
         ],
-        
+
         'ui' => [
             'title' => 'AIRobot - API Admin (Interno)',
             'theme' => 'light',
@@ -132,13 +132,13 @@ Estadísticas globales, por campaña y por cliente.
             'try_it_credentials_policy' => 'include',
             'layout' => 'responsive',
         ],
-        
+
         'servers' => null,
         'middleware' => [
             'web',
             RestrictedDocsAccess::class,
         ],
-        
+
         // Solo documentar rutas de api-admin.php
         'routes_path' => 'routes/api-admin.php',
     ],
@@ -148,7 +148,7 @@ Estadísticas globales, por campaña y por cliente.
      | Configuración Global
      |--------------------------------------------------------------------------
      */
-    
+
     'enum_cases_description_strategy' => 'description',
     'enum_cases_names_strategy' => false,
     'flatten_deep_query_parameters' => true,

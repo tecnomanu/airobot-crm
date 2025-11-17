@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientDispatchController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\ReportingController;
-use App\Http\Controllers\Api\SourceController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WebhookEventController;
 use App\Http\Controllers\Api\WebhookWhatsappController;
@@ -104,6 +103,8 @@ Route::prefix('admin')
         // ─────────────────────────────────────────────────────────────────────
 
         Route::apiResource('leads', LeadController::class);
+        Route::get('leads/{lead}/interactions', [LeadController::class, 'interactions'])
+            ->name('leads.interactions');
 
         // ─────────────────────────────────────────────────────────────────────
         // 📢 CAMPAÑAS - Gestión de campañas y templates
@@ -179,7 +180,7 @@ Route::prefix('admin')
 | Autenticación: Header X-Webhook-Token
 | Configuración: .env → WEBHOOK_TOKEN=tu_token_secreto
 | Generar token: php artisan webhook:generate-token --show
-| 
+|
 | Ejemplo:
 | curl -X POST /api/webhooks/lead \
 |   -H "X-Webhook-Token: tu_token" \
