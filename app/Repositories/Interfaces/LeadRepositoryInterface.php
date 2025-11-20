@@ -68,4 +68,14 @@ interface LeadRepositoryInterface
      * Intenta múltiples formatos de teléfono para encontrar coincidencias
      */
     public function findByPhoneWithVariants(string $phone): ?Lead;
+
+    /**
+     * Obtener leads con automatización fallida
+     */
+    public function getFailedAutomation(array $filters = []): Collection;
+
+    /**
+     * Obtener leads pendientes de automatización
+     */
+    public function getPendingAutomation(array $filters = []): LengthAwarePaginator;
 }

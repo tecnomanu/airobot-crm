@@ -27,6 +27,8 @@ class StoreSourceRequest extends FormRequest
             'redirect_to' => ['nullable', 'string'],
 
             // Validaciones específicas de WhatsApp
+            'config.phone_number' => ['required_if:type,whatsapp,meta_whatsapp', 'string', 'max:20'],
+            'config.provider' => ['nullable', 'string'],
             'config.instance_name' => ['required_if:type,whatsapp,meta_whatsapp', 'string'],
             'config.api_url' => ['required_if:type,whatsapp,meta_whatsapp', 'url'],
             'config.api_key' => ['required_if:type,whatsapp,meta_whatsapp', 'string'],
@@ -45,6 +47,7 @@ class StoreSourceRequest extends FormRequest
             'name.required' => 'El nombre de la fuente es obligatorio',
             'type.required' => 'El tipo de fuente es obligatorio',
             'config.required' => 'La configuración es obligatoria',
+            'config.phone_number.required_if' => 'El número de WhatsApp es obligatorio',
             'config.instance_name.required_if' => 'El nombre de instancia es obligatorio para fuentes de WhatsApp',
             'config.api_url.required_if' => 'La URL de API es obligatoria',
             'config.api_key.required_if' => 'La API Key es obligatoria',

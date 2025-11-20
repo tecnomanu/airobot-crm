@@ -41,6 +41,11 @@ class LeadRepository implements LeadRepositoryInterface
             });
         }
 
+        // Filtro por existencia de interacciones
+        if (! empty($filters['has_interactions'])) {
+            $query->has('interactions');
+        }
+
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
@@ -165,5 +170,48 @@ class LeadRepository implements LeadRepositoryInterface
                     ->orWhere('phone', $withNine);
             }
         })->first();
+    }
+
+    public function getFailedAutomation(array $filters = []): Collection
+    {
+        $query = Lead::whereIn('automation_status', ['failed', 'pending'])
+            ->orWhereNotNull('automation_error');
+
+        // Aplicar filtros adicionales
+        if (! empty($filters['campaign_id'])) {
+            $query->where('campaign_id', $filters['campaign_id']);
+        }
+
+        if (! empty($filters['option_selected'])) {
+            $query->where('option_selected', $filters['option_selected']);
+        }
+
+        return $query->with(['campaign'])->get();
+    }
+
+    public function getPendingAutomation(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $query = Lead::with(['campaign', 'creator'])
+            ->whereIn('automation_status', ['failed', 'pending'])
+            ->orWhereNotNull('automation_error');
+
+        // Aplicar filtros adicionales
+        if (! empty($filters['campaign_id'])) {
+            $query->where('campaign_id', $filters['campaign_id']);
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('name', 'like', "%{$filters['search']}%")
+                    ->orWhere('phone', 'like', "%{$filters['search']}%");
+            });
+        }
+
+        return $query->orderBy('created_at', 'desc')
+            ->paginate($filters['per_page'] ?? 15);
     }
 }

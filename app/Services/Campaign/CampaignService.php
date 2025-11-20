@@ -68,6 +68,10 @@ class CampaignService
                 'status' => $data['status'] ?? 'active',
                 'slug' => $slug,
                 'auto_process_enabled' => $data['auto_process_enabled'] ?? true,
+                'intention_interested_webhook_id' => $data['intention_interested_webhook_id'] ?? null,
+                'intention_not_interested_webhook_id' => $data['intention_not_interested_webhook_id'] ?? null,
+                'send_intention_interested_webhook' => $data['send_intention_interested_webhook'] ?? false,
+                'send_intention_not_interested_webhook' => $data['send_intention_not_interested_webhook'] ?? false,
                 'created_by' => $data['created_by'] ?? null,
             ]);
 
@@ -109,12 +113,23 @@ class CampaignService
             // Actualizar datos base de la campaña
             $baseData = array_intersect_key($data, array_flip([
                 'name',
+                'slug',
                 'description',
                 'status',
                 'auto_process_enabled',
+                'intention_interested_webhook_id',
+                'intention_not_interested_webhook_id',
+                'send_intention_interested_webhook',
+                'send_intention_not_interested_webhook',
             ]));
 
-            if (! empty($baseData)) {
+            // Si se proporciona slug, normalizarlo
+            if (isset($baseData['slug']) && !empty($baseData['slug'])) {
+                $baseData['slug'] = strtolower(trim($baseData['slug']));
+            }
+
+            // Guardar siempre que haya datos, incluso si son false o null
+            if (count($baseData) > 0) {
                 $campaign = $this->campaignRepository->update($campaign, $baseData);
             }
 
@@ -171,24 +186,6 @@ class CampaignService
     public function getCampaignsByClient(string $clientId)
     {
         return $this->campaignRepository->getByClient($clientId);
-    }
-
-    /**
-     * Activar o pausar una campaña
-     */
-    public function toggleCampaignStatus(int $id): Campaign
-    {
-        $campaign = $this->campaignRepository->findById($id);
-
-        if (! $campaign) {
-            throw new \InvalidArgumentException('Campaña no encontrada');
-        }
-
-        $newStatus = $campaign->status->value === 'active' ? 'paused' : 'active';
-
-        return $this->campaignRepository->update($campaign, [
-            'status' => $newStatus,
-        ]);
     }
 
     /**
@@ -298,13 +295,13 @@ class CampaignService
 
         if ($source->status !== SourceStatus::ACTIVE) {
             throw new ValidationException(
-                'La fuente de WhatsApp debe estar activa. Estado actual: '.$source->status->label()
+                'La fuente de WhatsApp debe estar activa. Estado actual: ' . $source->status->label()
             );
         }
 
         if (! $source->type->isMessaging()) {
             throw new ValidationException(
-                'La fuente seleccionada no es de tipo WhatsApp. Tipo actual: '.$source->type->label()
+                'La fuente seleccionada no es de tipo WhatsApp. Tipo actual: ' . $source->type->label()
             );
         }
     }
@@ -326,13 +323,13 @@ class CampaignService
 
         if ($source->status !== SourceStatus::ACTIVE) {
             throw new ValidationException(
-                'La fuente de Webhook debe estar activa. Estado actual: '.$source->status->label()
+                'La fuente de Webhook debe estar activa. Estado actual: ' . $source->status->label()
             );
         }
 
         if ($source->type !== SourceType::WEBHOOK) {
             throw new ValidationException(
-                'La fuente seleccionada no es de tipo Webhook. Tipo actual: '.$source->type->label()
+                'La fuente seleccionada no es de tipo Webhook. Tipo actual: ' . $source->type->label()
             );
         }
     }
@@ -348,10 +345,28 @@ class CampaignService
 
         // Asegurar que el slug sea único
         while (Campaign::where('slug', $slug)->exists()) {
-            $slug = $baseSlug.'-'.$counter;
+            $slug = $baseSlug . '-' . $counter;
             $counter++;
         }
 
         return $slug;
+    }
+
+    /**
+     * Cambiar el estado de una campaña (active <-> paused)
+     */
+    public function toggleCampaignStatus(string $id): Campaign
+    {
+        $campaign = $this->campaignRepository->findById($id);
+
+        if (! $campaign) {
+            throw new \InvalidArgumentException('Campaña no encontrada');
+        }
+
+        $newStatus = $campaign->status->value === 'active' ? 'paused' : 'active';
+
+        return $this->campaignRepository->update($campaign, [
+            'status' => $newStatus,
+        ]);
     }
 }

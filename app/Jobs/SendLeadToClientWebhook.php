@@ -2,9 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Contracts\WebhookSenderInterface;
 use App\Enums\SourceStatus;
 use App\Models\Lead;
-use App\Services\External\WebhookSenderInterface;
 use App\Services\Lead\LeadService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -127,7 +127,6 @@ class SendLeadToClientWebhook implements ShouldQueue
                     throw new \Exception($result->error);
                 }
             }
-
         } catch (\Exception $e) {
             Log::error('Error enviando lead a webhook via Source', [
                 'lead_id' => $this->lead->id,
@@ -194,7 +193,7 @@ class SendLeadToClientWebhook implements ShouldQueue
             // Registrar resultado
             $result = [
                 'status_code' => $statusCode,
-                'body' => strlen($responseBody) > 500 ? substr($responseBody, 0, 500).'...' : $responseBody,
+                'body' => strlen($responseBody) > 500 ? substr($responseBody, 0, 500) . '...' : $responseBody,
                 'sent_at' => now()->toIso8601String(),
                 'attempt' => $this->attempts(),
             ];
@@ -220,7 +219,6 @@ class SendLeadToClientWebhook implements ShouldQueue
                     throw new \Exception("Webhook returned HTTP {$statusCode}");
                 }
             }
-
         } catch (\Exception $e) {
             Log::error('Error enviando lead a webhook del cliente', [
                 'lead_id' => $this->lead->id,
@@ -281,7 +279,8 @@ class SendLeadToClientWebhook implements ShouldQueue
     {
         // Reemplazar variables en el template
         $replaced = str_replace([
-            '{{id}}', '{{lead_id}}',
+            '{{id}}',
+            '{{lead_id}}',
             '{{phone}}',
             '{{name}}',
             '{{city}}',
@@ -293,7 +292,8 @@ class SendLeadToClientWebhook implements ShouldQueue
             '{{campaign_id}}',
             '{{campaign_name}}',
         ], [
-            $lead->id, $lead->id,
+            $lead->id,
+            $lead->id,
             $lead->phone,
             $lead->name ?? '',
             $lead->city ?? '',

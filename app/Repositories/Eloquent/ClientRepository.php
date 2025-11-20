@@ -71,7 +71,7 @@ class ClientRepository implements ClientRepositoryInterface
         return Client::where('email', $email)->first();
     }
 
-    public function getMetrics(int $clientId): array
+    public function getMetrics(string $clientId): array
     {
         $client = Client::with(['campaigns', 'callHistories'])->find($clientId);
 

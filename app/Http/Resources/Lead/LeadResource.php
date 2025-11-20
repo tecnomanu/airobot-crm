@@ -52,7 +52,16 @@ class LeadResource extends JsonResource
             'tags' => $this->tags,
             'webhook_sent' => $this->webhook_sent,
             'webhook_result' => $this->webhook_result,
-            'automation_status' => $this->automation_status,
+            'intention_webhook_sent' => $this->intention_webhook_sent,
+            'intention_webhook_sent_at' => $this->intention_webhook_sent_at?->toIso8601String(),
+            'intention_webhook_status' => $this->intention_webhook_status,
+            'intention_webhook_response' => $this->intention_webhook_response,
+            'automation_status' => $this->automation_status?->value,
+            'automation_status_label' => $this->automation_status?->label(),
+            'automation_attempts' => $this->automation_attempts,
+            'automation_error' => $this->automation_error,
+            'last_automation_run_at' => $this->last_automation_run_at?->toIso8601String(),
+            'can_retry_automation' => $this->canRetryAutomation(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
@@ -137,5 +146,19 @@ class LeadResource extends JsonResource
             ->first();
 
         return $lastInbound?->content;
+    }
+
+    /**
+     * Determina si se puede reintentar el auto-procesamiento
+     */
+    private function canRetryAutomation(): bool
+    {
+        // Se puede reintentar si:
+        // 1. Tiene error de automation
+        // 2. O está en status failed o pending
+        // 3. Y tiene una opción seleccionada
+        return ($this->automation_error !== null 
+                || in_array($this->automation_status?->value, ['failed', 'pending']))
+            && $this->option_selected !== null;
     }
 }

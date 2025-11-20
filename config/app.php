@@ -86,6 +86,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Default Country Configuration
+    |--------------------------------------------------------------------------
+    |
+    | País por defecto para normalización de teléfonos sin código de país.
+    | Código ISO 2 letras: AR (Argentina), ES (España), MX (México), etc.
+    |
+    */
+
+    'default_country' => env('DEFAULT_COUNTRY', 'AR'),
+    'default_country_code' => env('DEFAULT_COUNTRY_CODE', '549'), // +549 para móviles Argentina
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |

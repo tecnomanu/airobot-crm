@@ -37,32 +37,29 @@ export default function LeadShow({ lead }) {
     };
 
     return (
-        <AppLayout>
-            <Head title={`Lead - ${lead.name || lead.phone}`} />
-
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href={route("leads.index")}>
-                            <Button variant="outline" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">
-                                {lead.name || "Lead sin nombre"}
-                            </h1>
-                            <p className="text-muted-foreground flex items-center gap-2 mt-1">
-                                <Phone className="h-4 w-4" />
-                                {lead.phone}
-                            </p>
-                        </div>
-                    </div>
+        <AppLayout
+            header={{
+                title: lead.name || "Lead sin nombre",
+                subtitle: (
+                    <span className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        {lead.phone}
+                    </span>
+                ),
+                backButton: {
+                    href: route("leads.index"),
+                    variant: "outline",
+                },
+                actions: (
                     <Badge className={getStatusColor(lead.status)}>
                         {lead.status_label}
                     </Badge>
-                </div>
+                ),
+            }}
+        >
+            <Head title={`Lead - ${lead.name || lead.phone}`} />
+
+            <div className="space-y-6">
 
                 {/* Información Principal */}
                 <div className="grid gap-6 md:grid-cols-2">

@@ -46,5 +46,5 @@ interface ClientRepositoryInterface
     /**
      * Obtener métricas de un cliente (campañas, leads, llamadas)
      */
-    public function getMetrics(int $clientId): array;
+    public function getMetrics(string $clientId): array;
 }

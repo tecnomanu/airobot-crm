@@ -12,6 +12,7 @@ use App\Services\Client\ClientService;
 use App\Services\Source\SourceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -57,15 +58,15 @@ class CampaignController extends Controller
         $allActiveSources = $this->sourceService->getAll(['active_only' => true]);
 
         // Filtrar por tipo (WhatsApp incluye Evolution API y Meta)
-        $whatsappSources = $allActiveSources->filter(fn ($s) => $s->type->isWhatsApp());
-        $webhookSources = $allActiveSources->filter(fn ($s) => $s->type->isWebhook());
+        $whatsappSources = $allActiveSources->filter(fn($s) => $s->type->isWhatsApp());
+        $webhookSources = $allActiveSources->filter(fn($s) => $s->type->isWebhook());
 
         return Inertia::render('Campaigns/Show', [
             'campaign' => $campaign,
             'templates' => $templates,
             'clients' => $clients,
-            'whatsapp_sources' => $whatsappSources->values()->map(fn ($s) => (new SourceResource($s))->resolve()),
-            'webhook_sources' => $webhookSources->values()->map(fn ($s) => (new SourceResource($s))->resolve()),
+            'whatsapp_sources' => $whatsappSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
+            'webhook_sources' => $webhookSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
         ]);
     }
 
@@ -74,7 +75,7 @@ class CampaignController extends Controller
         try {
             $this->campaignService->createCampaign(
                 array_merge($request->validated(), [
-                    'created_by' => auth()->id(),
+                    'created_by' => Auth::id(),
                 ])
             );
 
@@ -108,6 +109,18 @@ class CampaignController extends Controller
 
             return redirect()->route('campaigns.index')
                 ->with('success', 'Campaña eliminada exitosamente');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    public function toggleStatus(string $id): RedirectResponse
+    {
+        try {
+            $this->campaignService->toggleCampaignStatus($id);
+
+            return redirect()->back();
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());

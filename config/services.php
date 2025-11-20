@@ -61,6 +61,24 @@ return [
         'api_url' => env('WHATSAPP_API_URL'),
         'api_key' => env('WHATSAPP_API_KEY'),
         'webhook_token' => env('WHATSAPP_WEBHOOK_TOKEN'),
+        'auto_reply_delay' => env('WHATSAPP_AUTO_REPLY_DELAY', 5), // Segundos antes de enviar auto-respuesta
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI Service
+    |--------------------------------------------------------------------------
+    */
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'base_url' => env('OPENAI_BASE_URL'), // URL base personalizada (ej: OpenRouter)
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'max_tokens' => env('OPENAI_MAX_TOKENS', 150),
+        'temperature' => env('OPENAI_TEMPERATURE', 0.3),
+        'analyze_intentions' => env('OPENAI_ANALYZE_INTENTIONS', true), // Activar análisis IA
+        'analysis_delay_seconds' => env('OPENAI_ANALYSIS_DELAY', 8), // Delay antes de analizar (debouncing)
+        'use_keywords_first' => env('OPENAI_USE_KEYWORDS_FIRST', false), // Usar palabras clave antes de IA (puede causar falsos positivos)
     ],
 
 ];

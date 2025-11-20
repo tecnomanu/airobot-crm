@@ -7,16 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Edit({ mustVerifyEmail, status }) {
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Perfil",
+                subtitle: "Administra tu información de perfil y contraseña",
+            }}
+        >
             <Head title="Perfil" />
 
             <div className="space-y-6">
-                <div>
-                    <h1 className="text-3xl font-bold">Perfil</h1>
-                    <p className="text-muted-foreground">
-                        Administra tu información de perfil y contraseña
-                    </p>
-                </div>
 
                 <Card>
                     <CardHeader>

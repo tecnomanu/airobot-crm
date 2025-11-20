@@ -5,16 +5,17 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import AppLayout from "@/Layouts/AppLayout";
-import { Head, router, useForm } from "@inertiajs/react";
+import { Head, Link, router, useForm } from "@inertiajs/react";
 import {
     AlertCircle,
+    ArrowLeft,
     ChevronLeft,
-    ChevronRight,
     Database,
     MessageSquare,
     Phone,
@@ -25,7 +26,7 @@ import {
     Webhook,
     Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import CallSettingsTab from "./Partials/CallSettingsTab";
 import FunctionsTab from "./Partials/FunctionsTab";
@@ -59,6 +60,9 @@ export default function CallAgentShow({
         prompt: agentConfig.prompt || baseConfig.prompt || "",
         first_message:
             agentConfig.begin_message || baseConfig.begin_message || "",
+        welcome_message_mode: agentConfig.begin_message
+            ? "ai_speaks_first"
+            : "user_speaks_first",
 
         // LLM Settings (de base config con override)
         llm_model:
@@ -147,11 +151,39 @@ export default function CallAgentShow({
         setData("custom_functions", currentFunctions);
     };
 
+    // Debug: Log agent data cuando se carga o cambia
+    useEffect(() => {
+        if (agent) {
+            console.log("=== AGENT DATA DEBUG ===");
+            console.log("Agent completo:", agent);
+            console.log("Agent config:", agentConfig);
+            console.log("Base config:", baseConfig);
+            console.log("Form data:", data);
+            console.log("Welcome message mode:", data.welcome_message_mode);
+            console.log("First message:", data.first_message);
+            console.log("Prompt:", data.prompt);
+            console.log("========================");
+        }
+    }, [agent, data]);
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        // Preparar datos para envío
+        const submitData = { ...data };
+
+        // Si welcome_message_mode es "user_speaks_first", asegurar que first_message esté vacío
+        if (submitData.welcome_message_mode === "user_speaks_first") {
+            submitData.first_message = "";
+        }
+
+        console.log("=== SUBMIT DATA ===");
+        console.log("Datos a enviar:", submitData);
+        console.log("===================");
+
         if (isEditing) {
             put(route("call-agents.update", agent.agent_id || agent.id), {
+                data: submitData,
                 onSuccess: () => {
                     toast.success("Agente actualizado exitosamente");
                 },
@@ -161,6 +193,7 @@ export default function CallAgentShow({
             });
         } else {
             post(route("call-agents.store"), {
+                data: submitData,
                 onSuccess: () => {
                     toast.success("Agente creado exitosamente");
                     router.visit(route("call-agents.index"));
@@ -267,7 +300,104 @@ export default function CallAgentShow({
                     </div>
                 )}
 
-                {/* Left Sidebar - Configuration */}
+                {/* Main Content - Prompt Editor */}
+                <div className="flex-1 flex flex-col overflow-hidden min-w-0 border-r">
+                    <div className="border-b flex items-center justify-between bg-background flex-shrink-0 px-2 py-1.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Link href={route("call-agents.index")}>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 flex-shrink-0"
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                </Button>
+                            </Link>
+                            <div className="min-w-0">
+                                <h1 className="text-base font-semibold truncate">
+                                    {isEditing
+                                        ? agent.agent_name
+                                        : "Nuevo Agente"}
+                                </h1>
+                                {isEditing && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                        {agent.agent_id}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <Badge
+                                variant="outline"
+                                className="text-xs px-1.5 py-0.5"
+                            >
+                                {data.llm_model}
+                            </Badge>
+                            <Badge
+                                variant="outline"
+                                className="text-xs px-1.5 py-0.5"
+                            >
+                                {data.voice_id || "Sin voz"}
+                            </Badge>
+                            <Badge
+                                variant="outline"
+                                className="text-xs px-1.5 py-0.5"
+                            >
+                                {data.language}
+                            </Badge>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto">
+                        <div className="max-w-4xl mx-auto p-3">
+                            <div className="space-y-3">
+                                <div>
+                                    <h2 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                        Prompt Universal
+                                    </h2>
+                                    <Textarea
+                                        id="prompt_main"
+                                        value={data.prompt}
+                                        onChange={(e) =>
+                                            setData("prompt", e.target.value)
+                                        }
+                                        rows={20}
+                                        className="font-mono text-sm resize-none min-h-[400px]"
+                                        placeholder="Type in a universal prompt for your agent, such as its role, conversational style, objective, etc."
+                                    />
+                                </div>
+
+                                {data.welcome_message_mode ===
+                                    "ai_speaks_first" && (
+                                    <div className="space-y-1.5">
+                                        <Label
+                                            htmlFor="first_message_text"
+                                            className="text-xs font-medium"
+                                        >
+                                            Mensaje de Bienvenida
+                                        </Label>
+                                        <Textarea
+                                            id="first_message_text"
+                                            value={data.first_message || ""}
+                                            onChange={(e) =>
+                                                setData(
+                                                    "first_message",
+                                                    e.target.value
+                                                )
+                                            }
+                                            rows={4}
+                                            className="text-sm resize-none"
+                                            placeholder="Escribe el mensaje que dirá el agente al iniciar la llamada..."
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Configuration Sidebar */}
                 {configOpen ? (
                     <div className="w-72 border-r bg-muted/30 flex flex-col flex-shrink-0">
                         <div className="flex items-center justify-between border-b bg-background p-1.5 flex-shrink-0">
@@ -286,6 +416,15 @@ export default function CallAgentShow({
                                     Configuración
                                 </h2>
                             </div>
+                            <Button
+                                onClick={handleSubmit}
+                                size="sm"
+                                className="h-7 text-xs px-2"
+                                disabled={processing}
+                            >
+                                <Save className="h-3 w-3 mr-1" />
+                                {processing ? "..." : "Guardar"}
+                            </Button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
@@ -467,38 +606,12 @@ export default function CallAgentShow({
                             onClick={() => setConfigOpen(true)}
                             title="Mostrar Configuración"
                         >
-                            <ChevronRight className="h-4 w-4" />
+                            <Settings className="h-4 w-4" />
                         </Button>
                     </div>
                 )}
 
-                {/* Main Content - Prompt Editor */}
-                <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                    <div className="flex-1 overflow-y-auto">
-                        <div className="max-w-4xl mx-auto p-3">
-                            <div className="space-y-1.5">
-                                <Label
-                                    htmlFor="prompt_main"
-                                    className="text-xs font-medium"
-                                >
-                                    Prompt Universal
-                                </Label>
-                                <Textarea
-                                    id="prompt_main"
-                                    value={data.prompt}
-                                    onChange={(e) =>
-                                        setData("prompt", e.target.value)
-                                    }
-                                    rows={20}
-                                    className="font-mono text-sm resize-none min-h-[400px]"
-                                    placeholder="Type in a universal prompt for your agent, such as its role, conversational style, objective, etc."
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Sidebar - Test */}
+                {/* Test Sidebar */}
                 {testOpen ? (
                     <div className="w-72 border-l bg-muted/30 flex flex-col flex-shrink-0">
                         <div className="flex items-center justify-between border-b bg-background p-1.5 flex-shrink-0">
@@ -513,7 +626,7 @@ export default function CallAgentShow({
                                 className="h-6 w-6"
                                 onClick={() => setTestOpen(false)}
                             >
-                                <ChevronRight className="h-3.5 w-3.5" />
+                                <ChevronLeft className="h-3.5 w-3.5" />
                             </Button>
                         </div>
 
@@ -584,7 +697,7 @@ export default function CallAgentShow({
                             onClick={() => setTestOpen(true)}
                             title="Mostrar Test"
                         >
-                            <ChevronLeft className="h-4 w-4" />
+                            <TestTube className="h-4 w-4" />
                         </Button>
                     </div>
                 )}

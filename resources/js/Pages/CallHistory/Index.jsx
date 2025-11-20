@@ -68,19 +68,15 @@ export default function CallHistoryIndex({
     ];
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Historial de Llamadas",
+                subtitle: "Registro completo de todas las llamadas realizadas",
+            }}
+        >
             <Head title="Historial de Llamadas" />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Historial de Llamadas
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Registro completo de todas las llamadas realizadas
-                    </p>
-                </div>
 
                 {/* Stats */}
                 <div className="grid gap-4 md:grid-cols-3">

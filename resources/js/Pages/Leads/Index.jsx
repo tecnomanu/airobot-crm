@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, router, useForm } from "@inertiajs/react";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, RefreshCw } from "lucide-react";
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
@@ -34,6 +34,8 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
     const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null, name: "" });
+    const [retryDialog, setRetryDialog] = useState({ open: false, id: null, name: "" });
+    const [isRetryingBatch, setIsRetryingBatch] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         phone: "",
@@ -100,25 +102,81 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
         setDeleteDialog({ open: false, id: null, name: "" });
     };
 
+    const handleRetry = (lead) => {
+        setRetryDialog({
+            open: true,
+            id: lead.id,
+            name: lead.name || lead.phone,
+        });
+    };
+
+    const confirmRetry = () => {
+        router.post(route("leads.retry-automation", retryDialog.id), {}, {
+            onSuccess: () => {
+                toast.success("Procesamiento reiniciado exitosamente");
+            },
+            onError: () => {
+                toast.error("Error al reiniciar procesamiento");
+            },
+        });
+        setRetryDialog({ open: false, id: null, name: "" });
+    };
+
+    const handleRetryBatch = () => {
+        setIsRetryingBatch(true);
+        router.post(
+            route("leads.retry-automation-batch"),
+            { ...filters },
+            {
+                onSuccess: () => {
+                    toast.success("Procesamiento masivo completado");
+                    setIsRetryingBatch(false);
+                },
+                onError: () => {
+                    toast.error("Error en procesamiento masivo");
+                    setIsRetryingBatch(false);
+                },
+            }
+        );
+    };
+
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Leads",
+                subtitle: "Gestión de leads y contactos",
+                actions: [
+                    <Button
+                        key="retry"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs px-2"
+                        onClick={handleRetryBatch}
+                        disabled={isRetryingBatch}
+                    >
+                        <RefreshCw
+                            className={`h-3.5 w-3.5 mr-1.5 ${
+                                isRetryingBatch ? "animate-spin" : ""
+                            }`}
+                        />
+                        Reintentar Fallidos
+                    </Button>,
+                    <Button
+                        key="create"
+                        size="sm"
+                        className="h-8 text-xs px-2"
+                        onClick={() => setIsCreateModalOpen(true)}
+                    >
+                        <Plus className="h-3.5 w-3.5 mr-1.5" />
+                        Nuevo Lead
+                    </Button>,
+                ],
+            }}
+        >
             <Head title="Leads" />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-                        <p className="text-muted-foreground">
-                            Gestión de leads y contactos
-                        </p>
-                    </div>
-                    <Button onClick={() => setIsCreateModalOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nuevo Lead
-                    </Button>
-                </div>
 
                 {/* Filters */}
                 <Card>
@@ -190,7 +248,7 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
 
                 {/* Table */}
                 <DataTable
-                    columns={getLeadColumns(handleDelete)}
+                    columns={getLeadColumns(handleDelete, handleRetry)}
                     data={leads.data}
                     filterColumn="phone"
                 />
@@ -322,6 +380,19 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="destructive"
+            />
+
+            {/* Confirm Retry Dialog */}
+            <ConfirmDialog
+                open={retryDialog.open}
+                onOpenChange={(open) =>
+                    setRetryDialog({ ...retryDialog, open })
+                }
+                onConfirm={confirmRetry}
+                title="¿Reintentar procesamiento?"
+                description={`¿Deseas reintentar el procesamiento automático del lead "${retryDialog.name}"?`}
+                confirmText="Reintentar"
+                cancelText="Cancelar"
             />
         </AppLayout>
     );

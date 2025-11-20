@@ -171,23 +171,25 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
     };
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Fuentes",
+                subtitle: "Gestión de fuentes de captura de leads",
+                actions: (
+                    <Button
+                        size="sm"
+                        className="h-8 text-xs px-2"
+                        onClick={handleCreate}
+                    >
+                        <Plus className="h-3.5 w-3.5 mr-1.5" />
+                        Nueva Fuente
+                    </Button>
+                ),
+            }}
+        >
             <Head title="Fuentes" />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Fuentes</h1>
-                        <p className="text-muted-foreground">
-                            Gestión de fuentes de captura de leads
-                        </p>
-                    </div>
-                    <Button onClick={handleCreate}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nueva Fuente
-                    </Button>
-                </div>
 
                 {/* Filters */}
                 <Card>

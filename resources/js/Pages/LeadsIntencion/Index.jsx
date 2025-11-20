@@ -41,21 +41,16 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Leads with Intention",
+                subtitle:
+                    "Leads captured through WhatsApp and AI Agent with registered intention",
+            }}
+        >
             <Head title="Leads with Intention" />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Leads with Intention
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Leads captured through WhatsApp and AI Agent with
-                        registered intention
-                    </p>
-                </div>
-
                 {/* Filters */}
                 <Card>
                     <CardContent className="pt-6">

@@ -19,10 +19,17 @@ class StoreLeadRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $mergeData = [];
+
+        // campaign_id es UUID, mantenerlo como string
+        if ($this->filled('campaign_id')) {
+            $mergeData['campaign_id'] = trim($this->campaign_id);
+        }
+
         if ($this->has('phone')) {
             // Obtener campaña para normalización de teléfono
             $campaign = null;
-            if ($this->has('campaign_id')) {
+            if ($this->filled('campaign_id')) {
                 $campaign = Campaign::find($this->campaign_id);
             }
 
@@ -31,9 +38,11 @@ class StoreLeadRequest extends FormRequest
                 $campaign
             );
 
-            $this->merge([
-                'phone' => $normalizedPhone,
-            ]);
+            $mergeData['phone'] = $normalizedPhone;
+        }
+
+        if (!empty($mergeData)) {
+            $this->merge($mergeData);
         }
     }
 
@@ -45,7 +54,7 @@ class StoreLeadRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'size:2'],
             'option_selected' => ['nullable', Rule::enum(LeadOptionSelected::class)],
-            'campaign_id' => ['required', 'integer', 'exists:campaigns,id'],
+            'campaign_id' => ['required', 'string', 'uuid', 'exists:campaigns,id'],
             'status' => ['nullable', Rule::enum(LeadStatus::class)],
             'source' => ['nullable', Rule::enum(LeadSource::class)],
             'intention' => ['nullable', 'string'],

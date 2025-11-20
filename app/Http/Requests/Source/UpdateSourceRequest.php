@@ -27,9 +27,13 @@ class UpdateSourceRequest extends FormRequest
             'redirect_to' => ['nullable', 'string'],
 
             // Validaciones específicas (si se actualiza type o config)
+            // WhatsApp / Evolution API
+            'config.phone_number' => ['sometimes', 'string', 'max:20'],
+            'config.provider' => ['sometimes', 'string'],
             'config.instance_name' => ['sometimes', 'string'],
             'config.api_url' => ['sometimes', 'url'],
             'config.api_key' => ['sometimes', 'string'],
+            // Webhook
             'config.url' => ['sometimes', 'url'],
             'config.method' => ['sometimes', 'string', Rule::in(['GET', 'POST', 'PUT', 'PATCH'])],
             'config.secret' => ['nullable', 'string'],

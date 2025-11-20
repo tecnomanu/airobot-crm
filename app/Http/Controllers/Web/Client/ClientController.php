@@ -10,6 +10,7 @@ use App\Services\Reporting\ReportingService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,7 +36,7 @@ class ClientController extends Controller
         ]);
     }
 
-    public function show(Request $request, int $id): Response
+    public function show(Request $request, string $id): Response
     {
         $client = $this->clientService->getClientById($id);
 
@@ -48,8 +49,8 @@ class ClientController extends Controller
 
         // Resumen mensual (por defecto, mes actual)
         $month = $request->input('month', now()->format('Y-m'));
-        $from = Carbon::parse($month.'-01')->startOfMonth();
-        $to = Carbon::parse($month.'-01')->endOfMonth();
+        $from = Carbon::parse($month . '-01')->startOfMonth();
+        $to = Carbon::parse($month . '-01')->endOfMonth();
 
         $monthlySummary = $this->reportingService->getClientMonthlySummary($client, $from, $to);
 
@@ -66,13 +67,12 @@ class ClientController extends Controller
         try {
             $this->clientService->createClient(
                 array_merge($request->validated(), [
-                    'created_by' => auth()->id(),
+                    'created_by' => Auth::id(),
                 ])
             );
 
             return redirect()->route('clients.index')
                 ->with('success', 'Cliente creado exitosamente');
-
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage())
@@ -87,7 +87,6 @@ class ClientController extends Controller
 
             return redirect()->route('clients.index')
                 ->with('success', 'Cliente actualizado exitosamente');
-
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage())
@@ -102,7 +101,6 @@ class ClientController extends Controller
 
             return redirect()->route('clients.index')
                 ->with('success', 'Cliente eliminado exitosamente');
-
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());

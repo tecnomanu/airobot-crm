@@ -22,7 +22,7 @@ class ClientService
     /**
      * Obtener un cliente por ID
      */
-    public function getClientById(int $id): ?Client
+    public function getClientById(string $id): ?Client
     {
         return $this->clientRepository->findById($id, ['campaigns', 'creator']);
     }
@@ -46,7 +46,7 @@ class ClientService
     /**
      * Actualizar un cliente existente
      */
-    public function updateClient(int $id, array $data): Client
+    public function updateClient(string $id, array $data): Client
     {
         $client = $this->clientRepository->findById($id);
 
@@ -69,7 +69,7 @@ class ClientService
      * Eliminar un cliente
      * CUIDADO: Esto eliminará todas las campañas, leads y llamadas asociadas (cascade)
      */
-    public function deleteClient(int $id): bool
+    public function deleteClient(string $id): bool
     {
         $client = $this->clientRepository->findById($id);
 
@@ -92,7 +92,7 @@ class ClientService
      * Obtener métricas completas de un cliente
      * Retorna: total_campaigns, active_campaigns, total_leads, total_calls, total_cost
      */
-    public function getClientMetrics(int $clientId): array
+    public function getClientMetrics(string $clientId): array
     {
         return $this->clientRepository->getMetrics($clientId);
     }
@@ -100,7 +100,7 @@ class ClientService
     /**
      * Activar o desactivar un cliente
      */
-    public function toggleClientStatus(int $id): Client
+    public function toggleClientStatus(string $id): Client
     {
         $client = $this->clientRepository->findById($id);
 

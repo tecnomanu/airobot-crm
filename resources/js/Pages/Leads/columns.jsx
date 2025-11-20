@@ -1,10 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { router } from "@inertiajs/react";
-import { ArrowUpDown, Eye, Trash2 } from "lucide-react";
+import { AlertCircle, ArrowUpDown, Eye, RefreshCw, Trash2 } from "lucide-react";
 
-export const getLeadColumns = (handleDelete) => [
+export const getLeadColumns = (handleDelete, handleRetry) => [
     {
         id: "select",
         header: ({ table }) => (
@@ -114,12 +120,68 @@ export const getLeadColumns = (handleDelete) => [
         },
     },
     {
+        accessorKey: "automation_status",
+        header: "Auto-Proceso",
+        cell: ({ row }) => {
+            const status = row.getValue("automation_status");
+            const label = row.original.automation_status_label;
+            const error = row.original.automation_error;
+
+            if (!status)
+                return <span className="text-muted-foreground">-</span>;
+
+            const colors = {
+                pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+                processing: "bg-blue-100 text-blue-800 hover:bg-blue-100",
+                completed: "bg-green-100 text-green-800 hover:bg-green-100",
+                failed: "bg-red-100 text-red-800 hover:bg-red-100",
+                skipped: "bg-gray-100 text-gray-800 hover:bg-gray-100",
+            };
+
+            return (
+                <div className="flex items-center gap-2">
+                    <Badge
+                        className={
+                            colors[status] || "bg-gray-100 text-gray-800"
+                        }
+                    >
+                        {label}
+                    </Badge>
+                    {error && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <AlertCircle className="h-4 w-4 text-red-600 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-md">
+                                    <p className="whitespace-normal break-words">
+                                        {error}
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
+            );
+        },
+    },
+    {
         id: "actions",
         enableHiding: false,
         cell: ({ row }) => {
             const lead = row.original;
             return (
                 <div className="flex justify-end gap-2">
+                    {lead.can_retry_automation && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRetry(lead)}
+                            title="Reintentar procesamiento"
+                        >
+                            <RefreshCw className="h-4 w-4 text-blue-500" />
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         size="icon"

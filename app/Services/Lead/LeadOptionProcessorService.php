@@ -5,14 +5,16 @@ namespace App\Services\Lead;
 use App\Enums\CampaignActionType;
 use App\Enums\InteractionChannel;
 use App\Enums\InteractionDirection;
+use App\Enums\LeadAutomationStatus;
 use App\Enums\LeadIntentionOrigin;
 use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadStatus;
 use App\Enums\SourceStatus;
+use App\Exceptions\Business\ConfigurationException;
+use App\Contracts\WhatsAppSenderInterface;
 use App\Models\CampaignOption;
 use App\Models\Lead;
 use App\Models\LeadInteraction;
-use App\Services\WhatsAppSenderService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -21,7 +23,7 @@ use Illuminate\Support\Facades\Log;
 class LeadOptionProcessorService
 {
     public function __construct(
-        private WhatsAppSenderService $whatsappSender
+        private WhatsAppSenderInterface $whatsappSender
     ) {}
 
     /**
@@ -52,55 +54,50 @@ class LeadOptionProcessorService
     {
         // Verificar que haya un source_id configurado
         if (! $option->source_id) {
-            Log::warning('No hay source_id configurado para opción de WhatsApp', [
+            $error = 'No hay source_id configurado para opción de WhatsApp';
+            Log::warning($error, [
                 'lead_id' => $lead->id,
                 'option_id' => $option->id,
             ]);
 
-            return;
+            throw new ConfigurationException($error);
         }
 
         // Obtener la fuente de WhatsApp
         $source = $option->source;
 
         if (! $source) {
-            Log::warning('Source no encontrado', [
+            $error = "Source no encontrado (ID: {$option->source_id})";
+            Log::warning($error, [
                 'lead_id' => $lead->id,
                 'source_id' => $option->source_id,
             ]);
 
-            return;
+            throw new ConfigurationException($error);
         }
 
         // Verificar que la fuente esté activa
         if ($source->status !== SourceStatus::ACTIVE) {
-            Log::warning('Fuente de WhatsApp no está activa', [
+            $error = "Fuente de WhatsApp no está activa (Estado: {$source->status->value})";
+            Log::warning($error, [
                 'lead_id' => $lead->id,
                 'source_id' => $source->id,
                 'source_status' => $source->status->value,
             ]);
 
-            return;
+            throw new ConfigurationException($error);
         }
 
-        // Obtener el mensaje
+        // Obtener el mensaje (siempre retorna un mensaje válido)
         $message = $this->getMessage($option);
-
-        if (! $message) {
-            Log::warning('No hay mensaje configurado', [
-                'lead_id' => $lead->id,
-                'option_id' => $option->id,
-            ]);
-
-            return;
-        }
 
         // Enviar mensaje
         try {
             $result = $this->whatsappSender->sendMessage(
                 $source,
                 $lead,
-                $message
+                $message,
+                []
             );
 
             Log::info('Mensaje WhatsApp enviado exitosamente', [
@@ -124,11 +121,10 @@ class LeadOptionProcessorService
                 'phone' => $lead->phone,
             ]);
 
-            // Actualizar estado de intención del lead
+            // Actualizar estado del lead: IN_PROGRESS porque se procesó con WhatsApp
+            // El automation_status se actualiza en autoProcessLeadIfEnabled
             $lead->update([
                 'status' => LeadStatus::IN_PROGRESS,
-                'automation_status' => 'completed',
-                'last_automation_run_at' => now(),
                 'intention_status' => LeadIntentionStatus::PENDING,
                 'intention_origin' => LeadIntentionOrigin::WHATSAPP,
             ]);
@@ -137,7 +133,6 @@ class LeadOptionProcessorService
                 'lead_id' => $lead->id,
                 'origin' => 'whatsapp',
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error enviando mensaje WhatsApp', [
                 'lead_id' => $lead->id,
@@ -159,9 +154,9 @@ class LeadOptionProcessorService
 
         // TODO: Implementar lógica de llamada con IA
         // Por ahora solo actualizamos el estado
+        // Nota: automation_status se actualiza en autoProcessLeadIfEnabled
         $lead->update([
             'status' => LeadStatus::IN_PROGRESS,
-            'automation_status' => 'completed',
             'last_automation_run_at' => now(),
         ]);
     }
@@ -177,9 +172,9 @@ class LeadOptionProcessorService
 
         // TODO: Implementar lógica de webhook
         // Por ahora solo actualizamos el estado
+        // Nota: automation_status se actualiza en autoProcessLeadIfEnabled
         $lead->update([
             'status' => LeadStatus::IN_PROGRESS,
-            'automation_status' => 'completed',
             'last_automation_run_at' => now(),
         ]);
     }
@@ -193,29 +188,37 @@ class LeadOptionProcessorService
             'lead_id' => $lead->id,
         ]);
 
+        // Para revisión manual, marcamos como SKIPPED ya que requiere intervención humana
+        // Nota: automation_status se actualiza en autoProcessLeadIfEnabled
         $lead->update([
             'status' => LeadStatus::PENDING,
-            'automation_status' => 'manual_review',
             'last_automation_run_at' => now(),
         ]);
     }
 
     /**
      * Obtener el mensaje a enviar
+     * Siempre retorna un mensaje válido (nunca null o vacío)
      */
-    protected function getMessage(CampaignOption $option): ?string
+    protected function getMessage(CampaignOption $option): string
     {
         // 1. Prioridad: mensaje directo en la opción
-        if ($option->message) {
-            return $option->message;
+        if (!empty($option->message)) {
+            $message = trim($option->message);
+            if (!empty($message)) {
+                return $message;
+            }
         }
 
         // 2. Si hay template_id, usar el template
-        if ($option->template_id && $option->template) {
-            return $option->template->content;
+        if ($option->template_id && $option->template && !empty($option->template->content)) {
+            $message = trim($option->template->content);
+            if (!empty($message)) {
+                return $message;
+            }
         }
 
-        // 3. Mensaje genérico por defecto
+        // 3. Mensaje genérico por defecto (siempre retorna algo)
         return 'Gracias por tu interés. Un asesor se contactará contigo pronto.';
     }
 }

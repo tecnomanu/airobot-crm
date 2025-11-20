@@ -20,8 +20,22 @@ class UpdateCampaignRequest extends FormRequest
         return [
             // Datos básicos de la campaña
             'name' => ['sometimes', 'string', 'max:255'],
+            'slug' => [
+                'nullable',
+                'string',
+                'max:255',
+                'regex:/^[a-z0-9-_]+$/',
+                Rule::unique('campaigns', 'slug')->ignore($this->route('campaign')),
+            ],
             'description' => ['nullable', 'string'],
             'status' => ['sometimes', Rule::enum(CampaignStatus::class)],
+            'auto_process_enabled' => ['nullable', 'boolean'],
+
+            // Webhooks de intención
+            'intention_interested_webhook_id' => ['nullable', 'integer', 'exists:sources,id'],
+            'intention_not_interested_webhook_id' => ['nullable', 'integer', 'exists:sources,id'],
+            'send_intention_interested_webhook' => ['nullable', 'boolean'],
+            'send_intention_not_interested_webhook' => ['nullable', 'boolean'],
 
             // Agente de llamadas
             'call_agent' => ['nullable', 'array'],

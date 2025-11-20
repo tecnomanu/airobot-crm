@@ -1,5 +1,6 @@
 import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
 import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
+import SourceCombobox from "@/Components/common/SourceCombobox";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -218,8 +219,9 @@ function OptionCard({
                                     Nueva Fuente
                                 </Button>
                             </div>
-                            <Select
-                                value={currentSourceId?.toString() || ""}
+                            <SourceCombobox
+                                sources={whatsappSources || []}
+                                value={currentSourceId?.toString() || null}
                                 onValueChange={(value) =>
                                     updateOption(
                                         optionKey,
@@ -227,34 +229,17 @@ function OptionCard({
                                         value ? parseInt(value) : null
                                     )
                                 }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona fuente WhatsApp" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {whatsappSources &&
-                                    whatsappSources.length > 0 ? (
-                                        whatsappSources.map((source) => (
-                                            <SelectItem
-                                                key={source.id}
-                                                value={source.id.toString()}
-                                            >
-                                                {source.name}
-                                            </SelectItem>
-                                        ))
-                                    ) : (
-                                        <SelectItem value="none" disabled>
-                                            No hay fuentes WhatsApp disponibles
-                                        </SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            {!currentSourceId && (
-                                <p className="text-xs text-amber-600">
-                                    ⚠️ Selecciona una fuente WhatsApp para
-                                    enviar mensajes
-                                </p>
-                            )}
+                                placeholder="Selecciona fuente WhatsApp"
+                                emptyMessage="No hay fuentes WhatsApp disponibles"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                {!whatsappSources ||
+                                whatsappSources.length === 0
+                                    ? "No hay fuentes WhatsApp disponibles. Usa el botón 'Nueva Fuente' para crear una."
+                                    : !currentSourceId
+                                    ? "Selecciona una fuente WhatsApp para enviar mensajes."
+                                    : ""}
+                            </p>
                         </div>
 
                         <div className="space-y-2">
@@ -317,8 +302,9 @@ function OptionCard({
                                 Nueva Fuente
                             </Button>
                         </div>
-                        <Select
-                            value={currentSourceId?.toString() || ""}
+                        <SourceCombobox
+                            sources={webhookSources || []}
+                            value={currentSourceId?.toString() || null}
                             onValueChange={(value) =>
                                 updateOption(
                                     optionKey,
@@ -326,33 +312,16 @@ function OptionCard({
                                     value ? parseInt(value) : null
                                 )
                             }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecciona webhook" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {webhookSources && webhookSources.length > 0 ? (
-                                    webhookSources.map((source) => (
-                                        <SelectItem
-                                            key={source.id}
-                                            value={source.id.toString()}
-                                        >
-                                            {source.name} - {source.config?.url}
-                                        </SelectItem>
-                                    ))
-                                ) : (
-                                    <SelectItem value="none" disabled>
-                                        No hay fuentes webhook disponibles
-                                    </SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
-                        {!currentSourceId && (
-                            <p className="text-xs text-amber-600">
-                                ⚠️ Selecciona una fuente webhook para enviar
-                                datos
-                            </p>
-                        )}
+                            placeholder="Selecciona webhook"
+                            emptyMessage="No hay fuentes webhook disponibles"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            {!webhookSources || webhookSources.length === 0
+                                ? "No hay fuentes webhook disponibles. Usa el botón 'Nueva Fuente' para crear una."
+                                : !currentSourceId
+                                ? "Selecciona una fuente webhook para enviar datos."
+                                : ""}
+                        </p>
                     </div>
                 )}
 

@@ -74,19 +74,15 @@ export default function Dashboard({
     };
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Dashboard",
+                subtitle: "Resumen general de la plataforma",
+            }}
+        >
             <Head title="Dashboard" />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Dashboard
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Resumen general de la plataforma
-                    </p>
-                </div>
 
                 {/* Stats Grid */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

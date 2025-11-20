@@ -30,6 +30,8 @@ class LeadWebhookRequest extends FormRequest
             // Asignación de campaña (ID directo o slug)
             'campaign_id' => ['nullable', 'string', 'exists:campaigns,id'],
             'campaign' => ['nullable', 'string', 'max:255'], // Slug de la campaña
+            'campaign_slug' => ['nullable', 'string', 'max:255'], // Alias de campaign
+            'slug' => ['nullable', 'string', 'max:255'], // Alias alternativo de campaign
             'campaign_pattern' => ['nullable', 'string', 'max:255'], // Retrocompatibilidad (deprecado)
 
             // Source flexible - acepta cualquier string para integraciones custom

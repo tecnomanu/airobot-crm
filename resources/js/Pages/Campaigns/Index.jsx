@@ -32,6 +32,11 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
         id: null,
         name: "",
     });
+    const [toggleDialog, setToggleDialog] = useState({
+        open: false,
+        campaign: null,
+        newStatus: null,
+    });
 
     const { data, setData, post, processing, errors, reset } = useForm({
         name: "",
@@ -98,26 +103,55 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
         setDeleteDialog({ open: false, id: null, name: "" });
     };
 
+    const handleToggleStatus = (campaign) => {
+        const newStatus = campaign.status === "active" ? "paused" : "active";
+        setToggleDialog({
+            open: true,
+            campaign: campaign,
+            newStatus: newStatus,
+        });
+    };
+
+    const confirmToggleStatus = () => {
+        router.patch(
+            route("campaigns.toggle-status", toggleDialog.campaign.id),
+            {},
+            {
+                onSuccess: () => {
+                    const action =
+                        toggleDialog.newStatus === "active"
+                            ? "activada"
+                            : "pausada";
+                    toast.success(`Campaña ${action} exitosamente`);
+                },
+                onError: () => {
+                    toast.error("Error al cambiar el estado de la campaña");
+                },
+            }
+        );
+        setToggleDialog({ open: false, campaign: null, newStatus: null });
+    };
+
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Campañas",
+                subtitle: "Gestión de campañas de marketing",
+                actions: (
+                    <Button
+                        size="sm"
+                        className="h-8 text-xs px-2"
+                        onClick={() => setIsCreateModalOpen(true)}
+                    >
+                        <Plus className="h-3.5 w-3.5 mr-1.5" />
+                        Nueva Campaña
+                    </Button>
+                ),
+            }}
+        >
             <Head title="Campañas" />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">
-                            Campañas
-                        </h1>
-                        <p className="text-muted-foreground">
-                            Gestión de campañas de marketing
-                        </p>
-                    </div>
-                    <Button onClick={() => setIsCreateModalOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nueva Campaña
-                    </Button>
-                </div>
 
                 {/* Filters */}
                 <Card>
@@ -209,7 +243,10 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
 
                 {/* Table */}
                 <DataTable
-                    columns={getCampaignColumns(handleDelete)}
+                    columns={getCampaignColumns(
+                        handleDelete,
+                        handleToggleStatus
+                    )}
                     data={campaigns.data}
                     filterColumn="name"
                 />
@@ -353,6 +390,29 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="destructive"
+            />
+
+            {/* Confirm Toggle Status Dialog */}
+            <ConfirmDialog
+                open={toggleDialog.open}
+                onOpenChange={(open) =>
+                    setToggleDialog({ ...toggleDialog, open })
+                }
+                onConfirm={confirmToggleStatus}
+                title={
+                    toggleDialog.newStatus === "active"
+                        ? "¿Activar campaña?"
+                        : "¿Pausar campaña?"
+                }
+                description={
+                    toggleDialog.newStatus === "active"
+                        ? `¿Estás seguro de activar la campaña "${toggleDialog.campaign?.name}"? Los leads comenzarán a procesarse automáticamente.`
+                        : `¿Estás seguro de pausar la campaña "${toggleDialog.campaign?.name}"? No se procesarán nuevos leads hasta que la reactives.`
+                }
+                confirmText={
+                    toggleDialog.newStatus === "active" ? "Activar" : "Pausar"
+                }
+                cancelText="Cancelar"
             />
         </AppLayout>
     );

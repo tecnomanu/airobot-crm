@@ -19,9 +19,9 @@ class LeadIntencionController extends Controller
 
     public function index(Request $request): Response
     {
-        // Filtrar leads por fuentes que incluyen intención (whatsapp, agente_ia)
+        // Filtrar leads que tienen interacciones (donde se analiza intención)
         $filters = [
-            'source' => $request->input('source', 'whatsapp,agente_ia'),
+            'has_interactions' => true, // Solo leads con interacciones
             'campaign_id' => $request->input('campaign_id'),
             'status' => $request->input('status'),
             'search' => $request->input('search'),
@@ -29,7 +29,7 @@ class LeadIntencionController extends Controller
 
         // Eager load interactions para optimizar
         $leads = $this->leadService->getLeads($filters, $request->input('per_page', 15));
-        
+
         // Cargar solo el último mensaje inbound para cada lead (optimizado)
         $leads->each(function ($lead) {
             $lead->loadCount('interactions');
@@ -39,7 +39,7 @@ class LeadIntencionController extends Controller
                     ->limit(1);
             }]);
         });
-        
+
         $campaigns = $this->campaignService->getActiveCampaigns();
 
         return Inertia::render('LeadsIntencion/Index', [
@@ -60,13 +60,16 @@ class LeadIntencionController extends Controller
             abort(404);
         }
 
-        // Cargar todas las interacciones ordenadas por fecha
-        $lead->load(['interactions' => function ($query) {
-            $query->orderBy('created_at', 'asc');
-        }]);
+        // Cargar todas las interacciones ordenadas por fecha y la campaña
+        $lead->load([
+            'interactions' => function ($query) {
+                $query->orderBy('created_at', 'asc');
+            },
+            'campaign',
+        ]);
 
         return Inertia::render('LeadsIntencion/Show', [
-            'lead' => new LeadResource($lead),
+            'lead' => (new LeadResource($lead))->resolve(),
         ]);
     }
 }

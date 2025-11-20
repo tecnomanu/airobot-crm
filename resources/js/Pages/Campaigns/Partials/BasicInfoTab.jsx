@@ -1,10 +1,7 @@
-import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import {
     Select,
     SelectContent,
@@ -12,10 +9,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Copy, Check } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Check, Copy } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
-export default function BasicInfoTab({ data, setData, errors, clients, campaign }) {
+export default function BasicInfoTab({
+    data,
+    setData,
+    errors,
+    clients,
+    campaign,
+}) {
     const [copiedSlug, setCopiedSlug] = useState(false);
 
     const handleCopySlug = () => {
@@ -62,7 +68,10 @@ export default function BasicInfoTab({ data, setData, errors, clients, campaign 
                             </SelectTrigger>
                             <SelectContent>
                                 {clients.map((client) => (
-                                    <SelectItem key={client.id} value={client.id}>
+                                    <SelectItem
+                                        key={client.id}
+                                        value={client.id}
+                                    >
                                         {client.name}
                                     </SelectItem>
                                 ))}
@@ -76,38 +85,52 @@ export default function BasicInfoTab({ data, setData, errors, clients, campaign 
                     </div>
                 </div>
 
-                {/* Slug (solo lectura) */}
-                {campaign?.slug && (
-                    <div className="space-y-2">
-                        <Label htmlFor="slug">ID de Campaña</Label>
-                        <div className="flex gap-2">
-                            <Input
-                                id="slug"
-                                value={campaign.slug}
-                                disabled
-                                className="bg-muted font-mono"
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={handleCopySlug}
-                            >
-                                {copiedSlug ? (
-                                    <Check className="h-4 w-4 text-green-600" />
-                                ) : (
-                                    <Copy className="h-4 w-4" />
-                                )}
-                            </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Usa este ID para enviar leads desde webhooks. Ejemplo:{" "}
-                            <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-                                {`{ "campaign": "${campaign.slug}" }`}
-                            </code>
-                        </p>
+                {/* Slug (editable) */}
+                <div className="space-y-2">
+                    <Label htmlFor="slug">ID de Campaña (Slug)</Label>
+                    <div className="flex gap-2">
+                        <Input
+                            id="slug"
+                            value={data.slug || campaign?.slug || ""}
+                            onChange={(e) => {
+                                // Solo permitir caracteres alfanuméricos, guiones y guiones bajos
+                                const value = e.target.value
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9-_]/g, "");
+                                setData("slug", value);
+                            }}
+                            placeholder="campana-verano-2024"
+                            className="font-mono"
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleCopySlug}
+                        >
+                            {copiedSlug ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                            ) : (
+                                <Copy className="h-4 w-4" />
+                            )}
+                        </Button>
                     </div>
-                )}
+                    {errors.slug && (
+                        <p className="text-sm text-destructive">
+                            {errors.slug}
+                        </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                        Usa este ID para enviar leads desde webhooks. Solo
+                        letras minúsculas, números, guiones y guiones bajos.
+                        Ejemplo:{" "}
+                        <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                            {`{ "campaign": "${
+                                data.slug || campaign?.slug || "campana-slug"
+                            }" }`}
+                        </code>
+                    </p>
+                </div>
 
                 <div className="space-y-2">
                     <Label htmlFor="status">Estado</Label>
@@ -128,16 +151,24 @@ export default function BasicInfoTab({ data, setData, errors, clients, campaign 
                 {/* Auto Process Enabled */}
                 <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                        <Label htmlFor="auto_process_enabled" className="text-base">
+                        <Label
+                            htmlFor="auto_process_enabled"
+                            className="text-base"
+                        >
                             Procesamiento Automático
                         </Label>
                         <p className="text-sm text-muted-foreground">
-                            Ejecutar automáticamente las acciones configuradas cuando lleguen leads con opciones 1, 2, i o t
+                            Ejecutar automáticamente las acciones configuradas
+                            cuando lleguen leads con opciones 1, 2, i o t
                         </p>
                     </div>
                     <Switch
                         id="auto_process_enabled"
-                        checked={data.auto_process_enabled !== undefined ? data.auto_process_enabled : true}
+                        checked={
+                            data.auto_process_enabled !== undefined
+                                ? data.auto_process_enabled
+                                : true
+                        }
                         onCheckedChange={(checked) =>
                             setData("auto_process_enabled", checked)
                         }
@@ -158,4 +189,3 @@ export default function BasicInfoTab({ data, setData, errors, clients, campaign 
         </Card>
     );
 }
-

@@ -1,16 +1,19 @@
-import { ArrowUpDown, Eye, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { router } from "@inertiajs/react";
+import { ArrowUpDown, Eye, Trash2 } from "lucide-react";
 
-export const getCampaignColumns = (handleDelete) => [
+export const getCampaignColumns = (handleDelete, handleToggleStatus) => [
     {
         id: "select",
         header: ({ table }) => (
             <Checkbox
                 checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                onCheckedChange={(value) =>
+                    table.toggleAllPageRowsSelected(!!value)
+                }
                 aria-label="Seleccionar todo"
             />
         ),
@@ -30,14 +33,18 @@ export const getCampaignColumns = (handleDelete) => [
             return (
                 <Button
                     variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === "asc")
+                    }
                 >
                     Nombre
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
         },
-        cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+        cell: ({ row }) => (
+            <div className="font-medium">{row.getValue("name")}</div>
+        ),
     },
     {
         accessorKey: "client",
@@ -46,20 +53,15 @@ export const getCampaignColumns = (handleDelete) => [
         enableSorting: false,
     },
     {
-        accessorKey: "status",
-        header: "Estado",
-        cell: ({ row }) => {
-            const status = row.getValue("status");
-            const colors = {
-                active: "bg-green-100 text-green-800 hover:bg-green-100",
-                paused: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-            };
-            return (
-                <Badge className={colors[status] || "bg-gray-100 text-gray-800"}>
-                    {row.original.status_label}
-                </Badge>
-            );
-        },
+        accessorKey: "slug",
+        header: "Slug",
+        cell: ({ row }) => (
+            <div className="font-mono text-xs">
+                {row.getValue("slug") || (
+                    <span className="text-muted-foreground">-</span>
+                )}
+            </div>
+        ),
     },
     {
         accessorKey: "webhook_enabled",
@@ -80,8 +82,15 @@ export const getCampaignColumns = (handleDelete) => [
         enableHiding: false,
         cell: ({ row }) => {
             const campaign = row.original;
+            const isActive = campaign.status === "active";
+
             return (
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end items-center gap-3">
+                    <Switch
+                        checked={isActive}
+                        onCheckedChange={() => handleToggleStatus(campaign)}
+                        className="data-[state=checked]:bg-green-600"
+                    />
                     <Button
                         variant="ghost"
                         size="icon"
@@ -103,4 +112,3 @@ export const getCampaignColumns = (handleDelete) => [
         },
     },
 ];
-

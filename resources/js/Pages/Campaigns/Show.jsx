@@ -1,27 +1,43 @@
-import { useState, useEffect } from "react";
-import AppLayout from "@/Layouts/AppLayout";
-import { Head, router, useForm } from "@inertiajs/react";
-import { ArrowLeft, Save, AlertTriangle } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "@inertiajs/react";
-import BasicInfoTab from "./Partials/BasicInfoTab";
+import AppLayout from "@/Layouts/AppLayout";
+import { Head, useForm } from "@inertiajs/react";
+import { AlertTriangle, Save } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import AgentsTab from "./Partials/AgentsTab";
 import AutomationTab from "./Partials/AutomationTab";
+import BasicInfoTab from "./Partials/BasicInfoTab";
+import IntentionWebhookTab from "./Partials/IntentionWebhookTab";
 import TemplatesTab from "./Partials/TemplatesTab";
 
-export default function CampaignShow({ campaign, templates, clients, whatsapp_sources, webhook_sources }) {
+export default function CampaignShow({
+    campaign,
+    templates,
+    clients,
+    whatsapp_sources,
+    webhook_sources,
+}) {
     const [activeTab, setActiveTab] = useState("basic");
 
     // Preparar datos con nueva estructura de modelos relacionados
-    const callAgent = campaign.call_agent || { name: "", provider: "", config: {}, enabled: true };
-    const whatsappAgent = campaign.whatsapp_agent || { name: "", source_id: null, config: {}, enabled: true };
-    
+    const callAgent = campaign.call_agent || {
+        name: "",
+        provider: "",
+        config: {},
+        enabled: true,
+    };
+    const whatsappAgent = campaign.whatsapp_agent || {
+        name: "",
+        source_id: null,
+        config: {},
+        enabled: true,
+    };
+
     // Convertir opciones de array a objeto indexado por option_key
     const optionsArray = campaign.options || [];
     const optionsMap = {};
-    optionsArray.forEach(opt => {
+    optionsArray.forEach((opt) => {
         optionsMap[opt.option_key] = opt;
     });
 
@@ -30,8 +46,22 @@ export default function CampaignShow({ campaign, templates, clients, whatsapp_so
         client_id: campaign.client_id || "",
         description: campaign.description || "",
         status: campaign.status || "active",
-        auto_process_enabled: campaign.auto_process_enabled !== undefined ? campaign.auto_process_enabled : true,
-        
+        slug: campaign.slug || "",
+        auto_process_enabled:
+            campaign.auto_process_enabled !== undefined
+                ? campaign.auto_process_enabled
+                : true,
+
+        // Intention Webhooks
+        intention_interested_webhook_id:
+            campaign.intention_interested_webhook_id || null,
+        intention_not_interested_webhook_id:
+            campaign.intention_not_interested_webhook_id || null,
+        send_intention_interested_webhook:
+            campaign.send_intention_interested_webhook || false,
+        send_intention_not_interested_webhook:
+            campaign.send_intention_not_interested_webhook || false,
+
         // Call Agent
         call_agent: {
             name: callAgent.name || "",
@@ -39,41 +69,84 @@ export default function CampaignShow({ campaign, templates, clients, whatsapp_so
             config: callAgent.config || {},
             enabled: callAgent.enabled !== undefined ? callAgent.enabled : true,
         },
-        
+
         // WhatsApp Agent
         whatsapp_agent: {
             name: whatsappAgent.name || "",
             source_id: whatsappAgent.source_id || null,
             config: whatsappAgent.config || {},
-            enabled: whatsappAgent.enabled !== undefined ? whatsappAgent.enabled : true,
+            enabled:
+                whatsappAgent.enabled !== undefined
+                    ? whatsappAgent.enabled
+                    : true,
         },
-        
+
         // Options (asegurar que siempre existan las 4)
         options: [
-            optionsMap['1'] || { option_key: '1', action: 'skip', source_id: null, template_id: null, message: '', delay: 5, enabled: true },
-            optionsMap['2'] || { option_key: '2', action: 'skip', source_id: null, template_id: null, message: '', delay: 5, enabled: true },
-            optionsMap['i'] || { option_key: 'i', action: 'skip', source_id: null, template_id: null, message: '', delay: 5, enabled: true },
-            optionsMap['t'] || { option_key: 't', action: 'skip', source_id: null, template_id: null, message: '', delay: 5, enabled: true },
+            optionsMap["1"] || {
+                option_key: "1",
+                action: "skip",
+                source_id: null,
+                template_id: null,
+                message: "",
+                delay: 5,
+                enabled: true,
+            },
+            optionsMap["2"] || {
+                option_key: "2",
+                action: "skip",
+                source_id: null,
+                template_id: null,
+                message: "",
+                delay: 5,
+                enabled: true,
+            },
+            optionsMap["i"] || {
+                option_key: "i",
+                action: "skip",
+                source_id: null,
+                template_id: null,
+                message: "",
+                delay: 5,
+                enabled: true,
+            },
+            optionsMap["t"] || {
+                option_key: "t",
+                action: "skip",
+                source_id: null,
+                template_id: null,
+                message: "",
+                delay: 5,
+                enabled: true,
+            },
         ],
     });
-    
+
     // Obtener la fuente seleccionada actual
-    const selectedWhatsappSource = whatsapp_sources?.find(s => s.id === data.whatsapp_agent.source_id);
+    const selectedWhatsappSource = whatsapp_sources?.find(
+        (s) => s.id === data.whatsapp_agent.source_id
+    );
 
     // Determinar qué tab contiene errores
     const getTabsWithErrors = () => {
         const tabs = {
-            basic: ['name', 'client_id', 'description', 'status'],
+            basic: ["name", "client_id", "description", "status"],
             agents: [
-                'call_agent', 'call_agent.name', 'call_agent.provider', 'call_agent.config',
-                'whatsapp_agent', 'whatsapp_agent.name', 'whatsapp_agent.source_id', 'whatsapp_agent.config'
+                "call_agent",
+                "call_agent.name",
+                "call_agent.provider",
+                "call_agent.config",
+                "whatsapp_agent",
+                "whatsapp_agent.name",
+                "whatsapp_agent.source_id",
+                "whatsapp_agent.config",
             ],
-            automation: ['options'],
+            automation: ["options"],
         };
 
         const tabsWithErrors = {};
         Object.entries(tabs).forEach(([tabKey, fields]) => {
-            const hasError = fields.some(field => errors[field]);
+            const hasError = fields.some((field) => errors[field]);
             if (hasError) {
                 tabsWithErrors[tabKey] = true;
             }
@@ -89,7 +162,9 @@ export default function CampaignShow({ campaign, templates, clients, whatsapp_so
         if (Object.keys(errors).length > 0) {
             const firstError = Object.values(errors)[0];
             toast.error(firstError, {
-                description: `Se encontraron ${Object.keys(errors).length} error(es) de validación`,
+                description: `Se encontraron ${
+                    Object.keys(errors).length
+                } error(es) de validación`,
                 duration: 5000,
             });
         }
@@ -97,49 +172,48 @@ export default function CampaignShow({ campaign, templates, clients, whatsapp_so
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
         put(route("campaigns.update", campaign.id), {
             preserveScroll: true,
             preserveState: true,
-            only: ['campaign', 'errors'],
+            only: ["campaign", "errors"],
             onSuccess: () => {
                 toast.success("Campaña actualizada exitosamente");
             },
             onError: (errors) => {
-                console.error('Validation errors:', errors);
+                console.error("Validation errors:", errors);
             },
         });
     };
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: campaign.name,
+                subtitle: "Configuración de campaña",
+                backButton: {
+                    href: route("campaigns.index"),
+                    variant: "ghost",
+                },
+                actions: (
+                    <Button
+                        onClick={handleSubmit}
+                        size="sm"
+                        className="h-8 text-xs px-2"
+                        disabled={processing}
+                    >
+                        <Save className="h-3.5 w-3.5 mr-1.5" />
+                        Guardar Cambios
+                    </Button>
+                ),
+            }}
+        >
             <Head title={`Campaña: ${campaign.name}`} />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href={route("campaigns.index")}>
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-3xl font-bold">{campaign.name}</h1>
-                            <p className="text-muted-foreground">
-                                Configuración de campaña
-                            </p>
-                        </div>
-                    </div>
-                    <Button onClick={handleSubmit} disabled={processing}>
-                        <Save className="mr-2 h-4 w-4" />
-                        Guardar Cambios
-                    </Button>
-                </div>
-
                 {/* Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="basic" className="relative">
                             Información Básica
                             {tabsWithErrors.basic && (
@@ -157,6 +231,9 @@ export default function CampaignShow({ campaign, templates, clients, whatsapp_so
                             {tabsWithErrors.automation && (
                                 <AlertTriangle className="ml-2 h-4 w-4 text-amber-500" />
                             )}
+                        </TabsTrigger>
+                        <TabsTrigger value="webhooks">
+                            Webhooks de Intención
                         </TabsTrigger>
                         <TabsTrigger value="templates">Plantillas</TabsTrigger>
                     </TabsList>
@@ -190,6 +267,16 @@ export default function CampaignShow({ campaign, templates, clients, whatsapp_so
                             campaign={campaign}
                             templates={templates}
                             whatsappSources={whatsapp_sources || []}
+                            webhookSources={webhook_sources || []}
+                            clients={clients || []}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="webhooks">
+                        <IntentionWebhookTab
+                            data={data}
+                            setData={setData}
+                            errors={errors}
                             webhookSources={webhook_sources || []}
                             clients={clients || []}
                         />

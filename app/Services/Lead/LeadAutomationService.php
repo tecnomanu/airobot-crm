@@ -13,8 +13,8 @@ use App\Enums\SourceStatus;
 use App\Exceptions\Business\ValidationException;
 use App\Models\Lead;
 use App\Models\LeadInteraction;
-use App\Services\External\WebhookSenderInterface;
-use App\Services\External\WhatsAppSenderInterface;
+use App\Contracts\WebhookSenderInterface;
+use App\Contracts\WhatsAppSenderInterface;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -159,7 +159,6 @@ class LeadAutomationService
                     'lead_id' => $lead->id,
                     'origin' => 'whatsapp',
                 ]);
-
             } catch (\Exception $e) {
                 Log::error('Error enviando mensaje WhatsApp', [
                     'lead_id' => $lead->id,
@@ -168,7 +167,6 @@ class LeadAutomationService
                 ]);
                 throw $e;
             }
-
         } else {
             // LEGACY: Si no hay whatsappSource, usar config antigua
             // TODO: Deprecar esta lógica una vez migradas todas las campañas
@@ -179,8 +177,8 @@ class LeadAutomationService
 
             // Aquí iría la lógica antigua si existiera
             throw new ValidationException(
-                'Campaña no tiene fuente de WhatsApp configurada. '.
-                'Configure una Source de tipo WhatsApp para esta campaña.'
+                'Campaña no tiene fuente de WhatsApp configurada. ' .
+                    'Configure una Source de tipo WhatsApp para esta campaña.'
             );
         }
     }

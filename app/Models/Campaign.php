@@ -26,6 +26,10 @@ class Campaign extends Model
         'country',
         'campaign_type',
         'export_rule',
+        'intention_interested_webhook_id',
+        'intention_not_interested_webhook_id',
+        'send_intention_interested_webhook',
+        'send_intention_not_interested_webhook',
         'created_by',
     ];
 
@@ -34,6 +38,8 @@ class Campaign extends Model
         'campaign_type' => CampaignType::class,
         'export_rule' => ExportRule::class,
         'auto_process_enabled' => 'boolean',
+        'send_intention_interested_webhook' => 'boolean',
+        'send_intention_not_interested_webhook' => 'boolean',
     ];
 
     /**
@@ -101,6 +107,22 @@ class Campaign extends Model
     }
 
     /**
+     * Relación con el webhook de intención para leads interesados
+     */
+    public function intentionInterestedWebhook(): BelongsTo
+    {
+        return $this->belongsTo(Source::class, 'intention_interested_webhook_id');
+    }
+
+    /**
+     * Relación con el webhook de intención para leads no interesados
+     */
+    public function intentionNotInterestedWebhook(): BelongsTo
+    {
+        return $this->belongsTo(Source::class, 'intention_not_interested_webhook_id');
+    }
+
+    /**
      * Obtener opción específica por clave
      */
     public function getOption(string $optionKey): ?CampaignOption
@@ -122,5 +144,23 @@ class Campaign extends Model
     public function hasWhatsappAgent(): bool
     {
         return $this->whatsappAgent()->where('enabled', true)->exists();
+    }
+
+    /**
+     * Obtener el agente de llamadas habilitado
+     */
+    public function getEnabledCallAgent(): ?CampaignCallAgent
+    {
+        return $this->callAgent()->where('enabled', true)->first();
+    }
+
+    /**
+     * Verificar si tiene un agente de Retell configurado y habilitado
+     */
+    public function hasRetellCallAgent(): bool
+    {
+        $agent = $this->getEnabledCallAgent();
+
+        return $agent && $agent->isRetell();
     }
 }

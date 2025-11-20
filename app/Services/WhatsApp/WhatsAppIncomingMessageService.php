@@ -5,9 +5,10 @@ namespace App\Services\WhatsApp;
 use App\Enums\InteractionDirection;
 use App\Helpers\PhoneHelper;
 use App\Models\Lead;
+use App\Contracts\WhatsAppSenderInterface;
 use App\Services\Lead\LeadInteractionService;
 use App\Services\Lead\LeadService;
-use App\Services\WhatsAppSenderService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -24,7 +25,7 @@ class WhatsAppIncomingMessageService
     public function __construct(
         private LeadService $leadService,
         private LeadInteractionService $interactionService,
-        private WhatsAppSenderService $whatsappSender
+        private WhatsAppSenderInterface $whatsappSender
     ) {}
 
     /**
@@ -56,7 +57,7 @@ class WhatsAppIncomingMessageService
         // Usar remoteJid (número real formato @s.whatsapp.net)
         // Solo usar remoteJidAlt si remoteJid no existe o es un LID
         $remoteJid = $key['remoteJid'] ?? null;
-        
+
         // Si remoteJid es un LID (@lid), usar el número real si está disponible
         if ($remoteJid && str_contains($remoteJid, '@lid')) {
             $remoteJid = $key['remoteJidAlt'] ?? $remoteJid;
@@ -116,13 +117,13 @@ class WhatsAppIncomingMessageService
         // Actualizar intención del lead
         $this->leadService->updateIntentionFromMessage($lead, $messageContent);
 
-        // Enviar respuesta automática
-        $autoReplySent = $this->sendAutoReply($lead, $instance);
+        // Programar respuesta automática con debouncing (espera a que termine de escribir)
+        $this->scheduleAutoReply($lead);
 
         return [
             'lead_id' => $lead->id,
             'interaction_id' => $interaction->id,
-            'auto_reply_sent' => $autoReplySent,
+            'auto_reply_scheduled' => true,
         ];
     }
 
@@ -194,66 +195,37 @@ class WhatsAppIncomingMessageService
     }
 
     /**
-     * Enviar respuesta automática al lead
+     * Programar respuesta automática con debouncing
+     *
+     * Si el lead envía múltiples mensajes rápidos, solo se enviará UNA respuesta
+     * después de que pasen X segundos sin nuevos mensajes.
      */
-    protected function sendAutoReply(Lead $lead, ?string $instance): bool
+    protected function scheduleAutoReply(Lead $lead): void
     {
-        try {
-            // TODO: Hacer esto configurable por campaña
-            $autoReplyMessage = 'Gracias por tu mensaje. Un asesor revisará tu consulta y te responderá a la brevedad. 📱';
+        $delaySeconds = config('services.whatsapp.auto_reply_delay', 5);
 
-            // Obtener la fuente de WhatsApp de la campaña
-            $campaign = $lead->campaign;
-            if (! $campaign) {
-                Log::warning('Lead sin campaña, no se puede enviar auto-respuesta', [
-                    'lead_id' => $lead->id,
-                ]);
+        // Incrementar versión para invalidar jobs anteriores (debouncing)
+        $cacheKey = "auto_reply:{$lead->id}";
+        
+        // Obtener versión actual o inicializar en 0
+        $currentVersion = Cache::get($cacheKey, 0);
+        $newVersion = $currentVersion + 1;
+        
+        // Guardar nueva versión
+        Cache::put($cacheKey, $newVersion, now()->addMinutes(10));
 
-                return false;
-            }
+        // Programar job con delay
+        // Si llega otro mensaje, se incrementará la versión y este job se cancelará
+        $delay = now()->addSeconds($delaySeconds);
 
-            // Buscar source de WhatsApp usado en las opciones de la campaña
-            $whatsappOption = $campaign->options()
-                ->where('action', 'whatsapp')
-                ->whereNotNull('source_id')
-                ->first();
+        \App\Jobs\Lead\SendAutoReplyJob::dispatch($lead->id, $newVersion)
+            ->delay($delay)
+            ->onQueue('default');
 
-            if (! $whatsappOption || ! $whatsappOption->source) {
-                Log::warning('Campaña sin fuente de WhatsApp configurada', [
-                    'campaign_id' => $campaign->id,
-                ]);
-
-                return false;
-            }
-
-            $source = $whatsappOption->source;
-
-            // Enviar mensaje
-            $this->whatsappSender->sendMessage($source, $lead, $autoReplyMessage);
-
-            // Guardar la respuesta automática como interacción saliente
-            $this->interactionService->createFromWhatsAppMessage(
-                leadId: $lead->id,
-                campaignId: $lead->campaign_id,
-                content: $autoReplyMessage,
-                payload: ['type' => 'auto_reply'],
-                externalId: null,
-                phone: $lead->phone,
-                direction: InteractionDirection::OUTBOUND
-            );
-
-            Log::info('Auto-respuesta enviada exitosamente', [
-                'lead_id' => $lead->id,
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Error enviando auto-respuesta', [
-                'lead_id' => $lead->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return false;
-        }
+        Log::info('Job de auto-respuesta programado', [
+            'lead_id' => $lead->id,
+            'version' => $newVersion,
+            'delay_seconds' => $delaySeconds,
+        ]);
     }
 }

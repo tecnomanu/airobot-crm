@@ -2,15 +2,20 @@
 
 namespace App\Services\Lead;
 
+use App\Enums\CampaignActionType;
+use App\Enums\LeadAutomationStatus;
 use App\Enums\LeadIntention;
 use App\Enums\LeadIntentionOrigin;
 use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Exceptions\Business\ConfigurationException;
 use App\Helpers\PhoneHelper;
 use App\Models\Lead;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
+use App\Services\Webhook\WebhookDispatcherService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,6 +24,7 @@ class LeadService
     public function __construct(
         private LeadRepositoryInterface $leadRepository,
         private CampaignRepositoryInterface $campaignRepository,
+        private WebhookDispatcherService $webhookDispatcher,
         private ?LeadOptionProcessorService $optionProcessor = null
     ) {
         // Lazy load del servicio para evitar dependencias circulares
@@ -46,27 +52,57 @@ class LeadService
     /**
      * Crear un nuevo lead
      * Valida que la campaña exista y esté activa
+     * Procesa automáticamente las opciones si están configuradas
      */
     public function createLead(array $data): Lead
     {
-        // Validar que la campaña exista
-        $campaign = $this->campaignRepository->findById($data['campaign_id']);
+        return DB::transaction(function () use ($data) {
+            // Validar que la campaña exista
+            $campaign = $this->campaignRepository->findById($data['campaign_id']);
 
-        if (! $campaign) {
-            throw new \InvalidArgumentException('Campaña no encontrada');
-        }
+            if (! $campaign) {
+                throw new \InvalidArgumentException('Campaña no encontrada');
+            }
 
-        // Setear valores por defecto
-        $data['status'] = $data['status'] ?? LeadStatus::PENDING;
-        $data['webhook_sent'] = $data['webhook_sent'] ?? false;
+            // Buscar si ya existe un lead con el mismo teléfono y campaña
+            $existingLead = $this->leadRepository->findByPhoneAndCampaign(
+                $data['phone'],
+                $data['campaign_id']
+            );
 
-        return $this->leadRepository->create($data);
+            if ($existingLead) {
+                Log::info('Lead existente encontrado, actualizando en lugar de crear duplicado', [
+                    'lead_id' => $existingLead->id,
+                    'phone' => $data['phone'],
+                    'campaign_id' => $data['campaign_id'],
+                ]);
+
+                // Actualizar el lead existente con los nuevos datos
+                $lead = $this->leadRepository->update($existingLead, array_merge(
+                    $data,
+                    ['status' => $data['status'] ?? $existingLead->status]
+                ));
+
+                return $lead;
+            }
+
+            // Setear valores por defecto
+            $data['status'] = $data['status'] ?? LeadStatus::PENDING;
+            $data['webhook_sent'] = $data['webhook_sent'] ?? false;
+
+            $lead = $this->leadRepository->create($data);
+
+            // Procesar automáticamente si la campaña lo permite
+            $this->autoProcessLeadIfEnabled($lead);
+
+            return $lead;
+        });
     }
 
     /**
      * Actualizar un lead existente
      */
-    public function updateLead(int $id, array $data): Lead
+    public function updateLead(string $id, array $data): Lead
     {
         $lead = $this->leadRepository->findById($id);
 
@@ -80,7 +116,7 @@ class LeadService
     /**
      * Eliminar un lead
      */
-    public function deleteLead(int $id): bool
+    public function deleteLead(string $id): bool
     {
         $lead = $this->leadRepository->findById($id);
 
@@ -168,15 +204,15 @@ class LeadService
     public function processIncomingWebhookLead(array $leadData): Lead
     {
         return DB::transaction(function () use ($leadData) {
-            // Normalizar teléfono
-            $phone = PhoneHelper::normalize($leadData['phone']);
+            // Buscar campaña primero para usar su país en la normalización
+            $campaign = $this->findCampaignForLead($leadData);
+
+            // Normalizar teléfono con contexto de campaña
+            $phone = PhoneHelper::normalizeForLead($leadData['phone'], $campaign);
 
             if (! PhoneHelper::isValid($phone)) {
                 throw new \InvalidArgumentException('Número de teléfono inválido: ' . $leadData['phone']);
             }
-
-            // Buscar campaña
-            $campaign = $this->findCampaignForLead($leadData);
 
             if (! $campaign) {
                 Log::warning('No se encontró campaña para lead', [
@@ -287,12 +323,52 @@ class LeadService
                 'action' => $option->action->value,
             ]);
 
+            // Actualizar estado a processing
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::PROCESSING,
+                'last_automation_run_at' => now(),
+                'automation_attempts' => $lead->automation_attempts + 1,
+            ]);
+
             $this->optionProcessor->processLeadOption($lead, $option);
+
+            // Determinar el estado final según el tipo de acción
+            $finalStatus = match ($option->action) {
+                CampaignActionType::MANUAL_REVIEW => LeadAutomationStatus::SKIPPED,
+                CampaignActionType::SKIP => LeadAutomationStatus::SKIPPED,
+                default => LeadAutomationStatus::COMPLETED,
+            };
+
+            // Actualizar estado según el tipo de acción
+            $this->leadRepository->update($lead, [
+                'automation_status' => $finalStatus,
+                'automation_error' => null,
+            ]);
 
             Log::info('Auto-procesamiento completado exitosamente', [
                 'lead_id' => $lead->id,
+                'automation_status' => $finalStatus->value,
             ]);
+        } catch (ConfigurationException $e) {
+            // Errores de configuración se marcan como SKIPPED (no es un error técnico)
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::SKIPPED,
+                'automation_error' => $e->getMessage(),
+            ]);
+
+            Log::warning('Auto-procesamiento omitido por error de configuración', [
+                'lead_id' => $lead->id,
+                'option_key' => $option->option_key,
+                'error' => $e->getMessage(),
+            ]);
+            // No lanzar excepción para no bloquear la creación del lead
         } catch (\Exception $e) {
+            // Errores técnicos se marcan como FAILED
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::FAILED,
+                'automation_error' => $e->getMessage(),
+            ]);
+
             Log::error('Error en auto-procesamiento de lead', [
                 'lead_id' => $lead->id,
                 'option_key' => $option->option_key,
@@ -346,28 +422,7 @@ class LeadService
         // Normalizar teléfono
         $normalizedPhone = PhoneHelper::normalizeWithCountry($phone, 'AR');
 
-        // Buscar lead con variantes de teléfono
-        $lead = $this->leadRepository->findByPhoneWithVariants($normalizedPhone);
-
-        if ($lead) {
-            Log::info('Lead encontrado por teléfono', [
-                'lead_id' => $lead->id,
-                'phone' => $normalizedPhone,
-            ]);
-
-            return $lead;
-        }
-
-        // Si no existe, crear un nuevo lead
-        Log::info('Creando nuevo lead desde WhatsApp', [
-            'phone' => $normalizedPhone,
-            'has_whatsapp_data' => (bool) $whatsappData,
-        ]);
-
-        // Extraer nombre del pushName de WhatsApp si está disponible
-        $name = $whatsappData['pushName'] ?? $whatsappData['name'] ?? 'Lead desde WhatsApp';
-
-        // Determinar campaña
+        // Determinar campaña primero
         $campaignId = $defaultCampaignId;
         if (! $campaignId) {
             // Buscar primera campaña activa como fallback
@@ -378,6 +433,34 @@ class LeadService
                 throw new \Exception('No hay campañas activas disponibles para asociar el lead');
             }
         }
+
+        // Buscar lead con el mismo teléfono Y campaña (evita duplicados)
+        $lead = $this->leadRepository->findByPhoneAndCampaign($normalizedPhone, $campaignId);
+
+        if ($lead) {
+            Log::info('Lead encontrado por teléfono y campaña', [
+                'lead_id' => $lead->id,
+                'phone' => $normalizedPhone,
+                'campaign_id' => $campaignId,
+            ]);
+
+            // Actualizar nombre si viene de WhatsApp y es mejor que el actual
+            if ($whatsappData && isset($whatsappData['pushName'])) {
+                $this->updateContactInfoFromWhatsApp($lead, $whatsappData);
+            }
+
+            return $lead;
+        }
+
+        // Si no existe, crear un nuevo lead
+        Log::info('Creando nuevo lead desde WhatsApp', [
+            'phone' => $normalizedPhone,
+            'campaign_id' => $campaignId,
+            'has_whatsapp_data' => (bool) $whatsappData,
+        ]);
+
+        // Extraer nombre del pushName de WhatsApp si está disponible
+        $name = $whatsappData['pushName'] ?? $whatsappData['name'] ?? 'Lead desde WhatsApp';
 
         return $this->leadRepository->create([
             'phone' => $normalizedPhone,
@@ -391,71 +474,140 @@ class LeadService
 
     /**
      * Actualizar intención del lead basado en mensaje recibido
+     *
+     * Por defecto usa SOLO IA con delay (evita falsos positivos).
+     * Opcionalmente puede usar palabras clave primero si está configurado.
      */
     public function updateIntentionFromMessage(Lead $lead, string $messageContent): void
     {
-        // Analizar palabras clave para determinar intención
-        $detectedIntention = $this->analyzeIntention($messageContent);
+        // Si ya tiene intención finalizada, no procesar
+        if ($lead->intention_status === LeadIntentionStatus::FINALIZED) {
+            Log::info('Lead ya tiene intención finalizada, saltando análisis', [
+                'lead_id' => $lead->id,
+                'intention' => $lead->intention,
+            ]);
+
+            return;
+        }
+
+        $useKeywordsFirst = config('services.openai.use_keywords_first', false);
+        $detectedIntention = null;
+
+        // Solo usar palabras clave si está explícitamente habilitado
+        if ($useKeywordsFirst) {
+            $detectedIntention = $this->analyzeIntentionWithKeywords($messageContent);
+        }
 
         // Preparar datos de actualización
         $updateData = [];
 
-        // Si detectamos una intención clara, guardarla como string simple
+        // Si detectamos una intención clara con palabras clave
         if ($detectedIntention) {
             $updateData['intention'] = $detectedIntention;
             $updateData['intention_status'] = LeadIntentionStatus::FINALIZED;
             $updateData['intention_decided_at'] = now();
-
-            // Si no tenía origin, asignar WhatsApp
-            if (! $lead->intention_origin) {
-                $updateData['intention_origin'] = LeadIntentionOrigin::WHATSAPP;
-            }
+            $updateData['intention_origin'] = LeadIntentionOrigin::WHATSAPP;
 
             // Auto-cambiar status según intención detectada
             if ($detectedIntention === LeadIntention::INTERESTED->value) {
-                // Si está interesado, pasar a IN_PROGRESS para que un agente lo atienda
                 if ($lead->status === LeadStatus::PENDING) {
                     $updateData['status'] = LeadStatus::IN_PROGRESS;
                 }
             } elseif ($detectedIntention === LeadIntention::NOT_INTERESTED->value) {
-                // Si no está interesado, cerrar automáticamente
                 $updateData['status'] = LeadStatus::CLOSED;
             }
-        } else {
-            // Si no hay intención clara, solo actualizar si no tiene una ya finalizada
-            if (! $lead->intention_status || $lead->intention_status !== LeadIntentionStatus::FINALIZED) {
-                // Guardar el último mensaje como intención temporal
-                $updateData['intention'] = $messageContent;
-            }
 
-            // Si el lead responde por primera vez, moverlo a IN_PROGRESS
+            Log::info('Intención detectada con palabras clave', [
+                'lead_id' => $lead->id,
+                'intention' => $detectedIntention,
+                'message' => substr($messageContent, 0, 100),
+            ]);
+        } else {
+            // No se detectó con palabras clave (o están deshabilitadas)
+            // Guardar mensaje como intención temporal
+            $updateData['intention'] = $messageContent;
+
+            // Mover a IN_PROGRESS si es primera respuesta
             if ($lead->status === LeadStatus::PENDING) {
                 $updateData['status'] = LeadStatus::IN_PROGRESS;
             }
+
+            // Programar análisis con IA asíncrono con delay (debouncing)
+            $this->scheduleAIAnalysis($lead);
+
+            Log::info($useKeywordsFirst ? 'Intención no detectada con palabras clave, programando análisis IA' : 'Programando análisis IA (palabras clave deshabilitadas)', [
+                'lead_id' => $lead->id,
+                'message' => substr($messageContent, 0, 100),
+                'use_keywords' => $useKeywordsFirst,
+            ]);
         }
 
-        // Asegurar que el source sea whatsapp si recibió mensaje por WhatsApp
+        // Asegurar que el source sea whatsapp
         if ($lead->source !== LeadSource::WHATSAPP) {
             $updateData['source'] = LeadSource::WHATSAPP;
         }
 
         if (! empty($updateData)) {
-            $this->leadRepository->update($lead, $updateData);
+            $lead = $this->leadRepository->update($lead, $updateData);
+
+            // Si se detectó intención clara, enviar webhook
+            if ($detectedIntention && in_array($detectedIntention, ['interested', 'not_interested'])) {
+                try {
+                    $this->webhookDispatcher->dispatchLeadIntentionWebhook($lead);
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar webhook de intención', [
+                        'lead_id' => $lead->id,
+                        'intention' => $detectedIntention,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Programar análisis con IA de forma asíncrona con debouncing
+     *
+     * Si llegan múltiples mensajes, solo se procesará una vez después
+     * de que pasen X segundos sin nuevos mensajes.
+     */
+    protected function scheduleAIAnalysis(Lead $lead): void
+    {
+        $aiAnalyzer = app(LeadIntentionAnalyzerService::class);
+
+        if (! $aiAnalyzer->isEnabled()) {
+            return;
         }
 
-        Log::info('Intención del lead actualizada', [
+        // Incrementar versión para invalidar jobs anteriores (debouncing)
+        $cacheKey = "lead_intention_analysis:{$lead->id}";
+
+        // Obtener versión actual o inicializar en 0
+        $currentVersion = Cache::get($cacheKey, 0);
+        $newVersion = $currentVersion + 1;
+
+        // Guardar nueva versión
+        Cache::put($cacheKey, $newVersion, now()->addMinutes(10));
+
+        // Programar job con delay de 8 segundos
+        // Si llega otro mensaje, se incrementará la versión y este job se cancelará
+        $delay = now()->addSeconds(config('services.openai.analysis_delay_seconds', 8));
+
+        \App\Jobs\Lead\AnalyzeLeadIntentionJob::dispatch($lead->id, $newVersion)
+            ->delay($delay)
+            ->onQueue('default');
+
+        Log::info('Job de análisis IA programado', [
             'lead_id' => $lead->id,
-            'detected_intention' => $detectedIntention,
-            'new_status' => $updateData['status'] ?? 'unchanged',
-            'content_length' => strlen($messageContent),
-            'finalized' => (bool) $detectedIntention,
+            'version' => $newVersion,
+            'delay_seconds' => config('services.openai.analysis_delay_seconds', 8),
         ]);
     }
 
     /**
-     * Analizar contenido del mensaje para detectar intención
+     * Analizar intención solo con palabras clave (sin IA)
      */
-    protected function analyzeIntention(string $content): ?string
+    protected function analyzeIntentionWithKeywords(string $content): ?string
     {
         $contentLower = mb_strtolower($content);
 
@@ -480,6 +632,16 @@ class LeadService
             'ok',
             'dale',
             'perfecto',
+            'claro',
+            'bueno',
+            'bien',
+            'hola',
+            'buenos dias',
+            'buenas tardes',
+            'buenas noches',
+            'buen dia',
+            'gracias',
+            'de acuerdo',
         ];
 
         foreach ($interestedKeywords as $keyword) {
@@ -504,6 +666,8 @@ class LeadService
             'stop',
             'cancelar',
             'no molesten',
+            'dejame en paz',
+            'no molestar',
         ];
 
         foreach ($notInterestedKeywords as $keyword) {
@@ -512,7 +676,6 @@ class LeadService
             }
         }
 
-        // Si no detectamos intención clara, retornar null
         return null;
     }
 
@@ -577,5 +740,89 @@ class LeadService
 
         // No sobrescribir nombres reales
         return false;
+    }
+
+    /**
+     * Reintentar auto-procesamiento de un lead que falló
+     */
+    public function retryAutomation(string $id): Lead
+    {
+        $lead = $this->leadRepository->findById($id, ['campaign.options']);
+
+        if (! $lead) {
+            throw new \InvalidArgumentException('Lead no encontrado');
+        }
+
+        // Resetear estado de automation
+        $this->leadRepository->update($lead, [
+            'automation_status' => LeadAutomationStatus::PENDING,
+            'automation_error' => null,
+        ]);
+
+        // Recargar el lead con los cambios
+        $lead->refresh();
+
+        // Intentar procesar nuevamente
+        $this->autoProcessLeadIfEnabled($lead);
+
+        // Verificar el estado final después del procesamiento
+        $lead->refresh();
+
+        if ($lead->automation_status === LeadAutomationStatus::FAILED) {
+            $error = $lead->automation_error ?? 'Error desconocido en auto-procesamiento';
+            Log::error('Reintento de auto-procesamiento falló', [
+                'lead_id' => $lead->id,
+                'error' => $error,
+            ]);
+            throw new \Exception('Error al reintentar auto-procesamiento: ' . $error);
+        }
+
+        Log::info('Reintento de auto-procesamiento exitoso', [
+            'lead_id' => $lead->id,
+            'automation_status' => $lead->automation_status->value,
+        ]);
+
+        return $lead->fresh();
+    }
+
+    /**
+     * Reintentar auto-procesamiento para múltiples leads
+     */
+    public function retryAutomationBatch(array $filters = []): array
+    {
+        // Buscar leads pendientes o fallidos
+        $leads = $this->leadRepository->getFailedAutomation($filters);
+
+        $results = [
+            'total' => $leads->count(),
+            'success' => 0,
+            'failed' => 0,
+            'errors' => [],
+        ];
+
+        foreach ($leads as $lead) {
+            try {
+                $this->retryAutomation($lead->id);
+                $results['success']++;
+            } catch (\Exception $e) {
+                $results['failed']++;
+                $results['errors'][] = [
+                    'lead_id' => $lead->id,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        Log::info('Reintento masivo de auto-procesamiento', $results);
+
+        return $results;
+    }
+
+    /**
+     * Obtener leads pendientes de procesamiento o fallidos
+     */
+    public function getPendingAutomation(array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        return $this->leadRepository->getPendingAutomation($filters);
     }
 }

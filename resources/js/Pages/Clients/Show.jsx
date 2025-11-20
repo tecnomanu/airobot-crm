@@ -47,22 +47,21 @@ export default function ClientShow({ client, overview }) {
     };
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: client.name,
+                subtitle: client.company,
+                badges: [
+                    {
+                        label: client.status_label,
+                        className: getStatusColor(client.status),
+                    },
+                ],
+            }}
+        >
             <Head title={`Cliente: ${client.name}`} />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
-                        <Badge className={getStatusColor(client.status)}>
-                            {client.status_label}
-                        </Badge>
-                    </div>
-                    {client.company && (
-                        <p className="text-muted-foreground">{client.company}</p>
-                    )}
-                </div>
 
                 {/* Client Info */}
                 <Card>

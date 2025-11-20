@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\External;
 
+use App\Contracts\WebhookSenderInterface;
 use App\DTOs\External\WebhookResultDTO;
 use App\Enums\SourceType;
 use App\Models\Lead;
@@ -97,11 +98,10 @@ class HttpWebhookSender implements WebhookSenderInterface
                 ]);
 
                 return WebhookResultDTO::failed(
-                    "HTTP {$statusCode}: ".substr($responseBody, 0, 200),
+                    "HTTP {$statusCode}: " . substr($responseBody, 0, 200),
                     $statusCode
                 );
             }
-
         } catch (\Exception $e) {
             Log::error('Error enviando lead a webhook', [
                 'source_id' => $source->id,
@@ -157,7 +157,8 @@ class HttpWebhookSender implements WebhookSenderInterface
     {
         // Reemplazar variables en el template
         $replaced = str_replace([
-            '{{id}}', '{{lead_id}}',
+            '{{id}}',
+            '{{lead_id}}',
             '{{phone}}',
             '{{name}}',
             '{{city}}',
@@ -169,7 +170,8 @@ class HttpWebhookSender implements WebhookSenderInterface
             '{{campaign_id}}',
             '{{campaign_name}}',
         ], [
-            $lead->id, $lead->id,
+            $lead->id,
+            $lead->id,
             $lead->phone,
             $lead->name ?? '',
             $lead->city ?? '',

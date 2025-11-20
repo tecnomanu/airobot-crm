@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\Api\CallHistoryController;
+use App\Http\Controllers\Api\CallHistory\CallHistoryController;
 use App\Http\Controllers\Api\CallProviderWebhookController;
-use App\Http\Controllers\Api\CampaignController;
-use App\Http\Controllers\Api\ClientController;
-use App\Http\Controllers\Api\ClientDispatchController;
-use App\Http\Controllers\Api\LeadController;
-use App\Http\Controllers\Api\ReportingController;
+use App\Http\Controllers\Api\Campaign\CampaignController;
+use App\Http\Controllers\Api\Client\ClientController;
+use App\Http\Controllers\Api\Client\ClientDispatchController;
+use App\Http\Controllers\Api\Lead\LeadController;
+use App\Http\Controllers\Api\Reporting\ReportingController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WebhookEventController;
 use App\Http\Controllers\Api\WebhookWhatsappController;

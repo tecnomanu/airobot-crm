@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\WebhookSenderInterface;
+use App\Contracts\WhatsAppSenderInterface;
 use App\Services\External\EvolutionWhatsAppSender;
 use App\Services\External\HttpWebhookSender;
-use App\Services\External\WebhookSenderInterface;
-use App\Services\External\WhatsAppSenderInterface;
 use Illuminate\Support\ServiceProvider;
 
 /**

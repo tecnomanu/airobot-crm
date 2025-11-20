@@ -1,3 +1,4 @@
+import PageHeader from "@/Components/common/PageHeader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -23,8 +24,10 @@ import {
     useSidebar,
 } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 import { Link, usePage } from "@inertiajs/react";
 import {
+    Bot,
     Building2,
     Home,
     LogOut,
@@ -35,6 +38,7 @@ import {
     Settings,
     Users,
     Webhook,
+    Table,
 } from "lucide-react";
 
 const navigation = [
@@ -49,6 +53,11 @@ const navigation = [
     { name: "Fuentes", href: route("sources.index"), icon: PlugZap },
     { name: "Clientes", href: route("clients.index"), icon: Building2 },
     {
+        name: "Agentes de Llamadas",
+        href: route("call-agents.index"),
+        icon: Bot,
+    },
+    {
         name: "Historial Llamadas",
         href: route("call-history.index"),
         icon: Phone,
@@ -57,6 +66,11 @@ const navigation = [
         name: "Webhook Config",
         href: route("webhook-config.index"),
         icon: Webhook,
+    },
+    {
+        name: "Excel",
+        href: route("excel.index"),
+        icon: Table,
     },
 ];
 
@@ -109,30 +123,28 @@ function AppSidebar() {
                     )}
                 </div>
             </SidebarHeader>
-                    <SidebarContent>
-                        <SidebarGroup>
-                            <SidebarGroupLabel>Navegación</SidebarGroupLabel>
-                            <SidebarGroupContent>
-                                <SidebarMenu>
-                                    {navigation.map((item) => (
-                                        <SidebarMenuItem key={item.name}>
-                                            <SidebarMenuButton
-                                                asChild
-                                                isActive={isActiveRoute(
-                                                    item.href
-                                                )}
-                                            >
-                                                <Link href={item.href}>
-                                                    <item.icon className="h-4 w-4" />
-                                                    <span>{item.name}</span>
-                                                </Link>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    ))}
-                                </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
-                    </SidebarContent>
+            <SidebarContent>
+                <SidebarGroup>
+                    <SidebarGroupLabel>Navegación</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {navigation.map((item) => (
+                                <SidebarMenuItem key={item.name}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={isActiveRoute(item.href)}
+                                    >
+                                        <Link href={item.href}>
+                                            <item.icon className="h-4 w-4" />
+                                            <span>{item.name}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+            </SidebarContent>
             <SidebarFooter className="border-t p-3">
                 <DropdownMenu>
                     <DropdownMenuTrigger className="w-full">
@@ -182,7 +194,7 @@ function AppSidebar() {
     );
 }
 
-export default function AppLayout({ children }) {
+export default function AppLayout({ children, stretch = false, header }) {
     return (
         <SidebarProvider>
             <div className="flex min-h-screen w-full">
@@ -190,9 +202,19 @@ export default function AppLayout({ children }) {
                 <div className="flex flex-1 flex-col">
                     <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-6">
                         <SidebarTrigger />
-                        <div className="flex-1" />
+                        {header && (
+                            <div className="flex-1 min-w-0">
+                                <PageHeader {...header} compact />
+                            </div>
+                        )}
+                        {!header && <div className="flex-1" />}
                     </header>
-                    <main className="flex-1 overflow-y-auto p-6">
+                    <main
+                        className={cn(
+                            "flex-1 overflow-y-auto",
+                            stretch ? "p-0" : "p-6"
+                        )}
+                    >
                         {children}
                     </main>
                 </div>

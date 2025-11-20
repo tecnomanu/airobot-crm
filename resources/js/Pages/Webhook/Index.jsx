@@ -70,19 +70,16 @@ echo $response;`;
   .catch(error => console.error('Error:', error));`;
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Configuración de Webhook",
+                subtitle:
+                    "URL y documentación para integrar el registro de leads",
+            }}
+        >
             <Head title="Configuración Webhook" />
 
             <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Configuración de Webhook
-                    </h1>
-                    <p className="text-muted-foreground">
-                        URL y documentación para integrar el registro de leads
-                    </p>
-                </div>
 
                 {/* Webhook URL */}
                 <Card>

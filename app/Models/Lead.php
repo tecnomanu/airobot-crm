@@ -35,6 +35,10 @@ class Lead extends Model
         'tags',
         'webhook_sent',
         'webhook_result',
+        'intention_webhook_sent',
+        'intention_webhook_sent_at',
+        'intention_webhook_response',
+        'intention_webhook_status',
         'automation_status',
         'next_action_at',
         'last_automation_run_at',
@@ -55,6 +59,8 @@ class Lead extends Model
         'next_action_at' => 'datetime',
         'last_automation_run_at' => 'datetime',
         'webhook_sent' => 'boolean',
+        'intention_webhook_sent' => 'boolean',
+        'intention_webhook_sent_at' => 'datetime',
         'tags' => 'array',
     ];
 

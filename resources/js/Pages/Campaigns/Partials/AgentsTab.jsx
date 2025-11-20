@@ -1,4 +1,5 @@
 import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
+import SourceCombobox from "@/Components/common/SourceCombobox";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { router } from "@inertiajs/react";
-import { AlertCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
 export default function AgentsTab({
@@ -292,63 +293,26 @@ export default function AgentsTab({
                                 Crear Nueva
                             </Button>
                         </div>
-                        {whatsappSources.length > 0 ? (
-                            <>
-                                <Select
-                                    value={
-                                        data.whatsapp_agent.source_id?.toString() ||
-                                        "none"
-                                    }
-                                    onValueChange={(value) =>
-                                        updateWhatsappAgent(
-                                            "source_id",
-                                            value === "none"
-                                                ? null
-                                                : parseInt(value)
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar fuente de WhatsApp" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">
-                                            Sin fuente
-                                        </SelectItem>
-                                        {whatsappSources.map((source) => (
-                                            <SelectItem
-                                                key={source.id}
-                                                value={source.id.toString()}
-                                            >
-                                                {source.name} -{" "}
-                                                {source.config?.phone_number ||
-                                                    source.config
-                                                        ?.instance_name ||
-                                                    "N/A"}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-muted-foreground">
-                                    Esta fuente define qué número de WhatsApp
-                                    usará esta campaña.
-                                </p>
-                            </>
-                        ) : (
-                            <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
-                                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                                <div>
-                                    <p className="font-medium">
-                                        No hay fuentes de WhatsApp configuradas
-                                    </p>
-                                    <p className="text-xs mt-0.5">
-                                        Usa el botón "Crear Nueva" arriba para
-                                        configurar tu primera fuente de
-                                        WhatsApp.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                        <SourceCombobox
+                            sources={whatsappSources}
+                            value={
+                                data.whatsapp_agent.source_id?.toString() ||
+                                null
+                            }
+                            onValueChange={(value) =>
+                                updateWhatsappAgent(
+                                    "source_id",
+                                    value ? parseInt(value) : null
+                                )
+                            }
+                            placeholder="Seleccionar fuente de WhatsApp"
+                            emptyMessage="No se encontraron fuentes de WhatsApp"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            {whatsappSources.length === 0
+                                ? "No hay fuentes de WhatsApp configuradas. Usa el botón 'Crear Nueva' arriba para configurar tu primera fuente."
+                                : "Esta fuente define qué número de WhatsApp usará esta campaña."}
+                        </p>
                     </div>
                 </CardContent>
             </Card>
