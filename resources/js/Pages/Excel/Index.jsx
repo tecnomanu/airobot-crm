@@ -24,10 +24,16 @@ export default function ExcelIndex() {
         updateCellFormat,
         selectCell,
         selectRange,
+        selectColumn,
+        selectRow,
         addRow,
         deleteRow,
         addColumn,
         deleteColumn,
+        insertColumnLeft,
+        insertColumnRight,
+        insertRowAbove,
+        insertRowBelow,
         sortByCol,
         copyCells,
         pasteCells,
@@ -295,11 +301,17 @@ export default function ExcelIndex() {
                         onUpdateCell={updateCell}
                         onSelectCell={selectCell}
                         onSelectRange={selectRange}
+                        onSelectColumn={selectColumn}
+                        onSelectRow={selectRow}
                         onSortColumn={sortByCol}
                         onAddRow={addRow}
                         onDeleteRow={deleteRow}
                         onAddColumn={addColumn}
                         onDeleteColumn={deleteColumn}
+                        onInsertColumnLeft={insertColumnLeft}
+                        onInsertColumnRight={insertColumnRight}
+                        onInsertRowAbove={insertRowAbove}
+                        onInsertRowBelow={insertRowBelow}
                         onCopyCells={copyCells}
                         onPasteCells={pasteCells}
                         onClearCells={clearCells}

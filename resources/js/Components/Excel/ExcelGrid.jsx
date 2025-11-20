@@ -15,11 +15,17 @@ export default function ExcelGrid({
     onUpdateCell,
     onSelectCell,
     onSelectRange,
+    onSelectColumn,
+    onSelectRow,
     onSortColumn,
     onAddRow,
     onDeleteRow,
     onAddColumn,
     onDeleteColumn,
+    onInsertColumnLeft,
+    onInsertColumnRight,
+    onInsertRowAbove,
+    onInsertRowBelow,
     onCopyCells,
     onPasteCells,
     onClearCells
@@ -344,22 +350,11 @@ export default function ExcelGrid({
                                     isSelected={false}
                                     sortConfig={sortConfig}
                                     width={getColumnWidth(col)}
+                                    onSelectColumn={onSelectColumn}
                                     onSort={onSortColumn}
                                     onResize={(e) => handleResizeStart('column', col, e)}
-                                    onInsertBefore={(col) => {
-                                        const colIndex = columns.indexOf(col);
-                                        if (onAddColumn) {
-                                            onAddColumn(colIndex);
-                                        }
-                                    }}
-                                    onInsertAfter={(col) => {
-                                        const colIndex = columns.indexOf(col);
-                                        if (onAddColumn && colIndex < columns.length - 1) {
-                                            onAddColumn(colIndex + 1);
-                                        } else if (onAddColumn) {
-                                            onAddColumn(columns.length);
-                                        }
-                                    }}
+                                    onInsertLeft={onInsertColumnLeft}
+                                    onInsertRight={onInsertColumnRight}
                                     onDelete={onDeleteColumn}
                                 />
                             ))}
@@ -373,21 +368,10 @@ export default function ExcelGrid({
                                     row={row}
                                     isSelected={false}
                                     height={getRowHeight(row)}
+                                    onSelectRow={onSelectRow}
                                     onResize={(e) => handleResizeStart('row', row, e)}
-                                    onInsertBefore={() => {
-                                        const rowIndex = rows.indexOf(row);
-                                        if (onAddRow) {
-                                            onAddRow(rowIndex);
-                                        }
-                                    }}
-                                    onInsertAfter={() => {
-                                        const rowIndex = rows.indexOf(row);
-                                        if (onAddRow && rowIndex < rows.length - 1) {
-                                            onAddRow(rowIndex + 1);
-                                        } else if (onAddRow) {
-                                            onAddRow(rows.length);
-                                        }
-                                    }}
+                                    onInsertAbove={onInsertRowAbove}
+                                    onInsertBelow={onInsertRowBelow}
                                     onDelete={onDeleteRow}
                                 />
                                 {/* Celdas */}

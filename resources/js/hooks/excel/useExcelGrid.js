@@ -321,6 +321,86 @@ export function useExcelGrid(initialData = {}) {
         setSelectedCell(startCell);
         setSelectedRange({ start: startCell, end: endCell });
     }, []);
+    
+    // Seleccionar toda una columna
+    const selectColumn = useCallback((column) => {
+        if (rows.length === 0) return;
+        const firstCell = `${column}${rows[0]}`;
+        const lastCell = `${column}${rows[rows.length - 1]}`;
+        selectRange(firstCell, lastCell);
+    }, [rows, selectRange]);
+    
+    // Seleccionar toda una fila
+    const selectRow = useCallback((row) => {
+        if (columns.length === 0) return;
+        const firstCell = `${columns[0]}${row}`;
+        const lastCell = `${columns[columns.length - 1]}${row}`;
+        selectRange(firstCell, lastCell);
+    }, [columns, selectRange]);
+    
+    // Insertar columna a la izquierda
+    const insertColumnLeft = useCallback((targetColumn) => {
+        setColumns(prev => {
+            const newCols = [...prev];
+            const index = newCols.indexOf(targetColumn);
+            if (index === -1) return prev;
+            
+            // Generar nueva letra de columna
+            const newColLetter = indexToColumn(index + 1);
+            newCols.splice(index, 0, newColLetter);
+            return newCols;
+        });
+        saveToHistory();
+    }, [saveToHistory]);
+    
+    // Insertar columna a la derecha
+    const insertColumnRight = useCallback((targetColumn) => {
+        setColumns(prev => {
+            const newCols = [...prev];
+            const index = newCols.indexOf(targetColumn);
+            if (index === -1) return prev;
+            
+            // Generar nueva letra de columna
+            const newColLetter = indexToColumn(index + 2);
+            newCols.splice(index + 1, 0, newColLetter);
+            return newCols;
+        });
+        saveToHistory();
+    }, [saveToHistory]);
+    
+    // Insertar fila arriba
+    const insertRowAbove = useCallback((targetRow) => {
+        setRows(prev => {
+            const newRows = [...prev];
+            const index = newRows.indexOf(targetRow);
+            if (index === -1) return prev;
+            
+            newRows.splice(index, 0, targetRow);
+            // Re-numerar filas posteriores
+            for (let i = index + 1; i < newRows.length; i++) {
+                newRows[i] = newRows[i] + 1;
+            }
+            return newRows;
+        });
+        saveToHistory();
+    }, [saveToHistory]);
+    
+    // Insertar fila abajo
+    const insertRowBelow = useCallback((targetRow) => {
+        setRows(prev => {
+            const newRows = [...prev];
+            const index = newRows.indexOf(targetRow);
+            if (index === -1) return prev;
+            
+            newRows.splice(index + 1, 0, targetRow + 1);
+            // Re-numerar filas posteriores
+            for (let i = index + 2; i < newRows.length; i++) {
+                newRows[i] = newRows[i] + 1;
+            }
+            return newRows;
+        });
+        saveToHistory();
+    }, [saveToHistory]);
 
     // Obtener valor raw de celda (lo que el usuario escribió)
     const getCellRawValue = useCallback((cellId) => {
@@ -360,10 +440,16 @@ export function useExcelGrid(initialData = {}) {
         updateCellFormat,
         selectCell,
         selectRange,
+        selectColumn,
+        selectRow,
         addRow,
         deleteRow,
         addColumn,
         deleteColumn,
+        insertColumnLeft,
+        insertColumnRight,
+        insertRowAbove,
+        insertRowBelow,
         sortByCol,
         copyCells,
         pasteCells,
