@@ -31,6 +31,7 @@ export default function ExcelGrid({
     const [columnWidths, setColumnWidths] = useState({});
     const [rowHeights, setRowHeights] = useState({});
     const [resizing, setResizing] = useState(null);
+    const [selectionAnchor, setSelectionAnchor] = useState(null);
     
     // Manejar inicio de selección por arrastre
     const handleStartSelection = useCallback((cellId, isFillHandle = false) => {
@@ -140,7 +141,17 @@ export default function ExcelGrid({
     
     // Navegar a celda adyacente
     const handleNavigate = useCallback((direction, shiftKey) => {
-        const coords = cellToCoords(selectedCell);
+        // Determinar desde qué celda navegar
+        let currentCell;
+        if (shiftKey && selectedRange) {
+            // Si ya hay un rango, navegar desde el extremo (end)
+            currentCell = selectedRange.end;
+        } else {
+            // Navegar desde la celda seleccionada
+            currentCell = selectedCell;
+        }
+        
+        const coords = cellToCoords(currentCell);
         let newRow = coords.row;
         let newCol = coords.col;
         
@@ -161,11 +172,16 @@ export default function ExcelGrid({
         
         const newCellId = coordsToCell({ row: newRow, col: newCol });
         
-        if (shiftKey && selectedCell) {
+        if (shiftKey) {
+            // Mantener el punto de anclaje y expandir desde ahí
+            const anchor = selectionAnchor || selectedCell;
+            setSelectionAnchor(anchor);
             if (onSelectRange) {
-                onSelectRange(selectedCell, newCellId);
+                onSelectRange(anchor, newCellId);
             }
         } else {
+            // Navegación normal sin Shift
+            setSelectionAnchor(null);
             if (onSelectCell) {
                 onSelectCell(newCellId);
             }
@@ -173,7 +189,7 @@ export default function ExcelGrid({
         
         // Hacer scroll inteligente a la nueva celda
         setTimeout(() => scrollToCell(newCellId), 10);
-    }, [selectedCell, columns, rows, onSelectCell, onSelectRange, scrollToCell]);
+    }, [selectedCell, selectedRange, selectionAnchor, columns, rows, onSelectCell, onSelectRange, scrollToCell]);
     
     // Obtener celdas en rango seleccionado
     const getRangeCells = useCallback(() => {
