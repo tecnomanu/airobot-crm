@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\CallHistoryController;
 use App\Http\Controllers\Web\Campaign\CampaignController;
 use App\Http\Controllers\Web\Client\ClientController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\Excel\ExcelController;
 use App\Http\Controllers\Web\Lead\LeadController;
 use App\Http\Controllers\Web\Lead\LeadIntencionController;
 use App\Http\Controllers\Web\ProfileController;
@@ -39,6 +40,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [LeadController::class, 'store'])->name('store');
         Route::put('/{id}', [LeadController::class, 'update'])->name('update');
         Route::delete('/{id}', [LeadController::class, 'destroy'])->name('destroy');
+        
+        // Automation retry
+        Route::post('/{id}/retry-automation', [LeadController::class, 'retryAutomation'])->name('retry-automation');
+        Route::post('/retry-automation-batch', [LeadController::class, 'retryAutomationBatch'])->name('retry-automation-batch');
     });
 
     // Leads Intención
@@ -52,6 +57,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [CampaignController::class, 'store'])->name('store');
         Route::put('/{id}', [CampaignController::class, 'update'])->name('update');
         Route::delete('/{id}', [CampaignController::class, 'destroy'])->name('destroy');
+        Route::patch('/{id}/toggle-status', [CampaignController::class, 'toggleStatus'])->name('toggle-status');
     });
 
     // Clients
@@ -74,7 +80,20 @@ Route::middleware('auth')->group(function () {
 
     // Sources (Fuentes)
     Route::resource('sources', SourceController::class)->except(['show']);
-    Route::get('/api/sources/active/{type}', [\App\Http\Controllers\Api\SourceController::class, 'getActiveByType'])->name('sources.active-by-type');
+    Route::get('/api/sources/active/{type}', [\App\Http\Controllers\Api\Source\SourceController::class, 'getActiveByType'])->name('sources.active-by-type');
+
+    // Call Agents (Agentes de Retell)
+    Route::prefix('call-agents')->name('call-agents.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'create'])->name('create');
+        Route::get('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'show'])->name('show');
+        Route::post('/', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'store'])->name('store');
+        Route::put('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'update'])->name('update');
+        Route::delete('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'destroy'])->name('destroy');
+    });
+    
+    // Excel/Spreadsheet
+    Route::get('/excel', [ExcelController::class, 'index'])->name('excel.index');
 });
 
 require __DIR__.'/auth.php';
