@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { parseCSV } from '@/lib/excelUtils';
+import { parseCSV } from '@/lib/excel/utils';
 
 /**
  * Hook para gestionar la importación de archivos CSV

@@ -3,7 +3,7 @@
  * Soporta operaciones matemáticas, referencias a celdas y funciones básicas
  */
 
-import { getCellRange } from './excelUtils';
+import { getCellRange } from './utils';
 
 /**
  * Evalúa una fórmula de Excel

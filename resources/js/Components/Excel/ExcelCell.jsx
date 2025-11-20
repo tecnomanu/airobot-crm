@@ -1,5 +1,5 @@
 import { useExcelCell } from "@/hooks/useExcelCell";
-import { formatCellValue } from "@/lib/cellFormatters";
+import { formatCellValue } from "@/lib/excel/formatters";
 import { cn } from "@/lib/utils";
 import { memo, useEffect, useRef } from "react";
 

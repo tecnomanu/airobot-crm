@@ -1,4 +1,4 @@
-import { cellToCoords, coordsToCell, getCellRange } from '@/lib/excelUtils';
+import { cellToCoords, coordsToCell, getCellRange } from '@/lib/excel/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ExcelCell from './ExcelCell';
 import ExcelColumnHeader from './ExcelColumnHeader';

@@ -1,5 +1,5 @@
-import { evaluateFormula, isFormula } from '@/lib/excelFormulas';
-import { cellToCoords, coordsToCell, indexToColumn, sortByColumn } from '@/lib/excelUtils';
+import { evaluateFormula, isFormula } from '@/lib/excel/formulas';
+import { cellToCoords, coordsToCell, indexToColumn, sortByColumn } from '@/lib/excel/utils';
 import { useCallback, useState } from 'react';
 
 // Importar sortByColumn desde excelUtils
