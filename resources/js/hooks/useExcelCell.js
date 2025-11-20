@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 /**
  * Hook para gestionar el estado de edición de una celda individual
  */
-export function useExcelCell(cellId, value, onUpdate, onNavigate) {
+export function useExcelCell(cellId, value, formula, onUpdate, onNavigate) {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState('');
     const inputRef = useRef(null);
@@ -11,9 +11,10 @@ export function useExcelCell(cellId, value, onUpdate, onNavigate) {
     // Inicializar valor de edición cuando cambia el valor de la celda
     useEffect(() => {
         if (!isEditing) {
-            setEditValue(value || '');
+            // Si hay fórmula, usar la fórmula, si no, usar el valor
+            setEditValue(formula || value || '');
         }
-    }, [value, isEditing]);
+    }, [value, formula, isEditing]);
     
     // Enfocar input cuando entra en modo edición
     useEffect(() => {
@@ -26,8 +27,9 @@ export function useExcelCell(cellId, value, onUpdate, onNavigate) {
     // Iniciar edición
     const startEditing = useCallback(() => {
         setIsEditing(true);
-        setEditValue(value || '');
-    }, [value]);
+        // Editar la fórmula si existe, si no el valor
+        setEditValue(formula || value || '');
+    }, [value, formula]);
     
     // Confirmar edición
     const confirmEdit = useCallback(() => {

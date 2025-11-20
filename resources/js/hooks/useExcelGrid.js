@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
-import { indexToColumn, coordsToCell, cellToCoords, getCellRange, sortByColumn } from '@/lib/excelUtils';
+import { evaluateFormula, isFormula } from '@/lib/excelFormulas';
+import { cellToCoords, coordsToCell, indexToColumn, sortByColumn } from '@/lib/excelUtils';
+import { useCallback, useState } from 'react';
 
 // Importar sortByColumn desde excelUtils
 
@@ -33,9 +34,9 @@ export function useExcelGrid(initialData = {}) {
     const [history, setHistory] = useState([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [clipboard, setClipboard] = useState(null);
-    
+
     const maxHistorySize = 50;
-    
+
     // Guardar estado en historial
     const saveToHistory = useCallback(() => {
         const currentState = {
@@ -44,22 +45,22 @@ export function useExcelGrid(initialData = {}) {
             selectedRange,
             sortConfig
         };
-        
+
         setHistory(prev => {
             const newHistory = prev.slice(0, historyIndex + 1);
             newHistory.push(currentState);
-            
+
             // Limitar tamaño del historial
             if (newHistory.length > maxHistorySize) {
                 newHistory.shift();
             } else {
                 setHistoryIndex(newHistory.length - 1);
             }
-            
+
             return newHistory;
         });
     }, [cells, selectedCell, selectedRange, sortConfig, historyIndex]);
-    
+
     // Undo
     const undo = useCallback(() => {
         if (historyIndex > 0) {
@@ -71,7 +72,7 @@ export function useExcelGrid(initialData = {}) {
             setHistoryIndex(historyIndex - 1);
         }
     }, [history, historyIndex]);
-    
+
     // Redo
     const redo = useCallback(() => {
         if (historyIndex < history.length - 1) {
@@ -83,43 +84,55 @@ export function useExcelGrid(initialData = {}) {
             setHistoryIndex(historyIndex + 1);
         }
     }, [history, historyIndex]);
-    
+
     // Actualizar valor de celda
     const updateCell = useCallback((cellId, value, format = null) => {
         setCells(prev => {
             const newCells = { ...prev };
-            
+
             if (value === '' || value == null) {
                 // Si el valor está vacío y no hay formato personalizado, eliminar la celda
-                if (!format && (!newCells[cellId] || !newCells[cellId].format || 
+                if (!format && (!newCells[cellId] || !newCells[cellId].format ||
                     JSON.stringify(newCells[cellId].format) === JSON.stringify(defaultFormat))) {
                     delete newCells[cellId];
                 } else {
                     newCells[cellId] = {
                         ...newCells[cellId],
                         value: '',
+                        formula: null,
                         format: format || newCells[cellId]?.format || defaultFormat
                     };
                 }
             } else {
-                newCells[cellId] = {
-                    value,
-                    format: format || newCells[cellId]?.format || defaultFormat
-                };
+                // Si es una fórmula, evaluar y guardar tanto la fórmula como el resultado
+                if (isFormula(value)) {
+                    const evaluatedValue = evaluateFormula(value, prev);
+                    newCells[cellId] = {
+                        formula: value, // Guardar fórmula original
+                        value: evaluatedValue, // Guardar resultado evaluado
+                        format: format || newCells[cellId]?.format || defaultFormat
+                    };
+                } else {
+                    newCells[cellId] = {
+                        value,
+                        formula: null,
+                        format: format || newCells[cellId]?.format || defaultFormat
+                    };
+                }
             }
-            
+
             return newCells;
         });
-        
+
         saveToHistory();
     }, [saveToHistory]);
-    
+
     // Actualizar formato de celda(s)
     const updateCellFormat = useCallback((cellIds, formatUpdates) => {
         setCells(prev => {
             const newCells = { ...prev };
             const ids = Array.isArray(cellIds) ? cellIds : [cellIds];
-            
+
             ids.forEach(cellId => {
                 const currentCell = newCells[cellId] || { value: '', format: { ...defaultFormat } };
                 newCells[cellId] = {
@@ -130,13 +143,13 @@ export function useExcelGrid(initialData = {}) {
                     }
                 };
             });
-            
+
             return newCells;
         });
-        
+
         saveToHistory();
     }, [saveToHistory]);
-    
+
     // Agregar fila
     const addRow = useCallback((afterIndex = null) => {
         setRows(prev => {
@@ -147,11 +160,11 @@ export function useExcelGrid(initialData = {}) {
             return newRows;
         });
     }, []);
-    
+
     // Eliminar fila
     const deleteRow = useCallback((rowNum) => {
         setRows(prev => prev.filter(r => r !== rowNum));
-        
+
         // Eliminar celdas de la fila
         setCells(prev => {
             const newCells = { ...prev };
@@ -161,10 +174,10 @@ export function useExcelGrid(initialData = {}) {
             });
             return newCells;
         });
-        
+
         saveToHistory();
     }, [columns, saveToHistory]);
-    
+
     // Agregar columna
     const addColumn = useCallback((afterIndex = null) => {
         setColumns(prev => {
@@ -176,11 +189,11 @@ export function useExcelGrid(initialData = {}) {
             return newCols;
         });
     }, []);
-    
+
     // Eliminar columna
     const deleteColumn = useCallback((colLetter) => {
         setColumns(prev => prev.filter(c => c !== colLetter));
-        
+
         // Eliminar celdas de la columna
         setCells(prev => {
             const newCells = { ...prev };
@@ -190,14 +203,14 @@ export function useExcelGrid(initialData = {}) {
             });
             return newCells;
         });
-        
+
         saveToHistory();
     }, [rows, saveToHistory]);
-    
+
     // Ordenar por columna
     const sortByCol = useCallback((colLetter, direction = 'asc') => {
         setSortConfig({ column: colLetter, direction });
-        
+
         // Convertir celdas a array de objetos para ordenar
         const dataArray = rows.map(row => {
             const obj = { __row__: row };
@@ -207,9 +220,9 @@ export function useExcelGrid(initialData = {}) {
             });
             return obj;
         });
-        
+
         const sorted = sortByColumn(dataArray, colLetter, direction);
-        
+
         // Reordenar celdas según el ordenamiento
         setCells(prev => {
             const newCells = { ...prev };
@@ -220,7 +233,7 @@ export function useExcelGrid(initialData = {}) {
                 const newRow = rows[index];
                 rowMapping[oldRow] = newRow;
             });
-            
+
             // Crear nuevas celdas con las filas reordenadas
             const reorderedCells = {};
             Object.keys(prev).forEach(cellId => {
@@ -235,13 +248,13 @@ export function useExcelGrid(initialData = {}) {
                     reorderedCells[cellId] = { ...prev[cellId] };
                 }
             });
-            
+
             return reorderedCells;
         });
-        
+
         saveToHistory();
     }, [cells, columns, rows, saveToHistory]);
-    
+
     // Copiar celdas
     const copyCells = useCallback((cellIds) => {
         const data = {};
@@ -252,16 +265,16 @@ export function useExcelGrid(initialData = {}) {
         });
         setClipboard({ data, cellIds });
     }, [cells]);
-    
+
     // Pegar celdas
     const pasteCells = useCallback((targetCellId) => {
         if (!clipboard) return;
-        
+
         const targetCoords = cellToCoords(targetCellId);
         const sourceCellIds = clipboard.cellIds;
-        
+
         if (sourceCellIds.length === 0) return;
-        
+
         // Calcular offset del rango original
         const firstSource = cellToCoords(sourceCellIds[0]);
         const offsets = sourceCellIds.map(id => {
@@ -272,7 +285,7 @@ export function useExcelGrid(initialData = {}) {
                 cellId: id
             };
         });
-        
+
         // Pegar en nuevas posiciones
         setCells(prev => {
             const newCells = { ...prev };
@@ -282,17 +295,17 @@ export function useExcelGrid(initialData = {}) {
                     col: targetCoords.col + colOffset
                 };
                 const newCellId = coordsToCell(newCoords);
-                
+
                 if (clipboard.data[cellId]) {
                     newCells[newCellId] = { ...clipboard.data[cellId] };
                 }
             });
             return newCells;
         });
-        
+
         saveToHistory();
     }, [clipboard, saveToHistory]);
-    
+
     // Limpiar celdas seleccionadas
     const clearCells = useCallback((cellIds) => {
         setCells(prev => {
@@ -304,32 +317,37 @@ export function useExcelGrid(initialData = {}) {
             });
             return newCells;
         });
-        
+
         saveToHistory();
     }, [saveToHistory]);
-    
+
     // Seleccionar celda
     const selectCell = useCallback((cellId) => {
         setSelectedCell(cellId);
         setSelectedRange(null);
     }, []);
-    
+
     // Seleccionar rango
     const selectRange = useCallback((startCell, endCell) => {
         setSelectedCell(startCell);
         setSelectedRange({ start: startCell, end: endCell });
     }, []);
-    
+
     // Obtener valor de celda
     const getCellValue = useCallback((cellId) => {
         return cells[cellId]?.value || '';
     }, [cells]);
-    
+
+    // Obtener fórmula de celda
+    const getCellFormula = useCallback((cellId) => {
+        return cells[cellId]?.formula || null;
+    }, [cells]);
+
     // Obtener formato de celda
     const getCellFormat = useCallback((cellId) => {
         return cells[cellId]?.format || defaultFormat;
     }, [cells]);
-    
+
     return {
         // Estado
         cells,
@@ -339,7 +357,7 @@ export function useExcelGrid(initialData = {}) {
         selectedRange,
         sortConfig,
         clipboard,
-        
+
         // Acciones
         updateCell,
         updateCellFormat,
@@ -356,8 +374,9 @@ export function useExcelGrid(initialData = {}) {
         undo,
         redo,
         getCellValue,
+        getCellFormula,
         getCellFormat,
-        
+
         // Utilidades
         canUndo: historyIndex > 0,
         canRedo: historyIndex < history.length - 1

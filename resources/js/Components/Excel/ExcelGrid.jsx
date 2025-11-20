@@ -284,6 +284,7 @@ export default function ExcelGrid({
                 key={cellId}
                 cellId={cellId}
                 value={cell?.value || ''}
+                formula={cell?.formula || null}
                 format={cell?.format || {}}
                 isSelected={isSelected}
                 isInRange={isInRange}

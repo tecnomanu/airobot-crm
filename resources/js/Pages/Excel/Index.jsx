@@ -38,6 +38,7 @@ export default function ExcelIndex() {
         getCellFormat,
         canUndo,
         canRedo,
+        getCellFormula,
     } = useExcelGrid();
 
     const { getCellStyles } = useExcelFormat();
@@ -202,17 +203,19 @@ export default function ExcelIndex() {
     const handleBackToMenu = useCallback(() => {
         router.visit(route("dashboard"));
     }, []);
-    
+
     // Manejar seleccionar todas las celdas
     const handleSelectAll = useCallback(() => {
         if (columns.length > 0 && rows.length > 0) {
             const firstCell = `${columns[0]}${rows[0]}`;
-            const lastCell = `${columns[columns.length - 1]}${rows[rows.length - 1]}`;
+            const lastCell = `${columns[columns.length - 1]}${
+                rows[rows.length - 1]
+            }`;
             selectRange(firstCell, lastCell);
             toast.success("Todas las celdas seleccionadas");
         }
     }, [columns, rows, selectRange]);
-    
+
     // Manejar cortar (copiar + eliminar)
     const handleCut = useCallback(() => {
         const cellIds = selectedRange
@@ -239,11 +242,12 @@ export default function ExcelIndex() {
         onSelectAll: handleSelectAll,
         onSave: handleSave,
         canUndo,
-        canRedo
+        canRedo,
     });
 
-    // Obtener valor de celda seleccionada
+    // Obtener valor y fórmula de celda seleccionada
     const cellValue = getCellValue(selectedCell);
+    const cellFormula = getCellFormula(selectedCell);
 
     return (
         <ExcelLayout
@@ -275,6 +279,7 @@ export default function ExcelIndex() {
                 <ExcelFormulaBar
                     selectedCell={selectedCell}
                     cellValue={cellValue}
+                    cellFormula={cellFormula}
                     onConfirm={(value) => {
                         updateCell(selectedCell, value);
                     }}
