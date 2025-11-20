@@ -1,0 +1,151 @@
+---
+globs: app/Notifications/**/*.php,app/Services/**/*NotificationService.php,app/Services/**/*EmailService.php
+alwaysApply: false
+description: Sistema de gestión de locale para notificaciones de email
+---
+
+# Gestión de Locale en Notificaciones de Email
+
+Este documento define el sistema centralizado de gestión de locale para todas las notificaciones de email en la aplicación.
+
+## Sistema Automático de Locale
+
+**NUNCA establezcas locale manualmente en services o clases de notificación.** El sistema maneja el locale automáticamente a través de `BaseCustomerNotification`.
+
+## Patrones Deprecados
+
+```php
+// ❌ NUNCA establezcas locale manualmente en services
+public function sendEmail($customer, $data) {
+    $locale = $customer->preferred_locale ?? 'es';
+    $currentLocale = app()->getLocale();
+    app()->setLocale($locale);
+
+    // Enviar notificación
+    $customer->notify(new SomeNotification($data));
+
+    app()->setLocale($currentLocale); // Restauración manual
+}
+
+// ❌ NUNCA dupliques lógica de detección de locale
+private function getPreferredLocale($session): string {
+    if ($session->customer && $session->customer->preferred_locale) {
+        return $session->customer->preferred_locale;
+    }
+    return config('app.locale', 'es');
+}
+```
+
+## Patrones Correctos
+
+### 1. Capa Service - Deja que BaseCustomerNotification Maneje el Locale
+
+```php
+public function sendEmail($customer, $data) {
+    // LOCALE AUTOMÁTICO: BaseCustomerNotification maneja el locale automáticamente
+    // No se necesita configuración manual de locale
+
+    $customer->notify(new SomeNotification($data));
+    // ¡Eso es todo! El locale se maneja automáticamente
+}
+```
+
+### 2. Clases de Notificación - Sobrescribe Métodos de Detección de Locale
+
+```php
+class MyNotification extends BaseCustomerNotification
+{
+    public function __construct(
+        private Customer $customer,
+        private ExampleSession $session
+    ) {
+        // Establece datos ANTES del constructor padre
+        parent::__construct(); // Auto-configura locale
+
+        // Configura notificación después de setup de locale
+        $this->setHeaderWithTitleAndSubtitle(
+            $this->trans('emails.my_notification.title'),
+            $this->trans('emails.my_notification.subtitle')
+        );
+    }
+
+    /**
+     * SOBRESCRIBE: Proporciona fuente de locale del customer
+     */
+    protected function getCustomerLocale(): ?string
+    {
+        return $this->customer?->preferred_locale;
+    }
+
+    /**
+     * SOBRESCRIBE: Proporciona fuente de locale de form_data de sesión
+     */
+    protected function getFormDataLocale(): ?string
+    {
+        return $this->session?->form_data['customer']['preferred_locale'] ?? null;
+    }
+}
+```
+
+## Prioridad de Detección de Locale
+
+El sistema detecta automáticamente el locale en este orden de prioridad:
+
+1. **Request Middleware** (mayor prioridad) - Para peticiones HTTP directas
+2. **Customer Model** - `customer.preferred_locale`
+3. **Session Form Data** - `session.form_data.customer.preferred_locale`
+4. **App Default** - `config('app.locale')`
+
+## Patrones de Notificación Soportados
+
+### A. Notificaciones Basadas en Customer
+
+```php
+class CustomerNotification extends BaseCustomerNotification
+{
+    public function __construct(private Customer $customer) {
+        parent::__construct();
+    }
+
+    protected function getCustomerLocale(): ?string {
+        return $this->customer?->preferred_locale;
+    }
+}
+```
+
+### B. Notificaciones Basadas en Session
+
+```php
+class SessionNotification extends BaseCustomerNotification
+{
+    public function __construct(private ExampleSession $session) {
+        parent::__construct();
+    }
+
+    protected function getCustomerLocale(): ?string {
+        return $this->session?->customer?->preferred_locale;
+    }
+
+    protected function getFormDataLocale(): ?string {
+        return $this->session?->form_data['customer']['preferred_locale'] ?? null;
+    }
+}
+```
+
+## Beneficios del Sistema
+
+1. **Queue-Safe**: Funciona correctamente en background jobs sin contexto de request
+2. **Principio DRY**: Sin código duplicado de detección de locale
+3. **Consistente**: Mismo comportamiento en todas las notificaciones
+4. **Extensible**: Fácil agregar nuevas fuentes de locale
+5. **Mantenible**: Fuente única de verdad para lógica de locale
+6. **Cumplimiento SOLID**: Cada notificación maneja sus propias fuentes de locale
+
+## Recordatorios Clave
+
+-   ✅ **BaseCustomerNotification maneja todo automáticamente**
+-   ✅ **Sobrescribe `getCustomerLocale()` y `getFormDataLocale()` según sea necesario**
+-   ✅ **Establece propiedades de datos ANTES de llamar `parent::__construct()`**
+-   ✅ **Usa `$this->trans()` para traducciones (locale ya establecido)**
+-   ❌ **Nunca llames `app()->setLocale()` manualmente en notificaciones o services**
+-   ❌ **Nunca dupliques lógica de detección de locale**

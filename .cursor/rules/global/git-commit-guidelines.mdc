@@ -1,0 +1,264 @@
+---
+description: 
+globs: **/*
+alwaysApply: true
+---
+
+# Git Commit Guidelines
+
+Adopt **Conventional Commits** with emojis for quick context:
+
+| Type     | Emoji | Example                                 |
+| -------- | ----- | --------------------------------------- |
+| feat     | ✨    | `feat(api): ✨ add user authentication` |
+| fix      | 🐛    | `fix(payment): 🐛 handle timeout error` |
+| docs     | 📝    | `docs(readme): 📝 clarify setup`        |
+| refactor | ♻️    | `refactor(core): ♻️ extract helper`     |
+| test     | ✅    | `test(utils): ✅ edge cases for parser` |
+| chore    | 🔧    | `chore(ci): 🔧 bump node version`       |
+
+**Versioning**
+
+-   **MAJOR**: breaking changes (v2.0.0)
+-   **MINOR**: new features, backward‑compatible (v1.1.0)
+-   **PATCH**: bug fixes, backward‑compatible (v1.0.1)
+
+## Author Identity Rules
+
+To clearly differentiate the origin of each commit, **ALWAYS** use `--author` according to context:
+
+### Human Developer Commits
+
+Commits made directly by human developers:
+
+```bash
+# Use developer's normal identity (without --author)
+git commit -m "feat(auth): ✨ implement OAuth login"
+```
+
+### AI Assistant Commits
+
+Commits made by AI assistants (Cursor, Claude, ChatGPT, etc.):
+
+```bash
+# MANDATORY use --author with AI identification
+git commit --author="Globey AI <globy.ai@assistant.local>" -m "feat(api): ✨ add user validation"
+git commit --author="Globey AI <globy.ai@assistant.local>" -m "fix(auth): 🐛 handle token expiry"
+```
+
+### Automated System Commits
+
+Automatic commits (semantic-release, bots, CI/CD):
+
+```bash
+# These systems already configure their own author automatically
+# No manual action required
+```
+
+### Important Notes
+
+-   **Avatar Display**: Avatar is determined by email. Emails not associated with GitHub accounts will show default avatar
+-   **Consistency**: Maintain consistency in AI email format: `<ai-name>.ai@assistant.local`
+-   **Transparency**: This practice improves transparency and traceability of collaborative development
+
+## Commit Workflow Rules
+
+### When to Make Commits
+
+**CRITICAL**: Do NOT make commits automatically. Follow these strict rules:
+
+1. **User Confirmation Required**: Only make commits after the user explicitly confirms the work is complete and ready
+2. **Explicit Request**: Make commits only when the user explicitly asks for a commit
+3. **No Automatic Commits**: Never commit changes without user approval, even after completing fixes or tasks
+
+### Commit Timing and Order
+
+#### Scenario 1: User Confirms Work is Complete
+
+```
+User: "Perfecto, está todo bien"
+User: "Looks good, commit this"
+User: "Ready to commit"
+→ AI: Make commit with completed work
+```
+
+#### Scenario 2: User Requests New Task + Commit
+
+```
+User: "Commit the banner fix and then add a new feature"
+→ AI:
+  1. First commit the confirmed banner fix
+  2. Then work on the new feature
+  3. Wait for confirmation before committing new feature
+```
+
+#### Scenario 3: User Requests Task Continuation
+
+```
+User: "Continue fixing the banner and add X feature"
+→ AI:
+  1. Continue working on both tasks
+  2. Do NOT commit until user confirms everything is ready
+  3. Make single commit with all completed work when confirmed
+```
+
+### Commit Decision Matrix
+
+| Situation                                       | Action                           |
+| ----------------------------------------------- | -------------------------------- |
+| Work completed, user says "perfecto/good/ready" | ✅ Make commit                   |
+| Work completed, user silent                     | ❌ Wait for confirmation         |
+| User asks for commit explicitly                 | ✅ Make commit                   |
+| User gives new task without mentioning commit   | ❌ Do NOT commit previous work   |
+| User says "commit X and do Y"                   | ✅ Commit X, then work on Y      |
+| User says "continue with X and add Y"           | ❌ Wait until both X+Y confirmed |
+
+### Commit Messages for Confirmed Work
+
+When making commits for confirmed work, use descriptive messages that reflect what was actually completed:
+
+```bash
+# Good examples
+git commit --author="Globey AI <globy.ai@assistant.local>" -m "fix(banner): 🐛 implement CSS custom properties for elegant positioning"
+git commit --author="Globey AI <globy.ai@assistant.local>" -m "refactor(ui): ♻️ replace custom buttons with design system components"
+```
+
+## Branch and Pull Request Workflow
+
+### Critical Rule: NEVER Direct Merge
+
+**ALWAYS** use Pull Requests/Merge Requests. Never merge directly to main or staging.
+
+### PR Creation Workflow
+
+When the user requests a PR, follow this workflow based on current branch:
+
+#### Scenario 1: Currently on Staging
+
+```bash
+# 1. Create new feature branch from staging
+git checkout -b feature/descriptive-name
+
+# 2. Stage and commit changes
+git add <files>
+git commit --author="Globey AI <globy.ai@assistant.local>" -m "type(scope): emoji description"
+
+# 3. Push feature branch to remote
+git push -u origin feature/descriptive-name
+
+# 4. Open browser with pre-filled MR form
+open "https://gitlab.com/globely/admin-globely-laravel/-/merge_requests/new?merge_request%5Bsource_branch%5D=feature%2Fdescriptive-name&merge_request%5Btarget_branch%5D=main&merge_request%5Btitle%5D=type(scope):%20emoji%20Description"
+
+# 5. Return to staging and update
+git checkout staging
+git pull origin staging
+```
+
+#### Scenario 2: Currently on Feature Branch
+
+```bash
+# 1. Commit changes on current branch
+git add <files>
+git commit --author="Globey AI <globy.ai@assistant.local>" -m "type(scope): emoji description"
+
+# 2. Push current branch to remote
+git push origin <current-branch-name>
+
+# 3. Open browser with pre-filled MR form
+open "https://gitlab.com/globely/admin-globely-laravel/-/merge_requests/new?merge_request%5Bsource_branch%5D=<current-branch-name>&merge_request%5Btarget_branch%5D=main&merge_request%5Btitle%5D=type(scope):%20emoji%20Description"
+
+# Note: Stay on feature branch, no need to switch
+```
+
+### MR URL Format
+
+Always customize the MR URL with proper URL encoding:
+
+```bash
+# Template
+open "https://gitlab.com/globely/admin-globely-laravel/-/merge_requests/new?merge_request%5Bsource_branch%5D=SOURCE_BRANCH&merge_request%5Btarget_branch%5D=TARGET_BRANCH&merge_request%5Btitle%5D=ENCODED_TITLE"
+
+# Example with encoding
+# Title: "feat(api): ✨ Add subscribe endpoint"
+# Becomes: "feat(api):%20%E2%9C%A8%20Add%20subscribe%20endpoint"
+```
+
+### Branch Naming Conventions
+
+Follow these patterns for branch names:
+
+-   `feature/descriptive-name` - New features
+-   `fix/issue-description` - Bug fixes
+-   `refactor/component-name` - Code refactoring
+-   `docs/section-name` - Documentation updates
+-   `chore/task-description` - Maintenance tasks
+
+### Complete PR Flow Example
+
+```bash
+# Starting from staging
+$ git branch
+* staging
+
+# User requests: "Create PR for the subscribe feature"
+
+# 1. Create feature branch
+$ git checkout -b feature/subscribe-waitlist-api
+
+# 2. Commit work
+$ git add src/pages/api/forms/ src/components/guarantee/
+$ git commit --author="Globey AI <globy.ai@assistant.local>" -m "feat(api): ✨ add subscribe waitlist endpoint with n8n integration"
+
+# 3. Push to remote
+$ git push -u origin feature/subscribe-waitlist-api
+
+# 4. Open MR in browser
+$ open "https://gitlab.com/globely/admin-globely-laravel/-/merge_requests/new?merge_request%5Bsource_branch%5D=feature%2Fsubscribe-waitlist-api&merge_request%5Btarget_branch%5D=main&merge_request%5Btitle%5D=feat(api):%20%E2%9C%A8%20Add%20subscribe%20waitlist%20endpoint%20with%20n8n%20integration"
+
+# 5. Return to staging and update
+$ git checkout staging
+$ git pull origin staging
+```
+
+### PR Decision Matrix
+
+| Current Branch | Action                                           |
+| -------------- | ------------------------------------------------ |
+| staging        | Create new feature branch → PR → Back to staging |
+| feature/\*     | Commit on current branch → PR → Stay on branch   |
+| main           | ⚠️ Never work directly on main                   |
+
+### Important Notes
+
+-   **User reviews PR manually**: The `open` command only opens the browser for the user to review and approve the MR
+-   **No automatic merge**: AI never merges PRs, user must approve manually in GitLab
+-   **Stay updated**: Always pull latest changes when returning to staging
+-   **Branch cleanup**: Delete feature branches after MR is merged (done manually by user or GitLab settings)
+
+## Release Guidelines
+
+### When NOT to Create Releases
+
+-   **Default Behavior**: Do NOT create releases unless explicitly requested
+-   **Check Existing Automation**: Before attempting any release, verify if automation already exists:
+    -   GitHub Actions workflows (`.github/workflows/`)
+    -   GitLab CI/CD pipelines (`.gitlab-ci.yml`)
+    -   `semantic-release` in `package.json` dependencies
+    -   Other automated release tools
+
+### When to Create Releases
+
+Only create releases when:
+
+1. **Explicitly requested** by the user
+2. **No existing automation** is found
+3. **Manual release process** is confirmed to be needed
+
+### Release Verification Commands
+
+```bash
+# Check for existing automation
+ls .github/workflows/
+cat package.json | grep semantic-release
+cat .gitlab-ci.yml 2>/dev/null || echo "No GitLab CI found"
+```

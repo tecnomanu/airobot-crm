@@ -1,0 +1,55 @@
+---
+globs: **/*
+alwaysApply: true
+description: Prácticas de control de calidad y testing para todos los proyectos
+---
+
+# Control de Calidad del Proyecto
+
+Este documento unifica prácticas de control de calidad aplicables a cualquier proyecto, independientemente del stack tecnológico.
+
+## Principios de Calidad
+
+1. **Verificación Continua**: Verifica constantemente la calidad del código durante el desarrollo
+2. **Prevención de Errores**: Prevenir errores es mejor que corregirlos después
+3. **Mejora Continua**: Busca continuamente formas de mejorar procesos y código
+
+## Testing Automatizado
+
+- **Ejecución Regular**: Ejecuta suites de tests después de cada cambio significativo
+- **Resolución de Problemas**: No consideres un cambio completo hasta que todos los tests pasen
+- **Cobertura**: Agrega nuevos tests para código nuevo o modificado
+- **Regresión**: Asegura que los cambios no rompan funcionalidad existente
+
+```bash
+# Ejecutar tests y verificar que todos pasen
+php artisan test        # Laravel
+npm run test            # Node.js
+pytest                  # Python
+go test ./...           # Go
+```
+
+## Testing Dirigido por Desarrollo (TDD)
+
+Considera adoptar principios TDD:
+
+1. Escribe un test que falle primero
+2. Implementa el código mínimo para pasar el test
+3. Refactoriza manteniendo los tests pasando
+
+## Revisión de Código
+
+1. **Auto-revisión**: Revisa tu propio código antes de considerarlo completo
+2. **Checklist de Verificación**:
+   - ¿El código sigue las convenciones del proyecto?
+   - ¿Está adecuadamente testeado?
+   - ¿Se han considerado casos límite?
+   - ¿Es aceptable el rendimiento?
+
+## Finalización de Tareas
+
+Considera una tarea completa solo cuando:
+
+1. Todos los tests automatizados pasan
+2. Se ha realizado una revisión de código
+3. Los cambios están listos para desplegarse a producción

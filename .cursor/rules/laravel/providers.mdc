@@ -1,0 +1,61 @@
+---
+globs: bootstrap/app.php,app/Providers/**/*.php
+alwaysApply: false
+description: Guías de Service Providers para Laravel 12
+---
+
+# Service Providers – Laravel 12
+
+Desde **Laravel 12** en adelante, los providers se registran en `bootstrap/app.php` a través de `Application::configure()` en lugar del array legacy `config/app.php`.
+
+## Registro de Providers
+
+```php
+// bootstrap/app.php
+return Application::configure()
+    ->withProviders([
+        App\Providers\AuthServiceProvider::class,
+        App\Providers\RepositoryServiceProvider::class,
+        // Otros providers...
+    ])
+    ->create();
+```
+
+## Binding de Repositorios
+
+Registra bindings de interfaces a implementaciones en un Service Provider dedicado:
+
+```php
+// app/Providers/RepositoryServiceProvider.php
+class RepositoryServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->bind(
+            ExampleRepositoryInterface::class,
+            EloquentExampleRepository::class
+        );
+
+        // Registra otros repositorios aquí
+    }
+}
+```
+
+## Binding de Services
+
+Si necesitas binding de servicios, también puedes hacerlo en un Service Provider:
+
+```php
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        // Bindings de servicios si es necesario
+    }
+
+    public function boot(): void
+    {
+        // Configuración de boot si es necesario
+    }
+}
+```

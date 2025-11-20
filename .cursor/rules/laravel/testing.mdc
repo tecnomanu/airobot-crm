@@ -1,0 +1,123 @@
+---
+globs: tests/**/*.php
+alwaysApply: false
+description: Mejores prácticas de testing para Laravel 12
+---
+
+# Prácticas de Testing en Laravel 12
+
+## Principios Generales
+
+- **Test Driven Development (TDD)**: Escribe tests antes del código cuando sea posible
+- **Tests Automatizados**: Cada cambio debe estar cubierto por tests automatizados
+- **Cobertura**: Objetivo de 80% de cobertura de código o superior
+- **Aislamiento**: Los tests deben ser independientes y ejecutables en cualquier orden
+- **Determinismo**: Los tests deben producir el mismo resultado en cada ejecución
+
+## Tipos de Tests
+
+### Unit Tests
+
+- Ubicación: `tests/Unit/`
+- Testea clases y métodos en aislamiento (Services, Repositories, etc.)
+- Usa mocks para dependencias externas
+- Rápidos y sin acceso a base de datos
+
+### Feature Tests
+
+- Ubicación: `tests/Feature/`
+- Testea interacción entre componentes
+- Puede acceder a la base de datos
+- Cubre flujos completos de aplicación
+
+### API Tests
+
+- Ubicación: `tests/Feature/Api/`
+- Testea endpoints API desde una perspectiva externa
+- Verifica códigos de estado, estructura de respuesta y casos de error
+
+## Ejecución de Tests
+
+### Con Cada Cambio
+
+- Ejecuta tests afectados por el cambio: `php artisan test --filter=TestName`
+- Antes de commit/push, ejecuta la suite completa: `php artisan test`
+- Para velocidad mejorada: `php artisan test --parallel`
+
+### En CI/CD
+
+- Todos los tests deben pasar antes de integrar código
+- Configura GitHub Actions o similar para ejecutar tests automáticamente
+
+## Mejores Prácticas
+
+- Usa **factories** para crear datos de test
+- Implementa **DatabaseTransactions** o **RefreshDatabase** para limpiar la BD
+- Prefiere aserciones específicas (assertEquals) sobre genéricas (assertTrue)
+- Nombra tests descriptivamente: `test_user_can_reset_password()`
+- Un test debe verificar una sola funcionalidad o comportamiento
+
+## Herramientas Recomendadas
+
+- **Pest PHP** (preferido desde Laravel 8)
+- **PHPUnit** (alternativa tradicional)
+- **Laravel Dusk** para tests de navegador
+- **Mockery** para mocks de objetos
+
+## Testing con Pest PHP
+
+```php
+// tests/Feature/UserTest.php
+<?php
+
+use App\Models\User;
+
+it('can view the dashboard when authenticated', function () {
+    // Arrange
+    $user = User::factory()->create();
+
+    // Act & Assert
+    $this->actingAs($user)
+         ->get('/dashboard')
+         ->assertOk()
+         ->assertViewIs('dashboard');
+});
+
+it('redirects to login when not authenticated', function () {
+    // Act & Assert
+    $this->get('/dashboard')
+         ->assertRedirect('/login');
+});
+```
+
+## Testing de API
+
+```php
+test('can create a user via API', function () {
+    // Arrange
+    $userData = [
+        'name' => 'Test User',
+        'email' => 'test@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ];
+
+    // Act
+    $response = $this->postJson('/api/users', $userData);
+
+    // Assert
+    $response->assertCreated()
+             ->assertJsonPath('data.name', $userData['name'])
+             ->assertJsonPath('data.email', $userData['email']);
+
+    $this->assertDatabaseHas('users', [
+        'email' => $userData['email'],
+    ]);
+});
+```
+
+## Medición y Mejora
+
+- Ejecuta análisis de cobertura: `php artisan test --coverage`
+- Revisa regularmente métricas de tests
+- Actualiza tests cuando refactorices código

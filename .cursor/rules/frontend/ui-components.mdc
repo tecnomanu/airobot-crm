@@ -1,0 +1,118 @@
+---
+globs: resources/js/**/*.jsx,resources/js/**/*.js,resources/js/**/*.tsx,resources/js/**/*.ts
+alwaysApply: false
+description: Reglas de UI e iconografía consistentes
+---
+
+# Reglas de UI e Iconografía
+
+## Prohibido usar emojis
+
+**NUNCA uses emojis en el código**. En su lugar, usa iconos de la galería Lucide React.
+
+### Incorrecto
+
+```jsx
+const statusInfo = {
+    icon: "✅",
+    text: "Completada",
+};
+```
+
+### Correcto
+
+```jsx
+import { CheckCircle } from "lucide-react";
+
+const statusInfo = {
+    icon: CheckCircle,
+    text: "Completada",
+};
+```
+
+## Componentes de UI Consistentes
+
+### StatusBadge - Componente Principal
+
+Siempre usa `StatusBadge` de `@/Components/common/StatusBadge` para estados:
+
+```jsx
+import StatusBadge from "@/Components/common/StatusBadge";
+
+// Uso básico
+<StatusBadge status="completed" />
+<StatusBadge status="pending" />
+<StatusBadge status="expired" />
+
+// Con variante personalizada
+<StatusBadge
+    status={exampleStatus}
+    variant={exampleStatus === "completed" ? "success" : "warning"}
+/>
+```
+
+## Galería de Iconos
+
+Usar exclusivamente iconos de **Lucide React**:
+
+### Iconos Comunes Disponibles
+
+```jsx
+import {
+    Eye, // Ver detalles
+    Edit, // Editar
+    Trash, // Eliminar
+    Plus, // Agregar
+    Search, // Buscar
+    Filter, // Filtros
+    Download, // Descargar
+    RefreshCw, // Actualizar
+    Shield, // Seguridad
+    CreditCard, // Transacciones/Pagos
+    Users, // Usuarios
+    DollarSign, // Ingresos
+    Clock, // Tiempo
+    CheckCircle, // Éxito/Completado
+    XCircle, // Error/Fallido
+    AlertCircle, // Advertencia
+    Info, // Información
+    ArrowLeft, // Navegar atrás
+    MoreHorizontal, // Menú de opciones
+} from "lucide-react";
+```
+
+## Jerarquía de Componentes
+
+1. **Primero**: Usar componentes existentes de `@/Components/common/`
+2. **Segundo**: Usar componentes de `@/Components/ui/` (shadcn/ui)
+3. **Último**: Crear componente personalizado solo si es absolutamente necesario
+
+### Ejemplo de Uso Correcto
+
+```jsx
+// ✅ Usar StatusBadge existente
+import StatusBadge from "@/Components/common/StatusBadge";
+import { Shield } from "lucide-react";
+
+<div className="flex items-center space-x-2">
+    <Shield className="h-4 w-4 text-blue-600" />
+    <StatusBadge status="active" />
+</div>;
+```
+
+### Ejemplo Incorrecto
+
+```jsx
+// ❌ Crear badge personalizado con emojis
+<span className="px-2 py-1 bg-green-100 text-green-800 rounded">✅ Activa</span>
+```
+
+## Consistencia de Colores
+
+Usar las clases de Tailwind definidas en StatusBadge:
+
+-   **Verde**: `bg-green-50 text-green-700 ring-green-600/20` (éxito)
+-   **Amarillo**: `bg-yellow-50 text-yellow-700 ring-yellow-600/20` (advertencia)
+-   **Rojo**: `bg-red-50 text-red-700 ring-red-600/10` (error)
+-   **Azul**: `bg-blue-50 text-blue-700 ring-blue-700/10` (proceso)
+-   **Gris**: `bg-gray-50 text-gray-700 ring-gray-700/10` (inactivo)

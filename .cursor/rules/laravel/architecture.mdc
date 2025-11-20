@@ -1,0 +1,224 @@
+---
+globs: app/**/*.php
+alwaysApply: false
+description: Principios arquitectónicos y estructura estándar para Laravel 12
+---
+
+# Arquitectura Laravel 12
+
+Este proyecto sigue la arquitectura MVC estándar de Laravel con responsabilidades claramente definidas y el patrón Repository + Service.
+
+## Estructura de Directorios
+
+```
+app/
+├── Console/            # Comandos Artisan
+├── Exceptions/         # Manejadores de excepciones
+├── Http/
+│   ├── Controllers/    # Manejan peticiones HTTP
+│   │   ├── Api/        # Endpoints REST/JSON para clientes externos
+│   │   └── Admin/       # Endpoints HTML/Inertia para panel interno
+│   ├── Middleware/     # Middleware HTTP
+│   ├── Requests/       # Form requests para validación
+│   └── Resources/      # Formateo de respuestas JSON
+├── Models/             # Modelos Eloquent
+├── Providers/          # Service providers
+├── Repositories/       # Capa de acceso a datos
+│   ├── Interfaces/     # Contratos de repositorios
+│   └── Eloquent/       # Implementaciones Eloquent
+├── Services/           # Lógica de negocio y orquestación
+└── Enums/              # Estados y tipos (evitar strings mágicos)
+```
+
+## Responsabilidades por Capa
+
+### Controllers
+
+- Manejan peticiones y respuestas HTTP
+- Validan datos de entrada (vía Form Requests)
+- Delegan lógica de negocio a servicios
+- Retornan vistas apropiadas o respuestas API
+- Deben permanecer delgados - sin lógica de negocio
+
+```php
+class ExampleController extends Controller
+{
+    public function __construct(
+        private ExampleService $exampleService
+    ) {}
+
+    public function store(StoreExampleRequest $request)
+    {
+        $example = $this->exampleService->create($request->validated());
+        return new ExampleResource($example);
+    }
+}
+```
+
+### Services
+
+- Contienen lógica de negocio
+- Coordinan entre repositorios
+- Manejan operaciones específicas del dominio
+- Pueden usar múltiples repositorios
+- Dependen SIEMPRE de interfaces de repositorios, nunca de implementaciones concretas
+
+```php
+class ExampleService
+{
+    public function __construct(
+        private ExampleRepositoryInterface $repository
+    ) {}
+
+    public function create(array $data): Model
+    {
+        // Lógica de negocio aquí
+        return $this->repository->create($data);
+    }
+}
+```
+
+### Repositories
+
+- Manejan lógica de acceso a datos
+- Implementan operaciones CRUD
+- Abstractan consultas de base de datos
+- Único punto de acceso a datos/modelos
+- Usan Eloquent ORM
+
+```php
+interface ExampleRepositoryInterface
+{
+    public function find(int $id): ?Model;
+    public function create(array $data): Model;
+    public function update(int $id, array $data): Model;
+    public function delete(int $id): bool;
+}
+
+class EloquentExampleRepository implements ExampleRepositoryInterface
+{
+    public function __construct(private Example $model) {}
+
+    public function find(int $id): ?Model
+    {
+        return $this->model->findOrFail($id);
+    }
+
+    public function create(array $data): Model
+    {
+        return $this->model->create($data);
+    }
+}
+```
+
+### Models
+
+- Definen relaciones de base de datos
+- Definen casts, accessors y mutators
+- Definen scopes de consulta personalizados
+- Sin lógica de negocio, solo representación de datos
+
+```php
+class Example extends Model
+{
+    protected $fillable = ['name', 'email'];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'settings' => 'array',
+    ];
+
+    public function relatedItems()
+    {
+        return $this->hasMany(RelatedItem::class);
+    }
+}
+```
+
+### Form Requests
+
+- Validación de entrada centralizada
+- Reglas de autorización
+- Preparación de datos (`prepareForValidation`)
+
+```php
+class StoreExampleRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:examples',
+        ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => trim($this->name),
+        ]);
+    }
+}
+```
+
+### Resources
+
+- Formateo de respuestas JSON
+- Transformación de modelos para API
+- Ocultación de campos sensibles
+- Claves consistentes (snake_case)
+
+```php
+class ExampleResource extends JsonResource
+{
+    public function toArray($request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'created_at' => $this->created_at,
+        ];
+    }
+}
+```
+
+## Principios SOLID
+
+- **Single Responsibility**: Cada clase tiene una responsabilidad única
+- **Open/Closed**: Extensible mediante herencia o composición
+- **Liskov Substitution**: Los contratos deben poder intercambiarse sin romper consumidores
+- **Interface Segregation**: Interfaces pequeñas y cohesivas
+- **Dependency Inversion**: Depende de abstracciones (interfaces), resuélvelas vía inyección en Service Providers
+
+## Registro de Repositorios
+
+Registra bindings en un Service Provider:
+
+```php
+class RepositoryServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->bind(
+            ExampleRepositoryInterface::class,
+            EloquentExampleRepository::class
+        );
+    }
+}
+```
+
+## Reglas Clave
+
+1. Mantén controladores delgados, solo manejan preocupaciones HTTP
+2. Mueve lógica de negocio a servicios dedicados
+3. Usa repositorios para acceso a datos
+4. Usa Form Requests para validación de entrada
+5. Mantén modelos enfocados en relaciones y atributos
+6. Usa service providers para binding de interfaces a implementaciones
+7. Nunca accedas directamente a Eloquent desde controladores o servicios
+8. Usa Enums para estados y tipos, evita strings mágicos

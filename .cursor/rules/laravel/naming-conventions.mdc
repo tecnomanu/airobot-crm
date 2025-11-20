@@ -1,0 +1,192 @@
+---
+globs: app/**/*.php,routes/**/*.php,database/**/*.php
+alwaysApply: false
+description: Convenciones de nomenclatura para aplicaciones Laravel
+---
+
+# Convenciones de Nomenclatura en Laravel
+
+Este documento define convenciones estándar de nomenclatura para proyectos Laravel, siguiendo prácticas recomendadas de la comunidad Laravel y el ecosistema PHP.
+
+## Principios Generales
+
+- **Consistencia**: Mantén el mismo estilo en todo el proyecto
+- **Claridad**: Los nombres deben ser descriptivos y revelar intención
+- **Concisión**: Evita nombres innecesariamente largos cuando sea posible
+- **Estándar PSR-12**: Sigue estándares PSR-12 para código PHP
+
+## Estilos de Nomenclatura
+
+| Estilo          | Descripción                                          | Ejemplo          |
+|-----------------|------------------------------------------------------|------------------|
+| **PascalCase**  | Primera letra de cada palabra en mayúscula         | `UserController` |
+| **camelCase**   | Primera letra minúscula, resto con primera mayúscula | `getUserById`    |
+| **snake_case**  | Palabras en minúsculas separadas por guiones bajos   | `user_table`     |
+| **kebab-case**  | Palabras en minúsculas separadas por guiones        | `user-settings`  |
+
+## Aplicación por Tipo de Elemento
+
+### Clases
+
+- **PascalCase**
+- Singular, descriptivo
+- Sufijos según tipo de clase:
+
+```php
+// Controllers
+class UserController extends Controller {}
+
+// Models
+class User extends Model {}
+
+// Services
+class UserService {}
+
+// Repositories
+class UserRepository implements UserRepositoryInterface {}
+
+// Middleware
+class AuthenticateUser {}
+
+// Jobs
+class SendWelcomeEmail implements ShouldQueue {}
+
+// Events
+class UserRegistered {}
+
+// Listeners
+class SendWelcomeNotification {}
+
+// Policies
+class UserPolicy {}
+```
+
+### Métodos y Funciones
+
+- **camelCase**
+- Verbos que describen la acción
+
+```php
+// En controladores (acciones CRUD)
+public function index() {}
+public function show($id) {}
+public function create() {}
+public function store(Request $request) {}
+public function edit($id) {}
+public function update(Request $request, $id) {}
+public function destroy($id) {}
+
+// En modelos (scopes)
+public function scopeActive($query) {}
+public function scopePopular($query) {}
+
+// En cualquier clase (métodos generales)
+public function calculateTotal() {}
+public function getUserFullName() {}
+```
+
+### Variables y Propiedades
+
+- **camelCase**
+
+```php
+$userName = 'John';
+$isAdmin = true;
+$userCount = 42;
+
+// Propiedades de clase
+protected $connection;
+private $items = [];
+```
+
+### Constantes
+
+- **SCREAMING_SNAKE_CASE** (mayúsculas con guiones bajos)
+
+```php
+const API_VERSION = 'v1';
+const MAX_LOGIN_ATTEMPTS = 5;
+
+// Enums (Laravel 8+)
+enum UserStatus: string
+{
+    case ACTIVE = 'active';
+    case INACTIVE = 'inactive';
+    case BANNED = 'banned';
+}
+```
+
+### Base de Datos
+
+- **snake_case** para nombres de tablas, columnas e índices
+- Tablas en plural
+- Foreign keys: `singular_table_id`
+
+```
+users
+posts
+post_categories
+role_user (tabla pivot para relación many-to-many)
+
+// Columnas
+id
+user_id (foreign key)
+first_name
+last_name
+created_at
+```
+
+### Archivos de Configuración y Variables de Entorno
+
+- **snake_case** para claves en archivos de configuración
+- **SCREAMING_SNAKE_CASE** para variables de entorno (.env)
+
+```php
+// config/app.php
+'debug' => env('APP_DEBUG', false),
+'timezone' => 'UTC',
+
+// .env
+APP_NAME=Laravel
+APP_ENV=local
+DB_CONNECTION=mysql
+```
+
+### Rutas y URLs
+
+- **kebab-case** para URLs
+- **snake_case.action** para nombres de rutas
+
+```php
+// Rutas
+Route::get('/user-settings', [UserSettingsController::class, 'index'])->name('user_settings.index');
+Route::get('/blog-posts/{slug}', [BlogPostController::class, 'show'])->name('blog_posts.show');
+```
+
+### Vistas
+
+- **kebab-case** para directorios y archivos
+- Usa notación de punto para indicar jerarquía de directorios
+
+```php
+// Estructura de archivos
+resources/views/
+├── users/
+│   ├── index.blade.php
+│   ├── show.blade.php
+│   └── settings/
+│       ├── profile.blade.php
+│       └── notifications.blade.php
+
+// Referencia en controladores
+return view('users.index');
+return view('users.settings.profile');
+```
+
+## Prácticas Adicionales
+
+1. **Models**: Singular, PascalCase (ej: `User`, `BlogPost`)
+2. **Controllers**: Plural, PascalCase + sufijo Controller (ej: `UsersController`)
+3. **Migrations**: Timestamp + acción + tabla en snake_case (ej: `2023_05_15_create_users_table.php`)
+4. **Seeders**: Nombre de tabla + Seeder en PascalCase (ej: `UsersTableSeeder`)
+5. **Factories**: Nombre de modelo + Factory en PascalCase (ej: `UserFactory`)

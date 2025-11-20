@@ -1,0 +1,33 @@
+---
+globs: app/**/*.php,bootstrap/**/*.php,routes/**/*.php,database/**/*.php,config/**/*.php,tests/**/*.php
+alwaysApply: true
+description: Información de versión para aplicaciones Laravel
+---
+
+# Información de Versión Laravel
+
+Este proyecto está usando Laravel **12**.
+
+## Consideraciones Específicas de Versión
+
+Las reglas en esta carpeta están adaptadas para Laravel 12, que cae en el rango de compatibilidad "Laravel 12".
+
+## Estructura del Framework
+
+La aplicación Laravel está ubicada en: `./`
+
+## Componentes Detectados
+
+El sistema ha detectado tu instalación de Laravel y aplicará reglas apropiadas para:
+
+- Funcionalidad core de Laravel
+- Modelos Eloquent y Relaciones
+- Routing y Controladores
+- Middleware
+- Service Providers
+- Migraciones de Base de Datos
+- Testing
+
+## Arquitectura
+
+Estas reglas están configuradas para tu estilo de arquitectura elegido. Puedes encontrar guías específicas de arquitectura en las reglas de arquitectura relacionadas.

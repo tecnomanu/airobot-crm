@@ -1,0 +1,47 @@
+---
+globs: **/*
+alwaysApply: true
+description: Estándares globales de código y mejores prácticas
+---
+
+# Estándares Globales de Código
+
+## Principios Fundamentales
+
+- **Calidad de Código**: Mantén altos estándares de calidad en todo el código
+- **Responsabilidad Única**: Cada componente debe tener una única responsabilidad
+- **DRY**: Evita duplicación de código y lógica
+
+## Formato y Estilo
+
+- Sigue formato consistente en todo el proyecto
+- Usa nombres descriptivos que expliquen el propósito
+- Mantén funciones pequeñas y enfocadas
+- Agrega comentarios significativos para lógica compleja, evita comentarios obvios
+- Elimina código de debug, código comentado y console.logs antes de commit
+- Usa indentación consistente (espacios o tabs) en todo el proyecto
+- Sigue la guía de estilo estándar del lenguaje/framework
+- Evita anidamiento profundo de condicionales y loops
+
+## Proceso de Desarrollo
+
+1. **Entender el Contexto**: Comprende completamente el problema antes de escribir código
+2. **Diseño Previo**: Diseña la solución antes de implementarla
+3. **Desarrollo Incremental**: Implementa en pequeños incrementos verificables
+4. **Revisión de Código**: Revisa tu código antes de considerarlo completo
+5. **Refactorización**: Mejora el código existente sin cambiar su comportamiento
+
+## Manejo de Errores y Calidad
+
+- Implementa manejo apropiado de errores y excepciones
+- Agrega logs apropiados para facilitar debugging y monitoreo
+- Considera implicaciones de seguridad en cada cambio
+- Evalúa el impacto en rendimiento de los cambios realizados
+
+## Control de Versiones
+
+- Usa correctamente el sistema de control de versiones
+- Haz commits pequeños y enfocados con propósitos específicos
+- Escribe mensajes de commit claros y descriptivos
+- Usa branches para features, fixes o tareas
+- Solicita code review mediante pull requests

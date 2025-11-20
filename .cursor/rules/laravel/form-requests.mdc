@@ -1,0 +1,117 @@
+---
+globs: app/Http/Controllers/**/*.php,app/Http/Requests/**/*.php
+alwaysApply: false
+description: Patrón Form Request para validación y preparación de datos en controladores
+---
+
+# Patrón Form Request
+
+Este documento define el patrón para usar Form Requests que manejan validación y preparación de datos en controladores, manteniéndolos delgados y enfocados.
+
+## Creación de Form Request
+
+Crea clases Form Request dedicadas para validaciones complejas y transformaciones de datos:
+
+```php
+class UpdateExampleRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'firstName' => 'sometimes|string|max:255',
+            'lastName' => 'sometimes|string|max:255',
+            'email' => 'sometimes|nullable|email|max:255',
+        ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        // Transforma/prepara datos antes de la validación
+        $this->merge([
+            'first_name' => $this->firstName ?? $this->user()->first_name,
+            'last_name' => $this->lastName ?? $this->user()->last_name,
+        ]);
+    }
+}
+```
+
+## Uso en Controladores
+
+Los controladores deben usar Form Requests en lugar de validación manual:
+
+```php
+// ❌ INCORRECTO: Validación manual en controlador
+public function update(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'firstName' => 'required|string|max:255',
+    ]);
+
+    if ($validator->fails()) {
+        // manejo de errores
+    }
+}
+
+// ✅ CORRECTO: Usando Form Request
+public function update(UpdateExampleRequest $request)
+{
+    // Controlador limpio - validación y preparación de datos ya hechas
+    $example = $this->exampleService->update(
+        $request->user()->id,
+        $request->validated()
+    );
+
+    return new ExampleResource($example);
+}
+```
+
+## Transformación de Datos en Form Requests
+
+Usa `prepareForValidation()` para transformación y preparación de datos:
+
+```php
+protected function prepareForValidation(): void
+{
+    $this->merge([
+        // Transformar camelCase del frontend a snake_case del backend
+        'first_name' => $this->firstName,
+        'last_name' => $this->lastName,
+
+        // Agregar valores por defecto
+        'status' => $this->status ?? 'active',
+
+        // Transformar datos anidados
+        'address' => $this->transformAddress($this->address),
+    ]);
+}
+```
+
+## Principios Clave
+
+1. **Single Responsibility**: Form Requests manejan solo validación y preparación de datos
+2. **Controladores Delgados**: Los controladores se enfocan en preocupaciones HTTP, delegan validación a Form Requests
+3. **Transformación de Datos**: Usa `prepareForValidation()` para transformación de datos (camelCase a snake_case, etc.)
+4. **Centralización de Validación**: Todas las reglas de validación en un solo lugar, no dispersas en controladores
+5. **Reutilización**: Form Requests pueden reutilizarse en múltiples métodos de controlador
+
+## Beneficios
+
+- **Controladores Más Limpios**: Los controladores se vuelven más delgados y enfocados
+- **Validación Centralizada**: Toda la lógica de validación en clases dedicadas
+- **Mejor Testing**: Form Requests pueden testearse independientemente
+- **Formato de Datos Consistente**: Pipeline de transformación de datos estandarizado
+- **Mantenibilidad**: Cambios a reglas de validación en un solo lugar
+
+## Cuándo Usar
+
+- ✅ Reglas de validación complejas (3+ campos)
+- ✅ Transformación de datos necesaria (camelCase a snake_case)
+- ✅ Múltiples escenarios de validación para el mismo endpoint
+- ✅ Lógica de validación personalizada requerida
+- ❌ Validaciones simples de un solo campo
+- ❌ Operaciones de solo lectura (peticiones GET)

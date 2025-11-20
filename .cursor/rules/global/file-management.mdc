@@ -1,0 +1,32 @@
+---
+globs: **/*
+alwaysApply: true
+description: Guías para operaciones de archivos y prevención de pérdida de contenido
+---
+
+# Gestión de Archivos
+
+Antes de crear un archivo, verifica si ya existe. Si existe y no hay instrucción explícita de sobrescribir, fusiona el contenido en lugar de reemplazarlo.
+
+## Mejores Prácticas
+
+1. **Verificar Existencia**: Siempre verifica si un archivo existe antes de crearlo
+2. **Preservar Contenido**: Cuando un archivo existe, preserva elementos importantes:
+   - Comentarios existentes
+   - Imports existentes
+   - Headers de licencia
+   - Configuraciones
+
+3. **Estrategias de Fusión**:
+   - Para archivos de código: Agrega nuevas funciones, clases o métodos sin eliminar existentes
+   - Para archivos de configuración: Agrega nuevas configuraciones preservando las existentes
+
+4. **Comunicar Cambios**: Al modificar archivos existentes, comunica la naturaleza de los cambios
+
+## Cuándo Sobrescribir
+
+Solo sobrescribe archivos cuando:
+
+1. Se instruye explícitamente hacerlo
+2. El archivo es conocido como generado y debe recrearse
+3. El propósito completo del archivo está siendo cambiado

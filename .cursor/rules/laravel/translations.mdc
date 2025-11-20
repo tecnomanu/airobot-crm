@@ -1,0 +1,144 @@
+---
+globs: lang/**/*.php,config/app.php,app/Http/Controllers/**/*.php,app/Services/**/*.php,app/Notifications/**/*.php,resources/views/**/*.php
+alwaysApply: true
+description: Sistema automático de gestión de traducciones multiidioma
+---
+
+# Sistema Automático de Gestión de Traducciones
+
+Este documento define las reglas para la gestión automática de traducciones en todos los idiomas disponibles en la aplicación.
+
+## Idiomas Soportados
+
+Los idiomas soportados están definidos en `config/app.php` en el campo `supported_locales`:
+
+```php
+'supported_locales' => ['es', 'en', 'de', 'fr', 'it', 'ja', 'ko', 'nl', 'pl', 'pt', 'zh', 'cs'],
+```
+
+## Reglas Automáticas de Traducción
+
+### 1. Creación/Modificación de Textos
+
+**SIEMPRE** que se agregue, modifique o elimine un texto traducible:
+
+#### OBLIGATORIO: Actualizar TODOS los idiomas
+
+```php
+// ❌ INCORRECTO - Solo agregar en español
+// lang/es/emails.php
+'new_feature' => [
+    'title' => 'Nueva funcionalidad',
+    'description' => 'Descripción de la nueva funcionalidad'
+]
+
+// ✅ CORRECTO - Agregar en TODOS los idiomas soportados
+// lang/es/emails.php (idioma de referencia)
+'new_feature' => [
+    'title' => 'Nueva funcionalidad',
+    'description' => 'Descripción de la nueva funcionalidad'
+]
+
+// lang/en/emails.php
+'new_feature' => [
+    'title' => 'New Feature',
+    'description' => 'Description of the new feature'
+]
+
+// ... Y ASÍ PARA TODOS LOS IDIOMAS
+```
+
+### 2. Gestión de Idiomas
+
+#### Agregar Nuevo Idioma
+
+Cuando se agregue un nuevo idioma:
+
+1. **Actualizar config/app.php**: Agregar a `supported_locales`
+2. **Crear directorio completo**: Crear todos los archivos de traducción necesarios
+3. **Traducir TODOS los archivos** basándose en el español como referencia
+
+#### Eliminar Idioma
+
+Cuando se elimine un idioma:
+
+1. **Actualizar config/app.php**: Remover de `supported_locales`
+2. **Eliminar directorio**: `rm -rf lang/idioma_eliminado/`
+
+### 3. Estructura de Archivos de Traducción
+
+Cada idioma DEBE tener exactamente estos archivos:
+
+```
+lang/{idioma}/
+├── api.php              # Mensajes de API y respuestas
+├── auth.php             # Mensajes de autenticación
+├── emails.php           # Templates de correos electrónicos
+├── pagination.php       # Textos de paginación
+├── passwords.php        # Mensajes de contraseñas
+├── purchase_sessions.php # Mensajes de sesiones de compra
+└── validation.php       # Mensajes de validación
+```
+
+## Reglas Críticas
+
+### Prohibido
+
+1. **Dejar idiomas incompletos**: Todos los idiomas deben tener las mismas claves
+2. **Valores vacíos**: No dejar traducciones vacías (`''` o `null`)
+3. **Sintaxis incorrecta**: Todos los archivos deben pasar `php -l`
+4. **Estructura inconsistente**: Mantener la misma estructura de arrays anidados
+
+### Obligatorio
+
+1. **Español como referencia**: Usar `lang/es/` como idioma de referencia
+2. **Traducciones completas**: Cada clave debe existir en todos los idiomas
+3. **Escapar apostrofes**: Usar `\'` en lugar de `'` dentro de strings
+4. **Validación continua**: Ejecutar scripts de validación regularmente
+
+## Convenciones de Traducción
+
+### Estructura de Claves
+
+```php
+// ✅ CORRECTO - Estructura jerárquica clara
+'emails' => [
+    'payment_success' => [
+        'subject' => 'Pago exitoso',
+        'title' => 'Tu pago ha sido procesado',
+        'content' => [
+            'greeting' => 'Hola :name',
+            'message' => 'Tu pago por :amount ha sido procesado exitosamente.'
+        ]
+    ]
+]
+
+// ❌ INCORRECTO - Claves planas y confusas
+'payment_success_subject' => 'Pago exitoso',
+'payment_success_title' => 'Tu pago ha sido procesado',
+```
+
+### Parámetros de Traducción
+
+```php
+// ✅ CORRECTO - Parámetros descriptivos
+'welcome_message' => 'Bienvenido, :customer_name. Tu sesión expira el :expiry_date.',
+
+// ❌ INCORRECTO - Parámetros genéricos
+'welcome_message' => 'Bienvenido, :param1. Tu sesión expira el :param2.',
+```
+
+## Contenido Dinámico
+
+Para contenido generado dinámicamente:
+
+```php
+// ✅ CORRECTO - Usar helper de traducción
+__('emails.dynamic_content', [
+    'customer_name' => $customer->name,
+    'amount' => $payment->amount
+]);
+
+// ❌ INCORRECTO - Concatenar strings
+'Hola ' . $customer->name . ', tu pago de ' . $payment->amount . ' fue exitoso';
+```

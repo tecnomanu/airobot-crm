@@ -1,0 +1,87 @@
+---
+globs:
+alwaysApply: true
+description: Entorno del proyecto y configuración de infraestructura
+---
+
+# Entorno del Proyecto
+
+## Stack Técnico
+
+-   Base del proyecto: **Laravel v12**; Extendido con **Inertia** y **React**
+-   Para Laravel el gestor es **composer** y para Inertia con React el gestor de paquetes es **pnpm**
+
+## Principios SOLID y Convenciones Globales
+
+-   **S**ingle Responsibility: cada clase resuelve un propósito único
+-   **O**pen/Closed: extiende vía herencia o composición; nunca edites código estable para nuevos requisitos
+-   **L**iskov Substitution: los contratos (interfaces, repositorios) deben poder intercambiarse sin romper consumidores
+-   **I**nterface Segregation: crea interfaces pequeñas y cohesivas; inyecta solo lo que uses
+-   **D**ependency Inversion: depende de abstracciones (interfaces) y resuélvelas vía inyección de servicios en Service Providers
+
+## Estructura de Directorios
+
+-   `app/Models` → Eloquent por agregado
+-   `app/Repositories` → capa de persistencia; todos los controladores y servicios consumen repositorios, no Eloquent directo
+-   `app/Services` → lógica de dominio y orquestación
+-   `app/Http/Controllers`
+    -   **Api\*** → endpoints REST/JSON para clientes externos
+    -   **Admin\*** → endpoints HTML/Inertia para panel interno
+-   `app/Http/Requests` → validación centralizada; no escribas reglas en el controlador
+-   `app/Http/Resources` → formateo de salida JSON con claves consistentes (snake_case)
+-   `app/Console`, `app/Mail`, `app/Notifications` se ajustan al mismo patrón SRP
+
+## Capa API (subdominio **api.\***)
+
+-   Guard **customer-api** (Sanctum) separa la sesión web del token móvil
+-   Endpoints RESTful bajo prefijo de versión futura `/v1`
+-   Todas las rutas residen en `routes/api.php`; agrupa por bounded context y aplica `auth:customer-api` o rate-limit específico
+-   Controladores delegan a _Services → Repositories_; nunca toques Eloquent ni lógica de dominio en la capa de transporte
+
+## Panel Backend (subdominio **web.\***)
+
+-   **React** se usa para el backend que administra la información solo para administradores
+-   Guard **web** con sesión tradicional; vistas Inertia renderizan componentes React desde `resources/js`
+-   Tailwind + shadcn/ui para toda la interfaz; no se generan clases ad-hoc en JSX
+-   El estilo se rige al 100% por **Tailwind CSS**; la configuración vive en `tailwind.config.mjs`
+-   Cada página React vive bajo `resources/js/Pages/*`; la navegación/estado global se controla con context ligero o Zustand
+-   Políticas (`app/Policies`) y Middlewares refuerzan seguridad y UX
+
+## Estilo, UI y Build Front (Panel)
+
+-   `resources/css/app.css` importa `@tailwind base|components|utilities` y presets; personalización solo en `tailwind.config.js`
+-   Componentes genéricos en `resources/js/Components/ui`; compuestos en `resources/js/Components/common`
+-   Vite compila React, Tailwind y shadcn; usa JSX con TypeScript estricto (`.tsx`)
+
+## Autenticación y Dominios
+
+```php
+// config/auth.php (extracto)
+'guards' => [
+    'web'         => ['driver' => 'session',  'provider' => 'users'],
+    'customer-api'=> ['driver' => 'sanctum',  'provider' => 'customers'],
+];
+```
+
+-   Mantén claves y CORS por dominio en `config/cors.php`; usa env bindings para no exponer dominios locales
+
+## Migraciones, Seeders y Pruebas
+
+-   Una migración por agregado; nombres `YYYYMMDDHHMMss_create_{table}_table.php`
+-   Seeders pueblan catálogos para desarrollo
+-   `tests/Unit` validan lógica pura (servicios, repositorios)
+-   `tests/Feature` cubren flujos HTTP
+-   Usa SQLite in-memory para Unit y MySQL para Feature
+
+## Buenas Prácticas Adicionales
+
+-   Versiona la API (`/v1`) antes de exponerla en producción
+-   Centraliza reglas de negocio en Servicios; Controladores deben quedarse en ±60 líneas
+-   Siempre incluye DTOs/Request Objects fuertemente tipados; nunca confíes en arrays anónimos
+-   Deshabilita lazy-loading global (`Model::preventLazyLoading(true)`) en ambientes ≥ staging
+-   Ejecuta php-cs-fixer y `npm run build` dentro del pipeline CI antes de cualquier deploy
+
+## Workflows de Desarrollo
+
+-   No estamos creando test unitarios por ahora. No necesitas crearlos
+-   Cualquier cosa que no esté claro para hacerse o que altere mucho el código, pregunta antes al usuario y espera respuesta para continuar

@@ -1,0 +1,124 @@
+---
+globs: app/Repositories/**/*.php,app/Services/**/*.php
+alwaysApply: false
+description: Patrón Repository con constantes de relaciones y delegación desde Services
+---
+
+# Patrón Repository con Relaciones
+
+Este documento define el patrón Repository con gestión adecuada de constantes de relaciones y delegación desde Services.
+
+## Estructura del Repository
+
+Cada repositorio debe definir sus propias constantes de relaciones para diferentes contextos:
+
+```php
+class ExampleRepository extends BaseRepository
+{
+    // Define constantes de relaciones específicas de este dominio
+    private const BASIC_RELATIONS = ['relation1', 'relation2'];
+    private const DETAILED_RELATIONS = ['relation1', 'relation2.nested', 'relation3'];
+    private const ADMIN_RELATIONS = ['relation1', 'relation2.nested', 'relation3', 'relation4.deep.nested'];
+
+    public function getByCustomerId(string $customerId): Collection
+    {
+        return $this->model
+            ->where('customer_id', $customerId)
+            ->with(self::BASIC_RELATIONS) // Usa constantes, no arrays hardcodeados
+            ->get();
+    }
+
+    public function getDetailed(int $id): ?Model
+    {
+        return $this->model
+            ->with(self::DETAILED_RELATIONS)
+            ->findOrFail($id);
+    }
+}
+```
+
+## Capa Service Usando Repositories
+
+Los Services deben delegar acceso a datos a repositorios, nunca consultar modelos directamente:
+
+```php
+class ExampleService
+{
+    public function __construct(
+        private ExampleRepositoryInterface $repository
+    ) {}
+
+    public function getByCustomer(string $customerId): Collection
+    {
+        // Usa métodos del repositorio, no consultas directas al modelo
+        return $this->repository->getByCustomerId($customerId);
+    }
+
+    public function getDetailed(int $id): ?Model
+    {
+        return $this->repository->getDetailed($id);
+    }
+}
+```
+
+## Métodos Especializados del Service
+
+Cada service debe tener métodos específicos del dominio con nombres apropiados:
+
+- **getByCustomer()** - Método estándar para recuperación de datos específicos del cliente
+- **Métodos legacy** - Marca métodos antiguos como `@deprecated` y delega a nuevos
+- **Delegación al Repository** - Siempre usa métodos del repositorio, nunca consultas Eloquent directas
+
+## Organización de Código en Services
+
+Las clases de servicios deben seguir un orden específico de métodos:
+
+1. **Operaciones CRUD** - Siempre van primero
+   - Métodos create/store
+   - Métodos read/get/show
+   - Métodos update
+   - Métodos delete/destroy
+
+2. **Funciones Adicionales** - Métodos que no son estrictamente CRUD
+   - Métodos de procesamiento y transformación
+   - Métodos de orquestación
+   - Métodos utilitarios específicos del servicio
+
+3. **Validaciones** - SIEMPRE al final del archivo
+   - Todos los métodos `validate*` deben estar agrupados
+   - Deben seguir un patrón consistente
+   - Agregar mensajes de error descriptivos
+
+```php
+class ExampleService
+{
+    // CRUD OPERATIONS
+    public function create(array $data): Model { }
+    public function get(int $id): ?Model { }
+    public function update(int $id, array $data): Model { }
+    public function delete(int $id): bool { }
+    
+    // ADDITIONAL OPERATIONS
+    public function processData(array $data): array { }
+    public function exportData(int $id): array { }
+    
+    // VALIDATIONS - Always at the end
+    protected function validateData(array $data): void { }
+    protected function validateInputParameters(array $params): void { }
+}
+```
+
+## Principios Clave
+
+1. **Encapsulación**: Cada repositorio/service gestiona sus propias constantes de relaciones
+2. **Single Responsibility**: Las relaciones específicas del dominio permanecen en sus respectivas clases
+3. **Sin Constantes Globales**: Evita archivos centralizados de constantes de relaciones
+4. **Abstracción del Repository**: Los Services usan repositorios, nunca acceso directo al modelo
+5. **Nomenclatura Consistente**: Usa patrón `getByCustomer()` para consultas con scope de cliente
+
+## Beneficios
+
+- **Mantenibilidad**: Las relaciones están co-localizadas con su uso
+- **Testabilidad**: Límites claros entre capas
+- **Flexibilidad**: Cada dominio puede evolucionar sus relaciones independientemente
+- **Cumplimiento SOLID**: Principios de responsabilidad única e inversión de dependencias

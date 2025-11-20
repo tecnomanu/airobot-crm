@@ -1,0 +1,66 @@
+---
+globs: routes/**/*.php
+alwaysApply: false
+description: Guías de routing para Laravel 12
+---
+
+# Rutas en Laravel 12
+
+Laravel 12 introduce una nueva API de routing con sintaxis más limpia y expresiva.
+
+## Nuevas Definiciones de Rutas
+
+```php
+// routes/web.php
+use function Laravel\Http\{get, post, put, delete, middleware};
+
+get('/', fn () => view('welcome'));
+
+// Rutas de controlador
+get('/users', [\App\Http\Controllers\UserController::class, 'index']);
+
+// Grupos de rutas
+middleware('auth', function () {
+    get('/dashboard', fn () => view('dashboard'));
+
+    // Rutas de recursos anidados
+    post('/projects/{project}/tasks', [\App\Http\Controllers\TaskController::class, 'store']);
+});
+
+// Rutas nombradas
+get('/profile', fn () => view('profile'))
+    ->name('profile');
+```
+
+## Manejo de Peticiones
+
+Los manejadores de rutas funcionales de Laravel 12 reciben la petición como primer parámetro:
+
+```php
+get('/search', function (Request $request) {
+    return Product::search($request->input('query'))->get();
+});
+```
+
+## Registro de Rutas
+
+No es necesario usar la facade `Route::` en Laravel 12 - importa las funciones de verbos HTTP directamente.
+
+## Características de Routing
+
+El nuevo encadenamiento de rutas es más fluido:
+
+```php
+get('/admin/dashboard', AdminDashboardController::class)
+    ->name('admin.dashboard')
+    ->middleware(['auth', 'admin'])
+    ->where('id', '[0-9]+');
+```
+
+## Organización de Rutas
+
+- **API Routes**: `routes/api.php` - Endpoints REST/JSON para clientes externos
+- **Web Routes**: `routes/web.php` - Rutas HTML/Inertia para panel interno
+- **Agrupa por contexto**: Agrupa rutas por bounded context y aplica `auth` o rate-limit específico
+
+Siempre usa este nuevo sistema de routing para proyectos Laravel 12.
