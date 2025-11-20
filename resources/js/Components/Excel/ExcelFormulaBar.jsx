@@ -6,18 +6,16 @@ import { Check, X } from 'lucide-react';
 export default function ExcelFormulaBar({ 
     selectedCell, 
     cellValue = '', 
-    cellFormula = null,
     onValueChange,
     onConfirm,
     onCancel
 }) {
-    // Si hay fórmula, mostrar la fórmula; si no, mostrar el valor
-    const displayValue = cellFormula || cellValue;
-    const [editValue, setEditValue] = React.useState(displayValue);
+    // cellValue siempre contiene el valor raw (puede incluir fórmula con =)
+    const [editValue, setEditValue] = React.useState(cellValue);
     
     React.useEffect(() => {
-        setEditValue(displayValue);
-    }, [displayValue, selectedCell]);
+        setEditValue(cellValue);
+    }, [cellValue, selectedCell]);
     
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {

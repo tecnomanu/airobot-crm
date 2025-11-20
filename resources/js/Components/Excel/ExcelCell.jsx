@@ -6,8 +6,8 @@ import { memo, useEffect, useRef } from "react";
 const ExcelCell = memo(
     ({
         cellId,
-        value = "",
-        formula = null,
+        rawValue = "",
+        displayValue = "",
         format = {},
         isSelected = false,
         isInRange = false,
@@ -30,7 +30,7 @@ const ExcelCell = memo(
             confirmEdit,
             cancelEdit,
             handleKeyDown,
-        } = useExcelCell(cellId, value, formula, onUpdate, onNavigate);
+        } = useExcelCell(cellId, rawValue, displayValue, onUpdate, onNavigate);
 
         // Enfocar celda cuando es seleccionada
         useEffect(() => {
@@ -53,9 +53,9 @@ const ExcelCell = memo(
             textAlign: format.align || "left",
         };
 
-        const displayValue = isEditing
+        const cellDisplayValue = isEditing
             ? editValue
-            : formatCellValue(value, format.format || "text");
+            : formatCellValue(displayValue, format.format || "text");
 
         const handleClick = (e) => {
             e.stopPropagation();
@@ -139,7 +139,7 @@ const ExcelCell = memo(
                     />
                 ) : (
                     <div className="px-1 py-0.5 h-full overflow-hidden text-ellipsis whitespace-nowrap">
-                        {displayValue}
+                        {cellDisplayValue}
                     </div>
                 )}
                 {/* Handle de arrastre en la esquina inferior derecha */}

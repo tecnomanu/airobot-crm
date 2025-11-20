@@ -1,4 +1,5 @@
 import { cellToCoords, coordsToCell, getCellRange } from '@/lib/excel/utils';
+import { evaluateFormula, isFormula } from '@/lib/excel/formulas';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ExcelCell from './ExcelCell';
 import ExcelColumnHeader from './ExcelColumnHeader';
@@ -279,12 +280,16 @@ export default function ExcelGrid({
         const isInRange = rangeCells.includes(cellId);
         const rangeBorders = getRangeBorders(cellId);
         
+        // Obtener valor raw y valor para mostrar
+        const rawValue = cell?.value || '';
+        const displayValue = isFormula(rawValue) ? evaluateFormula(rawValue, cells) : rawValue;
+        
         return (
             <ExcelCell
                 key={cellId}
                 cellId={cellId}
-                value={cell?.value || ''}
-                formula={cell?.formula || null}
+                rawValue={rawValue}
+                displayValue={displayValue}
                 format={cell?.format || {}}
                 isSelected={isSelected}
                 isInRange={isInRange}

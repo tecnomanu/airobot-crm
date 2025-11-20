@@ -34,11 +34,11 @@ export default function ExcelIndex() {
         clearCells,
         undo,
         redo,
-        getCellValue,
+        getCellRawValue,
+        getCellDisplayValue,
         getCellFormat,
         canUndo,
         canRedo,
-        getCellFormula,
     } = useExcelGrid();
 
     const { getCellStyles } = useExcelFormat();
@@ -245,9 +245,8 @@ export default function ExcelIndex() {
         canRedo,
     });
 
-    // Obtener valor y fórmula de celda seleccionada
-    const cellValue = getCellValue(selectedCell);
-    const cellFormula = getCellFormula(selectedCell);
+    // Obtener valor raw de celda seleccionada (puede incluir fórmula con =)
+    const cellRawValue = getCellRawValue(selectedCell);
 
     return (
         <ExcelLayout
@@ -278,8 +277,7 @@ export default function ExcelIndex() {
                 {/* Barra de fórmulas */}
                 <ExcelFormulaBar
                     selectedCell={selectedCell}
-                    cellValue={cellValue}
-                    cellFormula={cellFormula}
+                    cellValue={cellRawValue}
                     onConfirm={(value) => {
                         updateCell(selectedCell, value);
                     }}

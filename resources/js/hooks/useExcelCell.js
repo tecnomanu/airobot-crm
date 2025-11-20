@@ -2,8 +2,13 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 
 /**
  * Hook para gestionar el estado de edición de una celda individual
+ * @param {string} cellId - ID de la celda
+ * @param {string} rawValue - Valor raw (lo que el usuario escribió, puede ser fórmula o texto)
+ * @param {string} displayValue - Valor para mostrar (evaluado si es fórmula)
+ * @param {function} onUpdate - Callback para actualizar celda
+ * @param {function} onNavigate - Callback para navegar
  */
-export function useExcelCell(cellId, value, formula, onUpdate, onNavigate) {
+export function useExcelCell(cellId, rawValue, displayValue, onUpdate, onNavigate) {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState('');
     const inputRef = useRef(null);
@@ -11,10 +16,10 @@ export function useExcelCell(cellId, value, formula, onUpdate, onNavigate) {
     // Inicializar valor de edición cuando cambia el valor de la celda
     useEffect(() => {
         if (!isEditing) {
-            // Si hay fórmula, usar la fórmula, si no, usar el valor
-            setEditValue(formula || value || '');
+            // Siempre editar el valor raw (puede incluir la fórmula con =)
+            setEditValue(rawValue || '');
         }
-    }, [value, formula, isEditing]);
+    }, [rawValue, isEditing]);
     
     // Enfocar input cuando entra en modo edición
     useEffect(() => {
@@ -27,9 +32,9 @@ export function useExcelCell(cellId, value, formula, onUpdate, onNavigate) {
     // Iniciar edición
     const startEditing = useCallback(() => {
         setIsEditing(true);
-        // Editar la fórmula si existe, si no el valor
-        setEditValue(formula || value || '');
-    }, [value, formula]);
+        // Editar el valor raw
+        setEditValue(rawValue || '');
+    }, [rawValue]);
     
     // Confirmar edición
     const confirmEdit = useCallback(() => {
@@ -42,8 +47,8 @@ export function useExcelCell(cellId, value, formula, onUpdate, onNavigate) {
     // Cancelar edición
     const cancelEdit = useCallback(() => {
         setIsEditing(false);
-        setEditValue(value || '');
-    }, [value]);
+        setEditValue(rawValue || '');
+    }, [rawValue]);
     
     // Manejar teclas
     const handleKeyDown = useCallback((e) => {

@@ -99,26 +99,15 @@ export function useExcelGrid(initialData = {}) {
                     newCells[cellId] = {
                         ...newCells[cellId],
                         value: '',
-                        formula: null,
                         format: format || newCells[cellId]?.format || defaultFormat
                     };
                 }
             } else {
-                // Si es una fórmula, evaluar y guardar tanto la fórmula como el resultado
-                if (isFormula(value)) {
-                    const evaluatedValue = evaluateFormula(value, prev);
-                    newCells[cellId] = {
-                        formula: value, // Guardar fórmula original
-                        value: evaluatedValue, // Guardar resultado evaluado
-                        format: format || newCells[cellId]?.format || defaultFormat
-                    };
-                } else {
-                    newCells[cellId] = {
-                        value,
-                        formula: null,
-                        format: format || newCells[cellId]?.format || defaultFormat
-                    };
-                }
+                // Guardar siempre el valor raw (lo que el usuario escribió)
+                newCells[cellId] = {
+                    value,
+                    format: format || newCells[cellId]?.format || defaultFormat
+                };
             }
 
             return newCells;
@@ -333,14 +322,22 @@ export function useExcelGrid(initialData = {}) {
         setSelectedRange({ start: startCell, end: endCell });
     }, []);
 
-    // Obtener valor de celda
-    const getCellValue = useCallback((cellId) => {
+    // Obtener valor raw de celda (lo que el usuario escribió)
+    const getCellRawValue = useCallback((cellId) => {
         return cells[cellId]?.value || '';
     }, [cells]);
-
-    // Obtener fórmula de celda
-    const getCellFormula = useCallback((cellId) => {
-        return cells[cellId]?.formula || null;
+    
+    // Obtener valor para mostrar (aplica transformer si es fórmula)
+    const getCellDisplayValue = useCallback((cellId) => {
+        const rawValue = cells[cellId]?.value || '';
+        
+        // Si es una fórmula, evaluarla
+        if (isFormula(rawValue)) {
+            return evaluateFormula(rawValue, cells);
+        }
+        
+        // Si no, devolver el valor tal cual
+        return rawValue;
     }, [cells]);
 
     // Obtener formato de celda
@@ -373,8 +370,8 @@ export function useExcelGrid(initialData = {}) {
         clearCells,
         undo,
         redo,
-        getCellValue,
-        getCellFormula,
+        getCellRawValue,
+        getCellDisplayValue,
         getCellFormat,
 
         // Utilidades
