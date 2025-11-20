@@ -341,12 +341,12 @@ export function useExcelGrid(initialData = {}) {
     // Insertar columna a la izquierda
     const insertColumnLeft = useCallback((targetColumn) => {
         setColumns(prev => {
-            const newCols = [...prev];
-            const index = newCols.indexOf(targetColumn);
+            const index = prev.indexOf(targetColumn);
             if (index === -1) return prev;
             
-            // Generar nueva letra de columna
-            const newColLetter = indexToColumn(index + 1);
+            const newCols = [...prev];
+            // Generar nueva letra única basada en la longitud actual
+            const newColLetter = indexToColumn(prev.length + 1);
             newCols.splice(index, 0, newColLetter);
             return newCols;
         });
@@ -356,12 +356,12 @@ export function useExcelGrid(initialData = {}) {
     // Insertar columna a la derecha
     const insertColumnRight = useCallback((targetColumn) => {
         setColumns(prev => {
-            const newCols = [...prev];
-            const index = newCols.indexOf(targetColumn);
+            const index = prev.indexOf(targetColumn);
             if (index === -1) return prev;
             
-            // Generar nueva letra de columna
-            const newColLetter = indexToColumn(index + 2);
+            const newCols = [...prev];
+            // Generar nueva letra única basada en la longitud actual
+            const newColLetter = indexToColumn(prev.length + 1);
             newCols.splice(index + 1, 0, newColLetter);
             return newCols;
         });
