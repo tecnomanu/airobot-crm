@@ -1,3 +1,4 @@
+import NotificationPermissionBanner from "@/Components/common/NotificationPermissionBanner";
 import PageHeader from "@/Components/common/PageHeader";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -36,9 +37,9 @@ import {
     Phone,
     PlugZap,
     Settings,
+    Table,
     Users,
     Webhook,
-    Table,
 } from "lucide-react";
 
 const navigation = [
@@ -68,8 +69,8 @@ const navigation = [
         icon: Webhook,
     },
     {
-        name: "Excel",
-        href: route("excel.index"),
+        name: "Calculator",
+        href: route("calculator.index"),
         icon: Table,
     },
 ];
@@ -220,6 +221,7 @@ export default function AppLayout({ children, stretch = false, header }) {
                 </div>
             </div>
             <Toaster richColors position="top-right" />
+            <NotificationPermissionBanner />
         </SidebarProvider>
     );
 }

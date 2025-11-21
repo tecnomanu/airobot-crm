@@ -1,12 +1,13 @@
-import { useState } from "react";
-import AppLayout from "@/Layouts/AppLayout";
-import { Head, router, useForm } from "@inertiajs/react";
-import { Plus, Search, X, RefreshCw } from "lucide-react";
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
-import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
-import { getLeadColumns } from "./columns";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,25 +17,31 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import AppLayout from "@/Layouts/AppLayout";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+    hasNotificationPermission,
+    notifyLeadUpdated,
+    notifyNewLead,
+} from "@/lib/notifications";
+import { Head, router, useForm } from "@inertiajs/react";
+import { Plus, RefreshCw, Search, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { getLeadColumns } from "./columns";
 
 export default function LeadsIndex({ leads, campaigns, filters }) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
-    const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null, name: "" });
-    const [retryDialog, setRetryDialog] = useState({ open: false, id: null, name: "" });
+    const [deleteDialog, setDeleteDialog] = useState({
+        open: false,
+        id: null,
+        name: "",
+    });
+    const [retryDialog, setRetryDialog] = useState({
+        open: false,
+        id: null,
+        name: "",
+    });
     const [isRetryingBatch, setIsRetryingBatch] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -111,14 +118,18 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
     };
 
     const confirmRetry = () => {
-        router.post(route("leads.retry-automation", retryDialog.id), {}, {
-            onSuccess: () => {
-                toast.success("Procesamiento reiniciado exitosamente");
-            },
-            onError: () => {
-                toast.error("Error al reiniciar procesamiento");
-            },
-        });
+        router.post(
+            route("leads.retry-automation", retryDialog.id),
+            {},
+            {
+                onSuccess: () => {
+                    toast.success("Procesamiento reiniciado exitosamente");
+                },
+                onError: () => {
+                    toast.error("Error al reiniciar procesamiento");
+                },
+            }
+        );
         setRetryDialog({ open: false, id: null, name: "" });
     };
 
@@ -140,6 +151,76 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
         );
     };
 
+    /**
+     * Escucha eventos de WebSocket para actualizaciones en tiempo real
+     * Cuando llega un nuevo lead o se actualiza uno existente,
+     * recarga la página solo si estamos en la primera página o si el lead es visible
+     */
+    useEffect(() => {
+        const channel = window.Echo.channel("leads");
+
+        channel.listen(".lead.updated", (event) => {
+            const { lead, action } = event;
+
+            console.log("Evento de lead recibido:", { action, lead });
+
+            // Determinar si debemos recargar
+            const shouldReload = () => {
+                // Si es un lead nuevo, solo recargar si estamos en la primera página sin filtros
+                if (action === "created") {
+                    const isFirstPage = !filters.page || filters.page === 1;
+                    const hasNoFilters =
+                        !filters.search &&
+                        !filters.status &&
+                        !filters.campaign_id;
+                    return isFirstPage && hasNoFilters;
+                }
+
+                // Si es una actualización, verificar si el lead está visible en la página actual
+                if (action === "updated") {
+                    const isVisible = leads.data.some((l) => l.id === lead.id);
+                    return isVisible;
+                }
+
+                return false;
+            };
+
+            if (shouldReload()) {
+                // Recargar preservando el estado actual de la página
+                router.reload({
+                    preserveState: true,
+                    preserveScroll: true,
+                    only: ["leads"],
+                    onSuccess: () => {
+                        // Toast para feedback inmediato
+                        if (action === "created") {
+                            toast.success(
+                                `Nuevo lead: ${lead.name || lead.phone}`
+                            );
+                        } else {
+                            toast.info(
+                                `Lead actualizado: ${lead.name || lead.phone}`
+                            );
+                        }
+                    },
+                });
+            }
+
+            // Notificaciones nativas del navegador (si están habilitadas)
+            if (hasNotificationPermission()) {
+                if (action === "created") {
+                    notifyNewLead(lead);
+                } else if (action === "updated") {
+                    notifyLeadUpdated(lead);
+                }
+            }
+        });
+
+        // Cleanup al desmontar
+        return () => {
+            channel.stopListening(".lead.updated");
+        };
+    }, [leads.data, filters]);
 
     return (
         <AppLayout
@@ -177,18 +258,26 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
             <Head title="Leads" />
 
             <div className="space-y-6">
-
                 {/* Filters */}
                 <Card>
                     <CardContent className="pt-6">
                         <div className="grid gap-4 md:grid-cols-4">
-                            <form onSubmit={handleSearch} className="flex gap-2">
+                            <form
+                                onSubmit={handleSearch}
+                                className="flex gap-2"
+                            >
                                 <Input
                                     placeholder="Buscar teléfono o nombre..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) =>
+                                        setSearchTerm(e.target.value)
+                                    }
                                 />
-                                <Button type="submit" size="icon" variant="outline">
+                                <Button
+                                    type="submit"
+                                    size="icon"
+                                    variant="outline"
+                                >
                                     <Search className="h-4 w-4" />
                                 </Button>
                             </form>
@@ -206,9 +295,14 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                                     <SelectValue placeholder="Todas las campañas" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas las campañas</SelectItem>
+                                    <SelectItem value="all">
+                                        Todas las campañas
+                                    </SelectItem>
                                     {campaigns.map((c) => (
-                                        <SelectItem key={c.id} value={c.id.toString()}>
+                                        <SelectItem
+                                            key={c.id}
+                                            value={c.id.toString()}
+                                        >
                                             {c.name}
                                         </SelectItem>
                                     ))}
@@ -218,19 +312,34 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                             <Select
                                 value={filters.status || "all"}
                                 onValueChange={(value) =>
-                                    handleFilterChange("status", value === "all" ? "" : value)
+                                    handleFilterChange(
+                                        "status",
+                                        value === "all" ? "" : value
+                                    )
                                 }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Todos los estados" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todos los estados</SelectItem>
-                                    <SelectItem value="pending">Pendiente</SelectItem>
-                                    <SelectItem value="in_progress">En Progreso</SelectItem>
-                                    <SelectItem value="contacted">Contactado</SelectItem>
-                                    <SelectItem value="closed">Cerrado</SelectItem>
-                                    <SelectItem value="invalid">Inválido</SelectItem>
+                                    <SelectItem value="all">
+                                        Todos los estados
+                                    </SelectItem>
+                                    <SelectItem value="pending">
+                                        Pendiente
+                                    </SelectItem>
+                                    <SelectItem value="in_progress">
+                                        En Progreso
+                                    </SelectItem>
+                                    <SelectItem value="contacted">
+                                        Contactado
+                                    </SelectItem>
+                                    <SelectItem value="closed">
+                                        Cerrado
+                                    </SelectItem>
+                                    <SelectItem value="invalid">
+                                        Inválido
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -255,7 +364,10 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
             </div>
 
             {/* Create Lead Modal */}
-            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+            <Dialog
+                open={isCreateModalOpen}
+                onOpenChange={setIsCreateModalOpen}
+            >
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Crear Nuevo Lead</DialogTitle>
@@ -268,11 +380,15 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                                     id="phone"
                                     type="text"
                                     value={data.phone}
-                                    onChange={(e) => setData("phone", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("phone", e.target.value)
+                                    }
                                     placeholder="+34600111222"
                                 />
                                 {errors.phone && (
-                                    <p className="text-sm text-red-500">{errors.phone}</p>
+                                    <p className="text-sm text-red-500">
+                                        {errors.phone}
+                                    </p>
                                 )}
                             </div>
 
@@ -282,7 +398,9 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                                     id="name"
                                     type="text"
                                     value={data.name}
-                                    onChange={(e) => setData("name", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("name", e.target.value)
+                                    }
                                 />
                             </div>
                         </div>
@@ -293,7 +411,9 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                                 id="city"
                                 type="text"
                                 value={data.city}
-                                onChange={(e) => setData("city", e.target.value)}
+                                onChange={(e) =>
+                                    setData("city", e.target.value)
+                                }
                             />
                         </div>
 
@@ -301,29 +421,40 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                             <Label htmlFor="campaign_id">Campaña *</Label>
                             <Select
                                 value={data.campaign_id}
-                                onValueChange={(value) => setData("campaign_id", value)}
+                                onValueChange={(value) =>
+                                    setData("campaign_id", value)
+                                }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Seleccionar campaña" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {campaigns.map((c) => (
-                                        <SelectItem key={c.id} value={c.id.toString()}>
+                                        <SelectItem
+                                            key={c.id}
+                                            value={c.id.toString()}
+                                        >
                                             {c.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                             {errors.campaign_id && (
-                                <p className="text-sm text-red-500">{errors.campaign_id}</p>
+                                <p className="text-sm text-red-500">
+                                    {errors.campaign_id}
+                                </p>
                             )}
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="option_selected">Opción Seleccionada</Label>
+                            <Label htmlFor="option_selected">
+                                Opción Seleccionada
+                            </Label>
                             <Select
                                 value={data.option_selected}
-                                onValueChange={(value) => setData("option_selected", value)}
+                                onValueChange={(value) =>
+                                    setData("option_selected", value)
+                                }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Seleccionar opción" />
@@ -346,7 +477,9 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                             <textarea
                                 id="notes"
                                 value={data.notes}
-                                onChange={(e) => setData("notes", e.target.value)}
+                                onChange={(e) =>
+                                    setData("notes", e.target.value)
+                                }
                                 rows={3}
                                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />

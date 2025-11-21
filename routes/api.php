@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CallProviderWebhookController;
 use App\Http\Controllers\Api\Campaign\CampaignController;
 use App\Http\Controllers\Api\Client\ClientController;
 use App\Http\Controllers\Api\Client\ClientDispatchController;
+use App\Http\Controllers\Api\CalculatorController;
 use App\Http\Controllers\Api\Lead\LeadController;
 use App\Http\Controllers\Api\Reporting\ReportingController;
 use App\Http\Controllers\Api\WebhookController;
@@ -94,7 +95,7 @@ Route::get('/webhooks/events', [WebhookEventController::class, 'listEvents'])
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 Route::prefix('admin')
-    ->middleware(['auth:sanctum'])
+    ->middleware(['web', 'auth'])
     ->name('api.admin.')
     ->group(function () {
 
@@ -165,6 +166,19 @@ Route::prefix('admin')
                 ->name('clients.overview');
             Route::get('clients/{client}/monthly-summary', [ReportingController::class, 'clientMonthlySummary'])
                 ->name('clients.monthly');
+        });
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 🧮 CALCULATOR - Gestión de hojas de cálculo
+        // ─────────────────────────────────────────────────────────────────────
+
+        Route::prefix('calculator')->name('calculator.')->group(function () {
+            Route::get('/', [CalculatorController::class, 'index'])->name('index');
+            Route::post('/', [CalculatorController::class, 'store'])->name('store');
+            Route::get('/{id}', [CalculatorController::class, 'show'])->name('show');
+            Route::put('/{id}/name', [CalculatorController::class, 'updateName'])->name('update-name');
+            Route::put('/{id}/state', [CalculatorController::class, 'saveState'])->name('save-state');
+            Route::delete('/{id}', [CalculatorController::class, 'destroy'])->name('destroy');
         });
     });
 

@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Web\CallHistoryController;
 use App\Http\Controllers\Web\Campaign\CampaignController;
+use App\Http\Controllers\Web\CalculatorController;
 use App\Http\Controllers\Web\Client\ClientController;
 use App\Http\Controllers\Web\DashboardController;
-use App\Http\Controllers\Web\Excel\ExcelController;
 use App\Http\Controllers\Web\Lead\LeadController;
 use App\Http\Controllers\Web\Lead\LeadIntencionController;
 use App\Http\Controllers\Web\ProfileController;
@@ -92,8 +92,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'destroy'])->name('destroy');
     });
     
-    // Excel/Spreadsheet
-    Route::get('/excel', [ExcelController::class, 'index'])->name('excel.index');
+    // Calculator
+    Route::prefix('calculator')->name('calculator.')->group(function () {
+        Route::get('/', [CalculatorController::class, 'index'])->name('index');
+        Route::post('/create', [CalculatorController::class, 'create'])->name('create');
+        Route::get('/{id}', [CalculatorController::class, 'show'])->name('show');
+    });
 });
 
 require __DIR__.'/auth.php';
