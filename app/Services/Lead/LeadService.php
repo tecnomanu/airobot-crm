@@ -9,6 +9,7 @@ use App\Enums\LeadIntentionOrigin;
 use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Events\LeadUpdated;
 use App\Exceptions\Business\ConfigurationException;
 use App\Helpers\PhoneHelper;
 use App\Models\Lead;
@@ -83,6 +84,9 @@ class LeadService
                     ['status' => $data['status'] ?? $existingLead->status]
                 ));
 
+                // Emitir evento de broadcasting para frontend
+                broadcast(new LeadUpdated($lead->load('campaign'), 'updated'))->toOthers();
+
                 return $lead;
             }
 
@@ -94,6 +98,9 @@ class LeadService
 
             // Procesar automáticamente si la campaña lo permite
             $this->autoProcessLeadIfEnabled($lead);
+
+            // Emitir evento de broadcasting para frontend
+            broadcast(new LeadUpdated($lead->load('campaign'), 'created'))->toOthers();
 
             return $lead;
         });
@@ -110,7 +117,12 @@ class LeadService
             throw new \InvalidArgumentException('Lead no encontrado');
         }
 
-        return $this->leadRepository->update($lead, $data);
+        $lead = $this->leadRepository->update($lead, $data);
+
+        // Emitir evento de broadcasting para frontend
+        broadcast(new LeadUpdated($lead->load('campaign'), 'updated'))->toOthers();
+
+        return $lead;
     }
 
     /**
@@ -238,6 +250,8 @@ class LeadService
                 'notes' => $leadData['notes'] ?? null,
             ];
 
+            $isNewLead = ! $existingLead;
+
             if ($existingLead) {
                 // Actualizar lead existente
                 Log::info('Actualizando lead existente desde webhook', [
@@ -262,6 +276,10 @@ class LeadService
 
             // Procesamiento automático si está habilitado
             $this->autoProcessLeadIfEnabled($lead);
+
+            // Emitir evento de broadcasting para frontend
+            $action = $isNewLead ? 'created' : 'updated';
+            broadcast(new LeadUpdated($lead->load('campaign'), $action))->toOthers();
 
             return $lead;
         });
