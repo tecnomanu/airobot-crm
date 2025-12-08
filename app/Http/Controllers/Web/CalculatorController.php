@@ -54,6 +54,7 @@ class CalculatorController extends Controller
                 'rowHeights' => $calculator->row_heights ?? [],
                 'frozenRows' => $calculator->frozen_rows ?? 0,
                 'frozenColumns' => $calculator->frozen_columns ?? 0,
+                'version' => $calculator->version ?? 0,
             ],
         ]);
     }
