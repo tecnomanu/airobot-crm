@@ -10,9 +10,11 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import AppLayout from "@/Layouts/AppLayout";
+import { hasNotificationPermission, notifyCallCompleted } from "@/lib/notifications";
 import { Head, router } from "@inertiajs/react";
 import { Clock, DollarSign, Phone, Search, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { getCallHistoryColumns } from "./columns";
 
 export default function CallHistoryIndex({
@@ -66,6 +68,54 @@ export default function CallHistoryIndex({
             subtitle: "Inversión en llamadas",
         },
     ];
+
+    /**
+     * Escucha eventos de nuevas llamadas en tiempo real
+     */
+    useEffect(() => {
+        const channel = window.Echo.channel('call-history');
+
+        channel.listen('.call.created', (event) => {
+            const { call } = event;
+            
+            console.log('Evento de llamada recibido:', { call });
+
+            // Recargar solo si estamos en la primera página sin filtros específicos
+            const isFirstPage = !filters.page || filters.page === 1;
+            const shouldReload = isFirstPage && !filters.search;
+
+            if (shouldReload) {
+                router.reload({
+                    preserveState: true,
+                    preserveScroll: true,
+                    only: ['calls', 'totals'],
+                    onSuccess: () => {
+                        const statusLabels = {
+                            completed: 'Completada',
+                            no_answer: 'Sin respuesta',
+                            hung_up: 'Colgó',
+                            failed: 'Fallida',
+                            busy: 'Ocupado',
+                            voicemail: 'Buzón',
+                        };
+                        
+                        toast.info(
+                            `Nueva llamada: ${call.phone} - ${statusLabels[call.status] || call.status}`
+                        );
+                    }
+                });
+            }
+
+            // Notificación nativa del navegador
+            if (hasNotificationPermission()) {
+                notifyCallCompleted(call);
+            }
+        });
+
+        return () => {
+            channel.stopListening('.call.created');
+        };
+    }, [calls.data, filters]);
 
     return (
         <AppLayout

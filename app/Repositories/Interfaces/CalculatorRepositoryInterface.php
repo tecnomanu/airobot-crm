@@ -58,4 +58,29 @@ interface CalculatorRepositoryInterface
      * Actualizar todo el estado del calculator
      */
     public function updateState(string $id, array $state): bool;
+
+    /**
+     * Incrementar versión y retornar la nueva
+     */
+    public function incrementVersion(string $id): int;
+
+    /**
+     * Obtener versión actual
+     */
+    public function getVersion(string $id): ?int;
+
+    /**
+     * Actualizar celda con versionado
+     */
+    public function updateCellWithVersion(string $id, string $cellId, mixed $value, ?array $format, int $expectedVersion): ?int;
+
+    /**
+     * Actualizar ancho de columna con versionado
+     */
+    public function updateColumnWidthWithVersion(string $id, string $column, int $width, int $expectedVersion): ?int;
+
+    /**
+     * Actualizar altura de fila con versionado
+     */
+    public function updateRowHeightWithVersion(string $id, int $row, int $height, int $expectedVersion): ?int;
 }

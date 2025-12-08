@@ -92,6 +92,7 @@ class CalculatorController extends Controller
                 'rowHeights' => $calculator->row_heights ?? [],
                 'frozenRows' => $calculator->frozen_rows ?? 0,
                 'frozenColumns' => $calculator->frozen_columns ?? 0,
+                'version' => $calculator->version ?? 0,
             ],
         ]);
     }
@@ -205,6 +206,213 @@ class CalculatorController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Calculator eliminado correctamente',
+        ]);
+    }
+
+    // =========================================================================
+    // ENDPOINTS GRANULARES CON EVENT SOURCING
+    // =========================================================================
+
+    /**
+     * Actualizar celda(s)
+     */
+    public function updateCells(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'cells' => 'required|array|min:1',
+            'cells.*.cellId' => 'required|string',
+            'cells.*.value' => 'nullable',
+            'cells.*.format' => 'nullable|array',
+            'version' => 'required|integer|min:0',
+        ]);
+
+        $calculator = $this->calculatorService->getCalculator($id);
+
+        if (!$calculator) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Calculator no encontrado',
+            ], 404);
+        }
+
+        if ($calculator->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes acceso a este calculator',
+            ], 403);
+        }
+
+        $cells = $request->input('cells');
+        $expectedVersion = $request->input('version');
+
+        // Si es una sola celda, usar método específico
+        if (count($cells) === 1) {
+            $cell = $cells[0];
+            $newVersion = $this->calculatorService->updateCellWithEvent(
+                $id,
+                $cell['cellId'],
+                $cell['value'] ?? null,
+                $cell['format'] ?? null,
+                $expectedVersion,
+                $request->user()->id,
+                $request->user()->name
+            );
+        } else {
+            // Múltiples celdas
+            $newVersion = $this->calculatorService->updateCellRangeWithEvent(
+                $id,
+                $cells,
+                $expectedVersion,
+                $request->user()->id,
+                $request->user()->name
+            );
+        }
+
+        if ($newVersion === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Conflicto de versión. Recarga la página.',
+            ], 409);
+        }
+
+        return response()->json([
+            'success' => true,
+            'version' => $newVersion,
+        ]);
+    }
+
+    /**
+     * Cambiar ancho de columna
+     */
+    public function updateColumnWidth(Request $request, string $id, string $column): JsonResponse
+    {
+        $request->validate([
+            'width' => 'required|integer|min:50|max:1000',
+            'version' => 'required|integer|min:0',
+        ]);
+
+        $calculator = $this->calculatorService->getCalculator($id);
+
+        if (!$calculator) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Calculator no encontrado',
+            ], 404);
+        }
+
+        if ($calculator->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes acceso a este calculator',
+            ], 403);
+        }
+
+        $newVersion = $this->calculatorService->resizeColumnWithEvent(
+            $id,
+            $column,
+            $request->input('width'),
+            $request->input('version'),
+            $request->user()->id,
+            $request->user()->name
+        );
+
+        if ($newVersion === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Conflicto de versión. Recarga la página.',
+            ], 409);
+        }
+
+        return response()->json([
+            'success' => true,
+            'version' => $newVersion,
+        ]);
+    }
+
+    /**
+     * Cambiar altura de fila
+     */
+    public function updateRowHeight(Request $request, string $id, int $row): JsonResponse
+    {
+        $request->validate([
+            'height' => 'required|integer|min:20|max:500',
+            'version' => 'required|integer|min:0',
+        ]);
+
+        $calculator = $this->calculatorService->getCalculator($id);
+
+        if (!$calculator) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Calculator no encontrado',
+            ], 404);
+        }
+
+        if ($calculator->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes acceso a este calculator',
+            ], 403);
+        }
+
+        $newVersion = $this->calculatorService->resizeRowWithEvent(
+            $id,
+            $row,
+            $request->input('height'),
+            $request->input('version'),
+            $request->user()->id,
+            $request->user()->name
+        );
+
+        if ($newVersion === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Conflicto de versión. Recarga la página.',
+            ], 409);
+        }
+
+        return response()->json([
+            'success' => true,
+            'version' => $newVersion,
+        ]);
+    }
+
+    /**
+     * Mover cursor (presencia)
+     */
+    public function moveCursor(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'cellId' => 'required|string',
+            'userColor' => 'required|string',
+        ]);
+
+        $calculator = $this->calculatorService->getCalculator($id);
+
+        if (!$calculator) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Calculator no encontrado',
+            ], 404);
+        }
+
+        if ($calculator->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes acceso a este calculator',
+            ], 403);
+        }
+
+        $this->calculatorService->moveCursorWithEvent(
+            $id,
+            $request->input('cellId'),
+            $request->user()->id,
+            $request->user()->name,
+            $request->input('userColor')
+        );
+
+        return response()->json([
+            'success' => true,
         ]);
     }
 }

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 /**
  * Hook para guardado automático del estado del Calculator
+ * Usa axios que tiene interceptor automático para refrescar CSRF token
  */
 export function useCalculatorAutoSave(calculatorId, state, enabled = true, delay = 800) {
     const timeoutRef = useRef(null);
@@ -43,40 +45,22 @@ export function useCalculatorAutoSave(calculatorId, state, enabled = true, delay
             try {
                 setIsSaving(true);
 
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-                if (!csrfToken) {
-                    console.error('CSRF token not found');
-                    toast.error('Error: Token de seguridad no encontrado');
-                    return;
-                }
+                // Guardar el estado actual usando axios (CSRF handling automático)
+                const response = await axios.put(
+                    route('api.admin.calculator.save-state', calculatorId),
+                    state
+                );
 
-                // Guardar el estado actual
-                const response = await fetch(route('api.admin.calculator.save-state', calculatorId), {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify(state),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const result = await response.json();
-
-                if (result.success) {
+                if (response.data.success) {
                     // Actualizar referencia del estado anterior solo si fue exitoso
                     previousStateRef.current = currentState;
                 } else {
-                    throw new Error(result.message || 'Error desconocido');
+                    throw new Error(response.data.message || 'Error desconocido');
                 }
             } catch (error) {
                 console.error('Error al guardar automáticamente:', error);
-                toast.error('Error al guardar cambios: ' + error.message);
+                const message = error.response?.data?.message || error.message;
+                toast.error('Error al guardar cambios: ' + message);
             } finally {
                 setIsSaving(false);
             }

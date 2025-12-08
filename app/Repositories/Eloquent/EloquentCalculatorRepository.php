@@ -107,4 +107,95 @@ class EloquentCalculatorRepository implements CalculatorRepositoryInterface
 
         return $this->update($id, $updateData);
     }
+
+    public function incrementVersion(string $id): int
+    {
+        $calculator = $this->findById($id);
+        if (!$calculator) {
+            return 0;
+        }
+
+        $calculator->increment('version');
+        $calculator->refresh();
+
+        return $calculator->version;
+    }
+
+    public function getVersion(string $id): ?int
+    {
+        $calculator = $this->findById($id);
+        return $calculator?->version;
+    }
+
+    public function updateCellWithVersion(string $id, string $cellId, mixed $value, ?array $format, int $expectedVersion): ?int
+    {
+        $calculator = $this->findById($id);
+        if (!$calculator) {
+            return null;
+        }
+
+        // Verificar versión
+        if ($calculator->version !== $expectedVersion) {
+            return null; // Conflicto de versión
+        }
+
+        // Actualizar celda
+        $data = $calculator->data ?? [];
+        $data[$cellId] = array_filter([
+            'value' => $value,
+            'format' => $format,
+        ], fn($v) => $v !== null);
+
+        $calculator->data = $data;
+        $calculator->increment('version');
+        $calculator->save();
+
+        return $calculator->version;
+    }
+
+    public function updateColumnWidthWithVersion(string $id, string $column, int $width, int $expectedVersion): ?int
+    {
+        $calculator = $this->findById($id);
+        if (!$calculator) {
+            return null;
+        }
+
+        // Verificar versión
+        if ($calculator->version !== $expectedVersion) {
+            return null; // Conflicto de versión
+        }
+
+        // Actualizar ancho de columna
+        $widths = $calculator->column_widths ?? [];
+        $widths[$column] = $width;
+
+        $calculator->column_widths = $widths;
+        $calculator->increment('version');
+        $calculator->save();
+
+        return $calculator->version;
+    }
+
+    public function updateRowHeightWithVersion(string $id, int $row, int $height, int $expectedVersion): ?int
+    {
+        $calculator = $this->findById($id);
+        if (!$calculator) {
+            return null;
+        }
+
+        // Verificar versión
+        if ($calculator->version !== $expectedVersion) {
+            return null; // Conflicto de versión
+        }
+
+        // Actualizar altura de fila
+        $heights = $calculator->row_heights ?? [];
+        $heights[$row] = $height;
+
+        $calculator->row_heights = $heights;
+        $calculator->increment('version');
+        $calculator->save();
+
+        return $calculator->version;
+    }
 }

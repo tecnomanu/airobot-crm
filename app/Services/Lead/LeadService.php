@@ -130,11 +130,14 @@ class LeadService
      */
     public function deleteLead(string $id): bool
     {
-        $lead = $this->leadRepository->findById($id);
+        $lead = $this->leadRepository->findById($id, ['campaign']);
 
         if (! $lead) {
             throw new \InvalidArgumentException('Lead no encontrado');
         }
+
+        // Emitir evento de broadcasting ANTES de eliminar
+        broadcast(new LeadUpdated($lead, 'deleted'))->toOthers();
 
         return $this->leadRepository->delete($lead);
     }

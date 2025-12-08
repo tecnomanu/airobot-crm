@@ -10,9 +10,11 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import AppLayout from "@/Layouts/AppLayout";
+import { hasNotificationPermission, notifyLeadIntention } from "@/lib/notifications";
 import { Head, router } from "@inertiajs/react";
 import { Search, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { getLeadIntencionColumns } from "./columns";
 
 export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
@@ -39,6 +41,50 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
         setSearchTerm("");
         router.get(route("leads-intencion.index"), {}, { preserveState: true });
     };
+
+    /**
+     * Escucha eventos de cambios de intención en tiempo real
+     */
+    useEffect(() => {
+        const channel = window.Echo.channel('leads');
+
+        channel.listen('.lead.updated', (event) => {
+            const { lead, action } = event;
+            
+            // Solo procesar si tiene intención definida
+            if (!lead.intention || lead.intention === 'undecided') {
+                return;
+            }
+
+            console.log('Evento de intención recibido:', { action, lead });
+
+            // Verificar si el lead está visible en la página actual
+            const isVisible = leads.data.some((l) => l.id === lead.id);
+            const isIntentionUpdate = action === 'updated' && lead.intention;
+
+            if (isIntentionUpdate && (isVisible || !filters.page || filters.page === 1)) {
+                router.reload({
+                    preserveState: true,
+                    preserveScroll: true,
+                    only: ['leads'],
+                    onSuccess: () => {
+                        toast.success(
+                            `Intención detectada: ${lead.name || lead.phone}`
+                        );
+                    }
+                });
+
+                // Notificación nativa del navegador
+                if (hasNotificationPermission()) {
+                    notifyLeadIntention(lead, lead.intention);
+                }
+            }
+        });
+
+        return () => {
+            channel.stopListening('.lead.updated');
+        };
+    }, [leads.data, filters]);
 
     return (
         <AppLayout

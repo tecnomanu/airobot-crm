@@ -179,6 +179,12 @@ Route::prefix('admin')
             Route::put('/{id}/name', [CalculatorController::class, 'updateName'])->name('update-name');
             Route::put('/{id}/state', [CalculatorController::class, 'saveState'])->name('save-state');
             Route::delete('/{id}', [CalculatorController::class, 'destroy'])->name('destroy');
+            
+            // Endpoints granulares con event sourcing
+            Route::post('/{id}/cells', [CalculatorController::class, 'updateCells'])->name('update-cells');
+            Route::put('/{id}/columns/{column}/width', [CalculatorController::class, 'updateColumnWidth'])->name('update-column-width');
+            Route::put('/{id}/rows/{row}/height', [CalculatorController::class, 'updateRowHeight'])->name('update-row-height');
+            Route::post('/{id}/cursor', [CalculatorController::class, 'moveCursor'])->name('move-cursor');
         });
     });
 

@@ -22,6 +22,7 @@ import {
     hasNotificationPermission,
     notifyLeadUpdated,
     notifyNewLead,
+    notifyLeadDeleted,
 } from "@/lib/notifications";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Plus, RefreshCw, Search, X } from "lucide-react";
@@ -182,6 +183,12 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                     return isVisible;
                 }
 
+                // Si es una eliminación, siempre recargar si el lead está visible
+                if (action === "deleted") {
+                    const isVisible = leads.data.some((l) => l.id === lead.id);
+                    return isVisible;
+                }
+
                 return false;
             };
 
@@ -197,9 +204,13 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                             toast.success(
                                 `Nuevo lead: ${lead.name || lead.phone}`
                             );
-                        } else {
+                        } else if (action === "updated") {
                             toast.info(
                                 `Lead actualizado: ${lead.name || lead.phone}`
+                            );
+                        } else if (action === "deleted") {
+                            toast.error(
+                                `Lead eliminado: ${lead.name || lead.phone}`
                             );
                         }
                     },
@@ -212,6 +223,8 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                     notifyNewLead(lead);
                 } else if (action === "updated") {
                     notifyLeadUpdated(lead);
+                } else if (action === "deleted") {
+                    notifyLeadDeleted(lead);
                 }
             }
         });

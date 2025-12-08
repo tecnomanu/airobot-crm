@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, router, useForm } from "@inertiajs/react";
+import axios from "axios";
 import { Plus, Search, X, Calculator } from "lucide-react";
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { toast } from "sonner";
@@ -47,35 +48,24 @@ export default function CalculatorList({ calculators, filters = {} }) {
         router.get(route("calculator.index"), {}, { preserveState: true });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Crear via API
-        fetch(route("api.admin.calculator.store"), {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN":
-                    document.querySelector('meta[name="csrf-token"]')
-                        ?.content || "",
-            },
-            body: JSON.stringify(data),
-        })
-            .then((response) => response.json())
-            .then((result) => {
-                if (result.success && result.data?.id) {
-                    setIsCreateModalOpen(false);
-                    reset();
-                    toast.success("Calculator creado exitosamente");
-                    router.visit(route("calculator.show", result.data.id));
-                } else {
-                    toast.error("Error al crear el calculator");
-                }
-            })
-            .catch((error) => {
-                console.error("Error:", error);
+        try {
+            const response = await axios.post(route("api.admin.calculator.store"), data);
+            
+            if (response.data.success && response.data.data?.id) {
+                setIsCreateModalOpen(false);
+                reset();
+                toast.success("Calculator creado exitosamente");
+                router.visit(route("calculator.show", response.data.data.id));
+            } else {
                 toast.error("Error al crear el calculator");
-            });
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            toast.error("Error al crear el calculator");
+        }
     };
 
     const handleDelete = (calculator) => {
@@ -88,14 +78,7 @@ export default function CalculatorList({ calculators, filters = {} }) {
 
     const confirmDelete = async () => {
         try {
-            await fetch(route("api.admin.calculator.destroy", deleteDialog.id), {
-                method: "DELETE",
-                headers: {
-                    "X-CSRF-TOKEN":
-                        document.querySelector('meta[name="csrf-token"]')
-                            ?.content || "",
-                },
-            });
+            await axios.delete(route("api.admin.calculator.destroy", deleteDialog.id));
 
             toast.success("Calculator eliminado exitosamente");
             router.reload();
@@ -109,22 +92,12 @@ export default function CalculatorList({ calculators, filters = {} }) {
 
     const handleNewCalculator = async () => {
         try {
-            const response = await fetch(route("api.admin.calculator.store"), {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN":
-                        document.querySelector('meta[name="csrf-token"]')
-                            ?.content || "",
-                },
-                body: JSON.stringify({
-                    name: "Hoja sin título",
-                }),
+            const response = await axios.post(route("api.admin.calculator.store"), {
+                name: "Hoja sin título",
             });
 
-            const result = await response.json();
-            if (result.success && result.data?.id) {
-                router.visit(route("calculator.show", result.data.id));
+            if (response.data.success && response.data.data?.id) {
+                router.visit(route("calculator.show", response.data.data.id));
             }
         } catch (error) {
             console.error("Error al crear nuevo calculator:", error);

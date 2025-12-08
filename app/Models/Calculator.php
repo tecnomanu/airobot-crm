@@ -25,6 +25,7 @@ class Calculator extends Model
         'row_heights',
         'frozen_rows',
         'frozen_columns',
+        'version',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class Calculator extends Model
         'row_heights' => 'array',
         'frozen_rows' => 'integer',
         'frozen_columns' => 'integer',
+        'version' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

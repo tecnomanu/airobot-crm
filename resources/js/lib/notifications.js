@@ -168,6 +168,75 @@ class NotificationManager {
             playSound: false, // Sin sonido para actualizaciones
         });
     }
+
+    /**
+     * Notificación específica para lead eliminado
+     */
+    async notifyLeadDeleted(lead) {
+        return this.show({
+            title: '🗑️ Lead Eliminado',
+            body: `${lead.name || lead.phone} ha sido eliminado`,
+            tag: `lead-delete-${lead.id}`,
+            requireInteraction: false,
+            playSound: false,
+        });
+    }
+
+    /**
+     * Notificación específica para cambio de intención
+     */
+    async notifyLeadIntention(lead, intention) {
+        const intentionLabels = {
+            interested: '✅ Interesado',
+            not_interested: '❌ No Interesado',
+            undecided: '🤔 Indeciso',
+        };
+
+        const label = intentionLabels[intention] || intention;
+
+        return this.show({
+            title: '💭 Intención Detectada',
+            body: `${lead.name || lead.phone}\n${label}`,
+            tag: `lead-intention-${lead.id}`,
+            requireInteraction: false,
+            playSound: true, // Sonido para intenciones importantes
+            onClick: () => {
+                if (!window.location.pathname.includes('/leads-intencion')) {
+                    window.location.href = '/leads-intencion';
+                }
+            },
+        });
+    }
+
+    /**
+     * Notificación específica para llamada completada
+     */
+    async notifyCallCompleted(call) {
+        const durationMin = Math.floor(call.duration / 60);
+        const statusLabels = {
+            completed: '✅ Completada',
+            no_answer: '📵 Sin respuesta',
+            hung_up: '📞 Colgó',
+            failed: '❌ Fallida',
+            busy: '🔴 Ocupado',
+            voicemail: '📧 Buzón',
+        };
+
+        const statusLabel = statusLabels[call.status] || call.status;
+
+        return this.show({
+            title: '📞 Nueva Llamada',
+            body: `${call.phone}\n${statusLabel} - ${durationMin} min`,
+            tag: `call-${call.id}`,
+            requireInteraction: false,
+            playSound: call.status === 'completed', // Sonido solo para completadas
+            onClick: () => {
+                if (!window.location.pathname.includes('/call-history')) {
+                    window.location.href = '/call-history';
+                }
+            },
+        });
+    }
 }
 
 // Exportar instancia singleton
@@ -178,4 +247,7 @@ export const requestNotificationPermission = () => notifications.requestPermissi
 export const hasNotificationPermission = () => notifications.hasPermission();
 export const notifyNewLead = (lead) => notifications.notifyNewLead(lead);
 export const notifyLeadUpdated = (lead) => notifications.notifyLeadUpdated(lead);
+export const notifyLeadDeleted = (lead) => notifications.notifyLeadDeleted(lead);
+export const notifyLeadIntention = (lead, intention) => notifications.notifyLeadIntention(lead, intention);
+export const notifyCallCompleted = (call) => notifications.notifyCallCompleted(call);
 

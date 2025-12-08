@@ -1,7 +1,8 @@
 import CalculatorFormulaBar from "@/Components/Calculator/CalculatorFormulaBar";
 import CalculatorGrid from "@/Components/Calculator/CalculatorGrid";
 import CalculatorToolbar from "@/Components/Calculator/CalculatorToolbar";
-import { useCalculatorAutoSave } from "@/hooks/calculator/useCalculatorAutoSave";
+import { useCalculatorCollaboration } from "@/hooks/calculator/useCalculatorCollaboration";
+import { useCalculatorEvents } from "@/hooks/calculator/useCalculatorEvents";
 import { useCalculatorFormat } from "@/hooks/calculator/useCalculatorFormat";
 import { useCalculatorGrid } from "@/hooks/calculator/useCalculatorGrid";
 import { useCalculatorKeyboard } from "@/hooks/calculator/useCalculatorKeyboard";
@@ -14,7 +15,8 @@ import {
     parseCSV,
 } from "@/lib/calculator/utils";
 import { Head, router, usePage } from "@inertiajs/react";
-import { useCallback, useEffect, useState } from "react";
+import axios from "axios";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function CalculatorIndex() {
@@ -24,6 +26,12 @@ export default function CalculatorIndex() {
         calculator?.name || "Hoja sin título"
     );
     const [calculatorId, setCalculatorId] = useState(calculator?.id || null);
+    const [currentVersion, setCurrentVersion] = useState(
+        calculator?.version || 0
+    );
+    const userColorRef = useRef(
+        `#${Math.floor(Math.random() * 16777215).toString(16)}`
+    );
     const {
         cells,
         columns,
@@ -63,12 +71,80 @@ export default function CalculatorIndex() {
 
     const { getCellStyles } = useCalculatorFormat();
 
-    // Auto-save hook
-    const { isSaving } = useCalculatorAutoSave(
-        calculatorId,
-        getState(),
-        !!calculatorId
+    // Callbacks memoizados para colaboración
+    const handleCellUpdate = useCallback(
+        (cellId, value, format, version) => {
+            updateCell(cellId, value);
+            if (format) {
+                updateCellFormat([cellId], format);
+            }
+            setCurrentVersion(version);
+        },
+        [updateCell, updateCellFormat]
     );
+
+    const handleColumnResize = useCallback((column, width, version) => {
+        // Actualizar ancho de columna localmente
+        // TODO: implementar si es necesario
+        setCurrentVersion(version);
+    }, []);
+
+    const handleRowResize = useCallback((row, height, version) => {
+        // Actualizar altura de fila localmente
+        // TODO: implementar si es necesario
+        setCurrentVersion(version);
+    }, []);
+
+    const handleNameUpdate = useCallback((name, version) => {
+        setCalculatorTitle(name);
+        setCurrentVersion(version);
+    }, []);
+
+    const handleCursorMove = useCallback(
+        (userId, cellId, userName, userColor) => {
+            // TODO: Implementar indicadores de cursor de otros usuarios
+            console.log(`👤 ${userName} movió cursor a ${cellId}`);
+        },
+        []
+    );
+
+    // Hooks de colaboración en tiempo real
+    const { isConnected, activeUsers, updateLocalVersion } =
+        useCalculatorCollaboration(
+            calculatorId,
+            handleCellUpdate,
+            handleColumnResize,
+            handleRowResize,
+            handleNameUpdate,
+            handleCursorMove,
+            user?.id
+        );
+
+    // Callback para actualizar versión después de cambios exitosos
+    const handleVersionUpdate = useCallback(
+        (newVersion) => {
+            console.log(
+                `📌 Versión actualizada: ${currentVersion} → ${newVersion}`
+            );
+            setCurrentVersion(newVersion);
+            updateLocalVersion(newVersion);
+        },
+        [currentVersion, updateLocalVersion]
+    );
+
+    // Hook para emitir eventos
+    const {
+        emitCellUpdate,
+        emitColumnResize,
+        emitRowResize,
+        emitCursorMove,
+        queueCellChange,
+    } = useCalculatorEvents(calculatorId, currentVersion, handleVersionUpdate);
+
+    // Sincronizar la versión local del hook de colaboración con la versión inicial/actual
+    useEffect(() => {
+        updateLocalVersion(currentVersion);
+    }, [currentVersion, updateLocalVersion]);
 
     const [selectedFormat, setSelectedFormat] = useState({
         backgroundColor: "#ffffff",
@@ -99,22 +175,15 @@ export default function CalculatorIndex() {
         }
 
         try {
-            const response = await fetch(route("api.admin.calculator.store"), {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN":
-                        document.querySelector('meta[name="csrf-token"]')
-                            ?.content || "",
-                },
-                body: JSON.stringify({
+            const response = await axios.post(
+                route("api.admin.calculator.store"),
+                {
                     name: "Hoja sin título",
-                }),
-            });
+                }
+            );
 
-            const data = await response.json();
-            if (data.success && data.data?.id) {
-                router.visit(route("calculator.show", data.data.id));
+            if (response.data.success && response.data.data?.id) {
+                router.visit(route("calculator.show", response.data.data.id));
             }
         } catch (error) {
             console.error("Error al crear nuevo documento:", error);
@@ -136,18 +205,9 @@ export default function CalculatorIndex() {
 
         try {
             const state = getState();
-            await fetch(
+            await axios.put(
                 route("api.admin.calculator.save-state", calculatorId),
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN":
-                            document.querySelector('meta[name="csrf-token"]')
-                                ?.content || "",
-                    },
-                    body: JSON.stringify(state),
-                }
+                state
             );
 
             toast.success("Documento guardado correctamente");
@@ -362,19 +422,9 @@ export default function CalculatorIndex() {
             }
 
             try {
-                await fetch(
+                await axios.put(
                     route("api.admin.calculator.update-name", calculatorId),
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN":
-                                document.querySelector(
-                                    'meta[name="csrf-token"]'
-                                )?.content || "",
-                        },
-                        body: JSON.stringify({ name: newTitle }),
-                    }
+                    { name: newTitle }
                 );
 
                 setCalculatorTitle(newTitle);
@@ -386,6 +436,27 @@ export default function CalculatorIndex() {
         },
         [calculatorId]
     );
+
+    // Wrapper para updateCell que emite eventos
+    const updateCellWithEvent = useCallback(
+        (cellId, value, format) => {
+            // Actualizar localmente primero (optimistic update)
+            updateCell(cellId, value);
+
+            // Emitir evento al servidor
+            if (calculatorId) {
+                queueCellChange(cellId, value, format);
+            }
+        },
+        [updateCell, calculatorId, queueCellChange]
+    );
+
+    // Emitir movimiento de cursor cuando cambia la celda seleccionada
+    useEffect(() => {
+        if (selectedCell && calculatorId && isConnected) {
+            emitCursorMove(selectedCell, userColorRef.current);
+        }
+    }, [selectedCell, calculatorId, isConnected, emitCursorMove]);
 
     // Obtener valor raw de celda seleccionada (puede incluir fórmula con =)
     const cellRawValue = getCellRawValue(selectedCell);
@@ -424,7 +495,7 @@ export default function CalculatorIndex() {
                     selectedRange={selectedRange}
                     cellValue={cellRawValue}
                     onConfirm={(value) => {
-                        updateCell(selectedCell, value);
+                        updateCellWithEvent(selectedCell, value);
                         setIsEditingFormula(false);
                     }}
                     onFormulaMode={setIsEditingFormula}
@@ -432,7 +503,30 @@ export default function CalculatorIndex() {
                 />
 
                 {/* Grid principal */}
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden relative">
+                    {/* Indicador de conexión */}
+                    {calculatorId && (
+                        <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-gray-200">
+                            <div
+                                className={`w-2 h-2 rounded-full ${
+                                    isConnected
+                                        ? "bg-green-500 animate-pulse"
+                                        : "bg-gray-400"
+                                }`}
+                            />
+                            <span className="text-xs font-medium text-gray-700">
+                                {isConnected ? "Conectado" : "Desconectado"}
+                            </span>
+                            {activeUsers.length > 0 && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                    · {activeUsers.length} usuario
+                                    {activeUsers.length > 1 ? "s" : ""} activo
+                                    {activeUsers.length > 1 ? "s" : ""}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
                     <CalculatorGrid
                         cells={cells}
                         columns={columns}
@@ -441,7 +535,7 @@ export default function CalculatorIndex() {
                         selectedRange={selectedRange}
                         sortConfig={sortConfig}
                         isEditingFormula={isEditingFormula}
-                        onUpdateCell={updateCell}
+                        onUpdateCell={updateCellWithEvent}
                         onSelectCell={selectCell}
                         onSelectRange={selectRange}
                         onSelectColumn={selectColumn}
