@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Web\CallHistoryController;
+use App\Http\Controllers\Web\LeadCallController;
 use App\Http\Controllers\Web\Campaign\CampaignController;
 use App\Http\Controllers\Web\CalculatorController;
 use App\Http\Controllers\Web\Client\ClientController;
@@ -68,10 +68,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [ClientController::class, 'destroy'])->name('destroy');
     });
 
-    // Call History
-    Route::prefix('call-history')->name('call-history.')->group(function () {
-        Route::get('/', [CallHistoryController::class, 'index'])->name('index');
-        Route::get('/{id}', [CallHistoryController::class, 'show'])->name('show');
+    // Lead Calls (formerly Call History)
+    Route::prefix('lead-calls')->name('lead-calls.')->group(function () {
+        Route::get('/', [LeadCallController::class, 'index'])->name('index');
+        Route::get('/{id}', [LeadCallController::class, 'show'])->name('show');
     });
 
     // Webhook Configuration

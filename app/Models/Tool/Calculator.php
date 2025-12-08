@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Models;
+namespace App\Models\Tool;
 
+use App\Models\Client\Client;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +15,7 @@ class Calculator extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $table = 'excels'; // Mantener nombre de tabla interno
+    protected $table = 'excels';
 
     protected $fillable = [
         'user_id',
@@ -50,17 +52,11 @@ class Calculator extends Model
         return $this->belongsTo(Client::class);
     }
 
-    /**
-     * Obtener una celda específica
-     */
     public function getCell(string $cellId): ?array
     {
         return $this->data[$cellId] ?? null;
     }
 
-    /**
-     * Establecer una celda
-     */
     public function setCell(string $cellId, array $cellData): void
     {
         $data = $this->data ?? [];
@@ -68,9 +64,6 @@ class Calculator extends Model
         $this->data = $data;
     }
 
-    /**
-     * Eliminar una celda
-     */
     public function removeCell(string $cellId): void
     {
         $data = $this->data ?? [];
@@ -78,17 +71,11 @@ class Calculator extends Model
         $this->data = $data;
     }
 
-    /**
-     * Obtener ancho de columna
-     */
     public function getColumnWidth(string $column): ?int
     {
         return $this->column_widths[$column] ?? null;
     }
 
-    /**
-     * Establecer ancho de columna
-     */
     public function setColumnWidth(string $column, int $width): void
     {
         $widths = $this->column_widths ?? [];
@@ -96,17 +83,11 @@ class Calculator extends Model
         $this->column_widths = $widths;
     }
 
-    /**
-     * Obtener altura de fila
-     */
     public function getRowHeight(int $row): ?int
     {
         return $this->row_heights[$row] ?? null;
     }
 
-    /**
-     * Establecer altura de fila
-     */
     public function setRowHeight(int $row, int $height): void
     {
         $heights = $this->row_heights ?? [];

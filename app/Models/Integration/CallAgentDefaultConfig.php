@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Integration;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,11 +21,9 @@ class CallAgentDefaultConfig extends Model
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Obtener la configuración activa por defecto
-     */
     public static function getActive(): ?self
     {
         return static::where('is_active', true)->first();
     }
 }
+

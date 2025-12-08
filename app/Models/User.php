@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Campaign\Campaign;
+use App\Models\Client\Client;
+use App\Models\Lead\Lead;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -47,35 +49,18 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Relación con los clientes creados por el usuario
-     */
     public function clients(): HasMany
     {
         return $this->hasMany(Client::class, 'created_by');
     }
 
-    /**
-     * Relación con las campañas creadas por el usuario
-     */
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class, 'created_by');
     }
 
-    /**
-     * Relación con los leads creados por el usuario
-     */
     public function leads(): HasMany
     {
         return $this->hasMany(Lead::class, 'created_by');
-    }
-
-    /**
-     * Relación con el historial de llamadas creado por el usuario
-     */
-    public function callHistories(): HasMany
-    {
-        return $this->hasMany(CallHistory::class, 'created_by');
     }
 }

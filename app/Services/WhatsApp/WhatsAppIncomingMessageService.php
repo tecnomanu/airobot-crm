@@ -2,46 +2,35 @@
 
 namespace App\Services\WhatsApp;
 
-use App\Enums\InteractionDirection;
-use App\Helpers\PhoneHelper;
-use App\Models\Lead;
 use App\Contracts\WhatsAppSenderInterface;
-use App\Services\Lead\LeadInteractionService;
+use App\Enums\MessageDirection;
+use App\Helpers\PhoneHelper;
+use App\Models\Lead\Lead;
+use App\Services\Lead\LeadMessageService;
 use App\Services\Lead\LeadService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Servicio para procesar mensajes entrantes de WhatsApp (Evolution API)
- *
- * - Identifica el lead por número de teléfono
- * - Guarda la interacción (mensaje del lead)
- * - Actualiza la intención del lead
- * - Envía respuesta automática configurable
- * - Mantiene historial del chat
+ * Service for processing incoming WhatsApp messages (Evolution API)
  */
 class WhatsAppIncomingMessageService
 {
     public function __construct(
         private LeadService $leadService,
-        private LeadInteractionService $interactionService,
+        private LeadMessageService $messageService,
         private WhatsAppSenderInterface $whatsappSender
     ) {}
 
     /**
-     * Procesar mensaje entrante desde Evolution API
-     *
-     * @param  array  $payload  Payload completo del webhook
-     * @return array|null Resultado del procesamiento
+     * Process incoming message from Evolution API
      */
     public function processIncomingMessage(array $payload): ?array
     {
-        // Extraer datos del mensaje según estructura de Evolution API
         $event = $payload['event'] ?? null;
         $data = $payload['data'] ?? [];
         $instance = $payload['instance'] ?? null;
 
-        // Solo procesar mensajes entrantes (no enviados por nosotros)
         $key = $data['key'] ?? [];
         $isFromMe = $key['fromMe'] ?? true;
 
@@ -53,12 +42,8 @@ class WhatsAppIncomingMessageService
             return null;
         }
 
-        // Extraer información del contacto
-        // Usar remoteJid (número real formato @s.whatsapp.net)
-        // Solo usar remoteJidAlt si remoteJid no existe o es un LID
         $remoteJid = $key['remoteJid'] ?? null;
 
-        // Si remoteJid es un LID (@lid), usar el número real si está disponible
         if ($remoteJid && str_contains($remoteJid, '@lid')) {
             $remoteJid = $key['remoteJidAlt'] ?? $remoteJid;
         }
@@ -75,10 +60,8 @@ class WhatsAppIncomingMessageService
             'usando' => $remoteJid,
         ]);
 
-        // Limpiar número (Evolution envía como 5492944636430@s.whatsapp.net)
         $phone = $this->normalizePhone($remoteJid);
 
-        // Extraer contenido del mensaje
         $message = $data['message'] ?? [];
         $messageContent = $this->extractMessageContent($message);
 
@@ -97,43 +80,38 @@ class WhatsAppIncomingMessageService
             'instance' => $instance,
         ]);
 
-        // Buscar o crear lead por teléfono
+        // Find or create lead by phone
         $lead = $this->leadService->findOrCreateFromWhatsApp($phone, $data);
 
-        // Actualizar datos de contacto desde WhatsApp si están disponibles
+        // Update contact info from WhatsApp if available
         $this->leadService->updateContactInfoFromWhatsApp($lead, $data);
 
-        // Guardar interacción
-        $interaction = $this->interactionService->createFromWhatsAppMessage(
+        // Save message using new LeadMessage model
+        $leadMessage = $this->messageService->createFromWhatsAppMessage(
             leadId: $lead->id,
             campaignId: $lead->campaign_id,
             content: $messageContent,
-            payload: $payload,
-            externalId: $key['id'] ?? null,
+            metadata: $payload,
+            externalProviderId: $key['id'] ?? null,
             phone: $lead->phone,
-            direction: InteractionDirection::INBOUND
+            direction: MessageDirection::INBOUND
         );
 
-        // Actualizar intención del lead
+        // Update lead intention
         $this->leadService->updateIntentionFromMessage($lead, $messageContent);
 
-        // Programar respuesta automática con debouncing (espera a que termine de escribir)
+        // Schedule auto reply with debouncing
         $this->scheduleAutoReply($lead);
 
         return [
             'lead_id' => $lead->id,
-            'interaction_id' => $interaction->id,
+            'message_id' => $leadMessage->id,
             'auto_reply_scheduled' => true,
         ];
     }
 
-    /**
-     * Normalizar número de teléfono desde formato Evolution
-     * 5492944636430@s.whatsapp.net → +5492944636430
-     */
     protected function normalizePhone(string $remoteJid): string
     {
-        // Extraer solo el número
         $phone = explode('@', $remoteJid)[0];
 
         Log::info('🔍 DEBUG - Normalizando teléfono', [
@@ -141,12 +119,10 @@ class WhatsAppIncomingMessageService
             'phone_extraido' => $phone,
         ]);
 
-        // Agregar + si no lo tiene
         if (! str_starts_with($phone, '+')) {
             $phone = '+' . $phone;
         }
 
-        // Usar PhoneHelper para normalización completa (AR por defecto)
         $normalized = PhoneHelper::normalizeWithCountry($phone, 'AR');
 
         Log::info('🔍 DEBUG - Teléfono normalizado', [
@@ -157,16 +133,8 @@ class WhatsAppIncomingMessageService
         return $normalized;
     }
 
-    /**
-     * Extraer contenido de texto del mensaje
-     */
     protected function extractMessageContent(array $message): ?string
     {
-        // Evolution API puede enviar diferentes tipos de mensajes
-        // conversation: mensaje simple de texto
-        // extendedTextMessage: mensaje con formato/links
-        // imageMessage: imagen con caption
-
         if (isset($message['conversation'])) {
             return $message['conversation'];
         }
@@ -194,28 +162,17 @@ class WhatsAppIncomingMessageService
         return null;
     }
 
-    /**
-     * Programar respuesta automática con debouncing
-     *
-     * Si el lead envía múltiples mensajes rápidos, solo se enviará UNA respuesta
-     * después de que pasen X segundos sin nuevos mensajes.
-     */
     protected function scheduleAutoReply(Lead $lead): void
     {
         $delaySeconds = config('services.whatsapp.auto_reply_delay', 5);
 
-        // Incrementar versión para invalidar jobs anteriores (debouncing)
         $cacheKey = "auto_reply:{$lead->id}";
-        
-        // Obtener versión actual o inicializar en 0
+
         $currentVersion = Cache::get($cacheKey, 0);
         $newVersion = $currentVersion + 1;
-        
-        // Guardar nueva versión
+
         Cache::put($cacheKey, $newVersion, now()->addMinutes(10));
 
-        // Programar job con delay
-        // Si llega otro mensaje, se incrementará la versión y este job se cancelará
         $delay = now()->addSeconds($delaySeconds);
 
         \App\Jobs\Lead\SendAutoReplyJob::dispatch($lead->id, $newVersion)

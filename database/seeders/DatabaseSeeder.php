@@ -9,31 +9,32 @@ use App\Enums\ClientStatus;
 use App\Enums\LeadOptionSelected;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
-use App\Models\CallHistory;
-use App\Models\Campaign;
-use App\Models\Client;
-use App\Models\Lead;
+use App\Enums\MessageChannel;
+use App\Enums\MessageDirection;
+use App\Enums\MessageStatus;
+use App\Models\Campaign\Campaign;
+use App\Models\Client\Client;
+use App\Models\Lead\Lead;
+use App\Models\Lead\LeadCall;
+use App\Models\Lead\LeadMessage;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // Crear usuario de prueba
+        // Create test user
         $user = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@airobot.com',
             'password' => bcrypt('password'),
         ]);
 
-        // Crear cliente
+        // Create client
         $client = Client::create([
             'name' => 'Acme Corporation',
             'email' => 'contact@acme.com',
@@ -50,10 +51,10 @@ class DatabaseSeeder extends Seeder
             'created_by' => $user->id,
         ]);
 
-        // Crear fuentes
+        // Create sources
         $this->call(SourceSeeder::class);
 
-        // Crear campaña con nueva estructura de modelos relacionados
+        // Create campaign with related models
         $campaign = Campaign::create([
             'name' => 'Campaña Verano 2024',
             'client_id' => $client->id,
@@ -63,7 +64,7 @@ class DatabaseSeeder extends Seeder
             'created_by' => $user->id,
         ]);
 
-        // Crear agente de llamadas
+        // Create call agent
         $campaign->callAgent()->create([
             'name' => 'Agent Summer',
             'provider' => CallAgentProvider::VAPI,
@@ -76,10 +77,10 @@ class DatabaseSeeder extends Seeder
             'enabled' => true,
         ]);
 
-        // Crear agente de WhatsApp
+        // Create WhatsApp agent
         $campaign->whatsappAgent()->create([
             'name' => 'WhatsApp Bot',
-            'source_id' => null, // Se puede vincular a una fuente creada en SourceSeeder
+            'source_id' => null,
             'config' => [
                 'language' => 'es',
                 'tone' => 'friendly',
@@ -88,7 +89,7 @@ class DatabaseSeeder extends Seeder
             'enabled' => true,
         ]);
 
-        // Crear las 4 opciones de la campaña
+        // Create campaign options
         $campaign->options()->createMany([
             [
                 'option_key' => '1',
@@ -128,7 +129,7 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        // Crear leads
+        // Create leads
         $lead1 = Lead::create([
             'phone' => '+34600111222',
             'name' => 'Juan Pérez',
@@ -158,40 +159,74 @@ class DatabaseSeeder extends Seeder
             'created_by' => $user->id,
         ]);
 
-        // Crear historial de llamadas
-        CallHistory::create([
-            'phone' => '+34600111222',
+        // Create lead calls (new polymorphic model)
+        LeadCall::create([
+            'lead_id' => $lead1->id,
             'campaign_id' => $campaign->id,
-            'client_id' => $client->id,
+            'phone' => '+34600111222',
             'call_date' => now()->subHours(3),
             'duration_seconds' => 180,
             'cost' => 0.15,
             'status' => CallStatus::COMPLETED,
-            'lead_id' => $lead1->id,
-            'provider' => 'Vapi',
-            'call_id_external' => 'vapi_123456',
+            'provider' => 'vapi',
+            'retell_call_id' => 'vapi_123456',
             'notes' => 'Llamada exitosa, cliente interesado',
             'recording_url' => 'https://example.com/recordings/123456.mp3',
             'transcript' => 'Agente: Hola, te llamo de Acme...\nCliente: Sí, estoy interesado...',
             'created_by' => $user->id,
         ]);
 
-        CallHistory::create([
-            'phone' => '+34600333444',
+        LeadCall::create([
+            'lead_id' => $lead2->id,
             'campaign_id' => $campaign->id,
-            'client_id' => $client->id,
+            'phone' => '+34600333444',
             'call_date' => now()->subHours(1),
             'duration_seconds' => 0,
             'cost' => 0.05,
             'status' => CallStatus::NO_ANSWER,
-            'lead_id' => $lead2->id,
-            'provider' => 'Vapi',
-            'call_id_external' => 'vapi_123457',
+            'provider' => 'vapi',
+            'retell_call_id' => 'vapi_123457',
             'notes' => 'No contestó',
             'created_by' => $user->id,
         ]);
 
-        // Crear plantillas de WhatsApp
+        // Create lead messages (new polymorphic model)
+        LeadMessage::create([
+            'lead_id' => $lead1->id,
+            'campaign_id' => $campaign->id,
+            'phone' => '+34600111222',
+            'content' => 'Hola Juan! Gracias por tu interés en nuestros productos. ¿En qué podemos ayudarte?',
+            'direction' => MessageDirection::OUTBOUND,
+            'channel' => MessageChannel::WHATSAPP,
+            'status' => MessageStatus::DELIVERED,
+            'external_provider_id' => 'wa_msg_001',
+            'created_by' => $user->id,
+        ]);
+
+        LeadMessage::create([
+            'lead_id' => $lead1->id,
+            'campaign_id' => $campaign->id,
+            'phone' => '+34600111222',
+            'content' => 'Hola! Me interesa el producto premium, ¿tienen alguna promoción?',
+            'direction' => MessageDirection::INBOUND,
+            'channel' => MessageChannel::WHATSAPP,
+            'status' => MessageStatus::READ,
+            'external_provider_id' => 'wa_msg_002',
+        ]);
+
+        LeadMessage::create([
+            'lead_id' => $lead2->id,
+            'campaign_id' => $campaign->id,
+            'phone' => '+34600333444',
+            'content' => 'Hola María! Te enviamos información sobre nuestros productos.',
+            'direction' => MessageDirection::OUTBOUND,
+            'channel' => MessageChannel::WHATSAPP,
+            'status' => MessageStatus::SENT,
+            'external_provider_id' => 'wa_msg_003',
+            'created_by' => $user->id,
+        ]);
+
+        // Create WhatsApp templates
         $this->call(CampaignWhatsappTemplateSeeder::class);
     }
 }

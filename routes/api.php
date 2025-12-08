@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\CallHistory\CallHistoryController;
+use App\Http\Controllers\Api\Lead\LeadCallController;
 use App\Http\Controllers\Api\CallProviderWebhookController;
 use App\Http\Controllers\Api\Campaign\CampaignController;
 use App\Http\Controllers\Api\Client\ClientController;
@@ -104,6 +104,11 @@ Route::prefix('admin')
         // ─────────────────────────────────────────────────────────────────────
 
         Route::apiResource('leads', LeadController::class);
+        // Lead activities (timeline with calls, messages, etc.)
+        Route::get('leads/{lead}/activities', [LeadController::class, 'activities'])
+            ->name('leads.activities');
+
+        // @deprecated - Use leads/{lead}/activities instead
         Route::get('leads/{lead}/interactions', [LeadController::class, 'interactions'])
             ->name('leads.interactions');
 
@@ -140,12 +145,12 @@ Route::prefix('admin')
         });
 
         // ─────────────────────────────────────────────────────────────────────
-        // 📞 HISTORIAL DE LLAMADAS - Solo lectura
+        // 📞 LLAMADAS DE LEADS - Solo lectura
         // ─────────────────────────────────────────────────────────────────────
 
-        Route::prefix('call-history')->name('call-history.')->group(function () {
-            Route::get('/', [CallHistoryController::class, 'index'])->name('index');
-            Route::get('/{id}', [CallHistoryController::class, 'show'])->name('show');
+        Route::prefix('lead-calls')->name('lead-calls.')->group(function () {
+            Route::get('/', [LeadCallController::class, 'index'])->name('index');
+            Route::get('/{id}', [LeadCallController::class, 'show'])->name('show');
         });
 
         // ─────────────────────────────────────────────────────────────────────

@@ -1,11 +1,14 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Lead;
 
 use App\Enums\LeadAutomationStatus;
 use App\Enums\LeadIntentionOrigin;
 use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadStatus;
+use App\Models\Campaign\Campaign;
+use App\Models\Client\Client;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +20,7 @@ class Lead extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
-        'client_id', // Direct client relationship (decoupled from campaign)
+        'client_id',
         'phone',
         'name',
         'city',
@@ -49,7 +52,6 @@ class Lead extends Model
     ];
 
     protected $casts = [
-        // option_selected y source son strings flexibles para integraciones custom
         'status' => LeadStatus::class,
         'automation_status' => LeadAutomationStatus::class,
         'intention_origin' => LeadIntentionOrigin::class,
@@ -65,73 +67,61 @@ class Lead extends Model
         'tags' => 'array',
     ];
 
-    /**
-     * Relación con la campaña a la que pertenece el lead
-     */
+    public const RELATION_CAMPAIGN = 'campaign';
+    public const RELATION_CLIENT = 'client';
+    public const RELATION_CREATOR = 'creator';
+    public const RELATION_ACTIVITIES = 'activities';
+    public const RELATION_CALLS = 'calls';
+    public const RELATION_MESSAGES = 'messages';
+
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
     }
 
-    /**
-     * Relación con el usuario que creó el lead
-     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Direct relationship with Client (decoupled from campaign)
-     */
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
     }
 
-    /**
-     * Get the client - either directly assigned or through campaign
-     */
-    public function getClientAttribute()
+    public function getResolvedClientAttribute(): ?Client
     {
-        // If client_id is set, use direct relationship
         if ($this->client_id) {
-            return $this->client()->first();
+            return $this->client;
         }
-
-        // Otherwise, get client through campaign
         return $this->campaign?->client;
     }
 
-    /**
-     * Relación con el historial de llamadas del lead
-     */
-    public function callHistories(): HasMany
+    public function getResolvedClientIdAttribute(): ?string
     {
-        return $this->hasMany(CallHistory::class);
+        return $this->client_id ?? $this->campaign?->client_id;
     }
 
-    /**
-     * Relación con las interacciones del lead
-     */
-    public function interactions(): HasMany
+    public function activities(): HasMany
     {
-        return $this->hasMany(LeadInteraction::class);
+        return $this->hasMany(LeadActivity::class)->latest();
     }
 
-    /**
-     * Check if lead is owned by client (uploaded by client vs managed internally)
-     */
+    public function calls(): HasMany
+    {
+        return $this->hasMany(LeadCall::class)->latest('call_date');
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(LeadMessage::class)->latest();
+    }
+
     public function getIsClientOwnedAttribute(): bool
     {
-        // Lead is client-owned if it has direct client_id but no campaign
-        // or if source indicates manual upload by client
         return $this->client_id !== null && $this->campaign_id === null;
     }
 
-    /**
-     * Scope: Inbox/Raw - Newly ingested leads (IVR, Webhooks) not processed or qualified
-     */
     public function scopeInbox($query)
     {
         return $query->where(function ($q) {
@@ -142,9 +132,6 @@ class Lead extends Model
             ->orderBy('created_at', 'desc');
     }
 
-    /**
-     * Scope: Active Pipeline - Leads being processed or in automation flow
-     */
     public function scopeActivePipeline($query)
     {
         return $query->where(function ($q) {
@@ -160,9 +147,6 @@ class Lead extends Model
             ->orderBy('updated_at', 'desc');
     }
 
-    /**
-     * Scope: Sales Ready - High intention leads requiring immediate human action
-     */
     public function scopeSalesReady($query)
     {
         return $query->where('intention_status', LeadIntentionStatus::FINALIZED->value)
@@ -170,9 +154,6 @@ class Lead extends Model
             ->orderBy('intention_decided_at', 'desc');
     }
 
-    /**
-     * Scope: Filter by client (direct or through campaign)
-     */
     public function scopeForClient($query, $clientId)
     {
         return $query->where(function ($q) use ($clientId) {
@@ -183,11 +164,19 @@ class Lead extends Model
         });
     }
 
-    /**
-     * Scope: Has interactions (for filtering leads with conversation history)
-     */
-    public function scopeHasInteractions($query)
+    public function scopeHasActivities($query)
     {
-        return $query->whereHas('interactions');
+        return $query->whereHas('activities');
+    }
+
+    public function scopeHasCalls($query)
+    {
+        return $query->whereHas('calls');
+    }
+
+    public function scopeHasMessages($query)
+    {
+        return $query->whereHas('messages');
     }
 }
+

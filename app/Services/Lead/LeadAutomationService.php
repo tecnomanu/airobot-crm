@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services\Lead;
 
-use App\Enums\CampaignActionType;
-use App\Enums\InteractionChannel;
-use App\Enums\InteractionDirection;
-use App\Enums\LeadIntentionOrigin;
-use App\Enums\LeadIntentionStatus;
-use App\Enums\SourceStatus;
-use App\Exceptions\Business\ValidationException;
-use App\Models\Lead;
-use App\Models\LeadInteraction;
 use App\Contracts\WebhookSenderInterface;
 use App\Contracts\WhatsAppSenderInterface;
+use App\Enums\CampaignActionType;
+use App\Enums\LeadIntentionOrigin;
+use App\Enums\LeadIntentionStatus;
+use App\Enums\MessageChannel;
+use App\Enums\MessageDirection;
+use App\Enums\MessageStatus;
+use App\Enums\SourceStatus;
+use App\Exceptions\Business\ValidationException;
+use App\Models\Lead\Lead;
+use App\Models\Lead\LeadMessage;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Servicio para automatización de acciones sobre leads
- * según la configuración de la campaña
+ * Service for lead automation actions according to campaign configuration
  */
 class LeadAutomationService
 {
@@ -31,12 +31,7 @@ class LeadAutomationService
     ) {}
 
     /**
-     * Ejecutar acción configurada para una opción del lead
-     *
-     * @param  Lead  $lead  Lead a procesar
-     * @param  string  $optionField  Campo de la campaña con la acción (option_1_action, option_2_action, etc.)
-     *
-     * @throws ValidationException
+     * Execute configured action for a lead option
      */
     public function executeActionForOption(Lead $lead, string $optionField): void
     {
@@ -46,7 +41,6 @@ class LeadAutomationService
             throw new ValidationException('Lead no tiene campaña asociada');
         }
 
-        // Obtener el tipo de acción configurado
         $actionValue = $campaign->{$optionField};
 
         if (! $actionValue) {
@@ -75,28 +69,22 @@ class LeadAutomationService
             'option_field' => $optionField,
         ]);
 
-        // Ejecutar según tipo de acción
         match ($actionType) {
             CampaignActionType::WHATSAPP => $this->executeWhatsAppAction($lead, $optionField),
             CampaignActionType::WEBHOOK_CRM => $this->executeWebhookAction($lead),
             CampaignActionType::CALL_AI => $this->executeCallAIAction($lead),
             CampaignActionType::MANUAL_REVIEW => $this->executeManualReviewAction($lead),
-            CampaignActionType::SKIP => null, // No hacer nada
+            CampaignActionType::SKIP => null,
         };
     }
 
-    /**
-     * Ejecutar acción de envío de WhatsApp
-     */
     protected function executeWhatsAppAction(Lead $lead, string $optionField): void
     {
         $campaign = $lead->campaign;
 
-        // NUEVA LÓGICA: Usar whatsappSource
         if ($campaign->whatsappSource) {
             $source = $campaign->whatsappSource;
 
-            // Validar que la fuente esté activa
             if ($source->status !== SourceStatus::ACTIVE) {
                 Log::warning('Fuente de WhatsApp no está activa', [
                     'lead_id' => $lead->id,
@@ -108,7 +96,6 @@ class LeadAutomationService
                 );
             }
 
-            // Obtener el mensaje/plantilla configurado para esta opción
             $messageBody = $this->getMessageForOption($campaign, $optionField);
 
             if (! $messageBody) {
@@ -120,7 +107,6 @@ class LeadAutomationService
                 return;
             }
 
-            // Enviar mensaje usando la fuente
             try {
                 $result = $this->whatsappSender->sendMessage(
                     $source,
@@ -134,14 +120,15 @@ class LeadAutomationService
                     'result' => $result,
                 ]);
 
-                // Registrar interacción outbound
-                LeadInteraction::create([
+                // Create LeadMessage (replaces LeadInteraction)
+                LeadMessage::create([
                     'lead_id' => $lead->id,
                     'campaign_id' => $lead->campaign_id,
-                    'channel' => InteractionChannel::WHATSAPP,
-                    'direction' => InteractionDirection::OUTBOUND,
+                    'channel' => MessageChannel::WHATSAPP,
+                    'direction' => MessageDirection::OUTBOUND,
+                    'status' => MessageStatus::SENT,
                     'content' => $messageBody,
-                    'payload' => [
+                    'metadata' => [
                         'source_id' => $source->id,
                         'option_field' => $optionField,
                         'result' => $result,
@@ -149,7 +136,6 @@ class LeadAutomationService
                     'phone' => $lead->phone,
                 ]);
 
-                // Actualizar estado de intención del lead
                 $lead->update([
                     'intention_status' => LeadIntentionStatus::PENDING,
                     'intention_origin' => LeadIntentionOrigin::WHATSAPP,
@@ -168,14 +154,11 @@ class LeadAutomationService
                 throw $e;
             }
         } else {
-            // LEGACY: Si no hay whatsappSource, usar config antigua
-            // TODO: Deprecar esta lógica una vez migradas todas las campañas
             Log::warning('Campaña usa configuración legacy de WhatsApp (sin Source)', [
                 'lead_id' => $lead->id,
                 'campaign_id' => $campaign->id,
             ]);
 
-            // Aquí iría la lógica antigua si existiera
             throw new ValidationException(
                 'Campaña no tiene fuente de WhatsApp configurada. ' .
                     'Configure una Source de tipo WhatsApp para esta campaña.'
@@ -183,10 +166,6 @@ class LeadAutomationService
         }
     }
 
-    /**
-     * Ejecutar acción de envío a webhook/CRM
-     * Ahora usa LeadExportService para respetar reglas de exportación
-     */
     protected function executeWebhookAction(Lead $lead): void
     {
         Log::info('Ejecutando acción de exportación', [
@@ -196,7 +175,6 @@ class LeadAutomationService
             'intention_status' => $lead->intention_status?->value,
         ]);
 
-        // Usar LeadExportService que evalúa las reglas de exportación
         $exported = $this->leadExportService->exportLead($lead);
 
         if (! $exported) {
@@ -208,44 +186,24 @@ class LeadAutomationService
         }
     }
 
-    /**
-     * Ejecutar acción de llamada con IA
-     */
     protected function executeCallAIAction(Lead $lead): void
     {
         Log::info('Ejecutando acción de llamada con IA', [
             'lead_id' => $lead->id,
         ]);
 
-        // TODO: Implementar lógica de llamada con IA
-        // Esto puede disparar un job que use un CallProvider (Retell, etc.)
         throw new \Exception('Acción de llamada con IA no implementada aún');
     }
 
-    /**
-     * Marcar lead para revisión manual
-     */
     protected function executeManualReviewAction(Lead $lead): void
     {
         Log::info('Lead marcado para revisión manual', [
             'lead_id' => $lead->id,
         ]);
-
-        // TODO: Actualizar estado del lead o crear tarea de revisión
-        // Por ahora solo registramos
     }
 
-    /**
-     * Obtener mensaje configurado para una opción
-     *
-     * Por ahora retorna un mensaje genérico, pero podría:
-     * - Buscar en campaign->option_2_message, option_i_message, etc.
-     * - Buscar template de WhatsApp asociado
-     * - Generar mensaje dinámico
-     */
     protected function getMessageForOption($campaign, string $optionField): ?string
     {
-        // Mapear option field a message field
         $messageField = match ($optionField) {
             'option_2_action' => 'option_2_message',
             'option_i_action' => 'option_i_message',
@@ -256,7 +214,6 @@ class LeadAutomationService
             return $campaign->{$messageField};
         }
 
-        // Fallback: mensaje genérico
         return 'Gracias por tu interés. Un asesor se contactará contigo pronto.';
     }
 }

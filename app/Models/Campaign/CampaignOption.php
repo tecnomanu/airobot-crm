@@ -1,42 +1,47 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Campaign;
 
+use App\Enums\CampaignActionType;
+use App\Models\Integration\Source;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CampaignWhatsappAgent extends Model
+class CampaignOption extends Model
 {
     use HasFactory, HasUuids;
 
     protected $fillable = [
         'campaign_id',
-        'name',
+        'option_key',
+        'action',
         'source_id',
-        'config',
+        'template_id',
+        'message',
+        'delay',
         'enabled',
     ];
 
     protected $casts = [
-        'config' => 'array',
         'enabled' => 'boolean',
+        'delay' => 'integer',
+        'action' => CampaignActionType::class,
     ];
 
-    /**
-     * Relación con la campaña
-     */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
     }
 
-    /**
-     * Relación con la fuente de WhatsApp
-     */
     public function source(): BelongsTo
     {
         return $this->belongsTo(Source::class);
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(CampaignWhatsappTemplate::class, 'template_id');
     }
 }

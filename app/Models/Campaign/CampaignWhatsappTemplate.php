@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Campaign;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,11 +25,9 @@ class CampaignWhatsappTemplate extends Model
         'is_default' => 'boolean',
     ];
 
-    /**
-     * Relación con la campaña
-     */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
     }
 }
+

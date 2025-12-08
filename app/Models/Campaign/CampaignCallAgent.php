@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Campaign;
 
 use App\Enums\CallAgentProvider;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -26,43 +26,29 @@ class CampaignCallAgent extends Model
         'provider' => CallAgentProvider::class,
     ];
 
-    /**
-     * Relación con la campaña
-     */
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
     }
 
-    /**
-     * Verificar si el agente está configurado para Retell
-     */
     public function isRetell(): bool
     {
-        return $this->provider === \App\Enums\CallAgentProvider::RETELL;
+        return $this->provider === CallAgentProvider::RETELL;
     }
 
-    /**
-     * Obtener el número de origen configurado
-     */
     public function getFromNumber(): ?string
     {
         return $this->config['from_number'] ?? null;
     }
 
-    /**
-     * Obtener el ID del agente de Retell configurado
-     */
     public function getRetellAgentId(): ?string
     {
         return $this->config['agent_id'] ?? null;
     }
 
-    /**
-     * Obtener la versión del agente configurada
-     */
     public function getAgentVersion(): ?int
     {
         return $this->config['agent_version'] ?? null;
     }
 }
+

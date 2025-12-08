@@ -7,11 +7,11 @@ use App\DTOs\Reporting\ClientMonthlySummary;
 use App\DTOs\Reporting\GlobalMetrics;
 use App\Enums\CampaignStatus;
 use App\Enums\ClientStatus;
-use App\Models\Campaign;
-use App\Models\Client;
-use App\Repositories\Interfaces\CallHistoryRepositoryInterface;
+use App\Models\Campaign\Campaign;
+use App\Models\Client\Client;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\ClientRepositoryInterface;
+use App\Repositories\Interfaces\LeadCallRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -23,15 +23,14 @@ class ReportingService
         private LeadRepositoryInterface $leadRepository,
         private CampaignRepositoryInterface $campaignRepository,
         private ClientRepositoryInterface $clientRepository,
-        private CallHistoryRepositoryInterface $callHistoryRepository
+        private LeadCallRepositoryInterface $leadCallRepository
     ) {}
 
     /**
-     * Obtener métricas globales para el Dashboard
+     * Get global metrics for Dashboard
      */
     public function getGlobalDashboardMetrics(): GlobalMetrics
     {
-        // Usar queries optimizadas con agregaciones
         $leadsStats = DB::table('leads')
             ->select([
                 DB::raw('COUNT(*) as total'),
@@ -40,7 +39,7 @@ class ReportingService
             ])
             ->first();
 
-        $callsStats = DB::table('call_histories')
+        $callsStats = DB::table('lead_calls')
             ->select([
                 DB::raw('COUNT(*) as total'),
                 DB::raw('SUM(cost) as total_cost'),
@@ -72,11 +71,10 @@ class ReportingService
     }
 
     /**
-     * Obtener resumen mensual de un cliente
+     * Get client monthly summary
      */
     public function getClientMonthlySummary(Client $client, Carbon $from, Carbon $to): ClientMonthlySummary
     {
-        // Obtener IDs de campañas del cliente
         $campaignIds = $client->campaigns()->pluck('id')->toArray();
 
         if (empty($campaignIds)) {
@@ -96,7 +94,6 @@ class ReportingService
             );
         }
 
-        // Totales de leads por campaña (optimizado con una sola query)
         $leadsStats = DB::table('leads')
             ->select([
                 'campaign_id',
@@ -111,8 +108,7 @@ class ReportingService
             ->get()
             ->keyBy('campaign_id');
 
-        // Totales de llamadas por campaña (optimizado con una sola query)
-        $callsStats = DB::table('call_histories')
+        $callsStats = DB::table('lead_calls')
             ->select([
                 'campaign_id',
                 DB::raw('COUNT(*) as total'),
@@ -126,12 +122,10 @@ class ReportingService
             ->get()
             ->keyBy('campaign_id');
 
-        // Cargar campañas con sus datos
         $campaigns = Campaign::whereIn('id', $campaignIds)
             ->orderBy('name')
             ->get();
 
-        // Construir summaries de campañas
         $campaignSummaries = [];
         $totals = [
             'leads' => 0,
@@ -157,7 +151,6 @@ class ReportingService
             $totalDuration = $callStats->total_duration ?? 0;
             $totalCost = $callStats->total_cost ?? 0.0;
 
-            // Acumular totales
             $totals['leads'] += $totalLeads;
             $totals['pending'] += $pendingLeads;
             $totals['contacted'] += $contactedLeads;
@@ -199,7 +192,7 @@ class ReportingService
     }
 
     /**
-     * Obtener últimos leads (para Dashboard)
+     * Get recent leads (for Dashboard)
      */
     public function getRecentLeads(int $limit = 10): Collection
     {
@@ -207,7 +200,7 @@ class ReportingService
     }
 
     /**
-     * Obtener clientes activos
+     * Get active clients
      */
     public function getActiveClients(): Collection
     {
@@ -217,7 +210,7 @@ class ReportingService
     }
 
     /**
-     * Obtener rendimiento de campañas (para Dashboard)
+     * Get campaign performance (for Dashboard)
      */
     public function getCampaignPerformance(?int $clientId = null, int $limit = 10): Collection
     {
@@ -235,7 +228,6 @@ class ReportingService
 
         $campaigns = $query->limit($limit)->get();
 
-        // Agregar métricas a cada campaña
         return $campaigns->map(function ($campaign) {
             $leadsStats = DB::table('leads')
                 ->select([
@@ -245,7 +237,7 @@ class ReportingService
                 ->where('campaign_id', $campaign->id)
                 ->first();
 
-            $callsStats = DB::table('call_histories')
+            $callsStats = DB::table('lead_calls')
                 ->select([
                     DB::raw('COUNT(*) as total'),
                     DB::raw('SUM(cost) as total_cost'),
@@ -274,7 +266,7 @@ class ReportingService
     }
 
     /**
-     * Obtener métricas de un cliente específico (para vista de detalle)
+     * Get client overview metrics
      */
     public function getClientOverview(Client $client): array
     {
@@ -288,7 +280,7 @@ class ReportingService
             ->whereIn('campaign_id', $campaignIds)
             ->first();
 
-        $callsStats = DB::table('call_histories')
+        $callsStats = DB::table('lead_calls')
             ->select([
                 DB::raw('COUNT(*) as total'),
                 DB::raw('SUM(duration_seconds) as total_duration'),
@@ -311,7 +303,7 @@ class ReportingService
     }
 
     /**
-     * Obtener distribución de leads por estado.
+     * Get leads distribution by status
      */
     public function getLeadsByStatus(): array
     {

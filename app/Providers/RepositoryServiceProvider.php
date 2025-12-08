@@ -2,20 +2,18 @@
 
 namespace App\Providers;
 
-use App\Repositories\Eloquent\CallHistoryRepository;
 use App\Repositories\Eloquent\CampaignRepository;
 use App\Repositories\Eloquent\CampaignWhatsappTemplateRepository;
 use App\Repositories\Eloquent\ClientRepository;
 use App\Repositories\Eloquent\EloquentCalculatorRepository;
-use App\Repositories\Eloquent\LeadInteractionRepository;
+use App\Repositories\Eloquent\LeadCallRepository;
 use App\Repositories\Eloquent\LeadRepository;
 use App\Repositories\Eloquent\SourceRepository;
-use App\Repositories\Interfaces\CallHistoryRepositoryInterface;
+use App\Repositories\Interfaces\CalculatorRepositoryInterface;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\CampaignWhatsappTemplateRepositoryInterface;
 use App\Repositories\Interfaces\ClientRepositoryInterface;
-use App\Repositories\Interfaces\CalculatorRepositoryInterface;
-use App\Repositories\Interfaces\LeadInteractionRepositoryInterface;
+use App\Repositories\Interfaces\LeadCallRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
 use App\Repositories\Interfaces\SourceRepositoryInterface;
 use Illuminate\Support\ServiceProvider;
@@ -46,16 +44,10 @@ class RepositoryServiceProvider extends ServiceProvider
             ClientRepository::class
         );
 
-        // CallHistory Repository
+        // LeadCall Repository (replaces CallHistory)
         $this->app->bind(
-            CallHistoryRepositoryInterface::class,
-            CallHistoryRepository::class
-        );
-
-        // LeadInteraction Repository
-        $this->app->bind(
-            LeadInteractionRepositoryInterface::class,
-            LeadInteractionRepository::class
+            LeadCallRepositoryInterface::class,
+            LeadCallRepository::class
         );
 
         // CampaignWhatsappTemplate Repository

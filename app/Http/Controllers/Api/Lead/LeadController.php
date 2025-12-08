@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\Lead;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lead\StoreLeadRequest;
 use App\Http\Requests\Lead\UpdateLeadRequest;
+use App\Http\Resources\Lead\LeadActivityResource;
 use App\Http\Resources\Lead\LeadCollection;
 use App\Http\Resources\Lead\LeadResource;
-use App\Http\Resources\Lead\LeadInteractionResource;
 use App\Http\Traits\ApiResponse;
 use App\Services\Lead\LeadService;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +23,7 @@ class LeadController extends Controller
     ) {}
 
     /**
-     * Listar leads con filtros
+     * List leads with filters
      */
     public function index(Request $request): JsonResponse
     {
@@ -39,7 +39,7 @@ class LeadController extends Controller
     }
 
     /**
-     * Mostrar un lead específico
+     * Show a specific lead
      */
     public function show(string $id): JsonResponse
     {
@@ -56,7 +56,7 @@ class LeadController extends Controller
     }
 
     /**
-     * Crear un nuevo lead
+     * Create a new lead
      */
     public function store(StoreLeadRequest $request): JsonResponse
     {
@@ -77,7 +77,7 @@ class LeadController extends Controller
     }
 
     /**
-     * Actualizar un lead existente
+     * Update an existing lead
      */
     public function update(UpdateLeadRequest $request, string $id): JsonResponse
     {
@@ -94,7 +94,7 @@ class LeadController extends Controller
     }
 
     /**
-     * Eliminar un lead
+     * Delete a lead
      */
     public function destroy(string $id): JsonResponse
     {
@@ -108,9 +108,9 @@ class LeadController extends Controller
     }
 
     /**
-     * Obtener timeline de interacciones del lead
+     * Get lead activity timeline (calls, messages, etc.)
      */
-    public function interactions(string $id): JsonResponse
+    public function activities(string $id): JsonResponse
     {
         $lead = $this->leadService->getLeadById($id);
 
@@ -118,13 +118,22 @@ class LeadController extends Controller
             return $this->notFoundResponse('Lead not found');
         }
 
-        $interactions = $lead->interactions()
+        $activities = $lead->activities()
+            ->with('subject')
             ->orderBy('created_at', 'asc')
             ->get();
 
         return $this->successResponse(
-            LeadInteractionResource::collection($interactions),
-            'Lead interactions retrieved successfully'
+            LeadActivityResource::collection($activities),
+            'Lead activities retrieved successfully'
         );
+    }
+
+    /**
+     * @deprecated Use activities() instead
+     */
+    public function interactions(string $id): JsonResponse
+    {
+        return $this->activities($id);
     }
 }

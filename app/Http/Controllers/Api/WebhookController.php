@@ -5,17 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Webhook\CallWebhookRequest;
 use App\Http\Requests\Webhook\LeadWebhookRequest;
-use App\Http\Resources\CallHistory\CallHistoryResource;
+use App\Http\Resources\Lead\LeadCallResource;
 use App\Http\Resources\Lead\LeadResource;
 use App\Http\Traits\ApiResponse;
-use App\Services\CallHistory\CallHistoryService;
+use App\Services\Lead\LeadCallService;
 use App\Services\Lead\LeadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Controlador para webhooks entrantes de fuentes externas
- * (n8n, proveedores de telefonía, formularios, etc.)
+ * Controller for incoming webhooks from external sources
+ * (n8n, telephony providers, forms, etc.)
  */
 class WebhookController extends Controller
 {
@@ -23,22 +23,12 @@ class WebhookController extends Controller
 
     public function __construct(
         private LeadService $leadService,
-        private CallHistoryService $callHistoryService
+        private LeadCallService $leadCallService
     ) {}
 
     /**
-     * Recibir lead desde webhook externo (n8n, formularios, etc.)
+     * Receive lead from external webhook (n8n, forms, etc.)
      * POST /api/webhooks/lead
-     *
-     * Campos esperados:
-     * - phone (requerido)
-     * - name
-     * - city
-     * - campaign (slug de la campaña)
-     * - option_selected (1, 2, i, t)
-     * - source (webhook_inicial, whatsapp, etc.)
-     * - intention
-     * - notes
      */
     public function receiveLead(LeadWebhookRequest $request): JsonResponse
     {
@@ -49,20 +39,18 @@ class WebhookController extends Controller
                 'source_ip' => $request->ip(),
             ]);
 
-            // Preparar datos del lead
             $leadData = [
                 'phone' => $request->input('phone'),
                 'name' => $request->input('name'),
                 'city' => $request->input('city'),
                 'option_selected' => $request->input('option_selected'),
                 'campaign_id' => $request->input('campaign_id'),
-                'campaign' => $request->input('campaign') ?? $request->input('campaign_pattern'),  // Slug de campaña
+                'campaign' => $request->input('campaign') ?? $request->input('campaign_pattern'),
                 'source' => $request->input('source'),
                 'intention' => $request->input('intention'),
                 'notes' => $request->input('notes'),
             ];
 
-            // Procesar lead (crear o actualizar)
             $lead = $this->leadService->processIncomingWebhookLead($leadData);
 
             Log::info('Lead procesado exitosamente desde webhook', [
@@ -102,22 +90,8 @@ class WebhookController extends Controller
     }
 
     /**
-     * Recibir registro de llamada desde proveedor externo (Vapi, Retell, etc.)
+     * Receive call record from external provider (Vapi, Retell, etc.)
      * POST /api/webhooks/call
-     *
-     * Campos esperados:
-     * - phone (requerido)
-     * - status (requerido)
-     * - duration_seconds
-     * - cost
-     * - campaign_id o campaign_name
-     * - client_id o client_name
-     * - lead_id
-     * - provider
-     * - call_id_external
-     * - recording_url
-     * - transcript
-     * - notes
      */
     public function receiveCall(CallWebhookRequest $request): JsonResponse
     {
@@ -129,16 +103,14 @@ class WebhookController extends Controller
                 'source_ip' => $request->ip(),
             ]);
 
-            // Preparar datos de la llamada
             $callData = [
                 'phone' => $request->input('phone'),
-                'call_id_external' => $request->input('call_id_external'),
+                'retell_call_id' => $request->input('call_id_external'),
                 'provider' => $request->input('provider'),
                 'status' => $request->input('status'),
                 'duration_seconds' => $request->input('duration_seconds', 0),
                 'cost' => $request->input('cost', 0),
                 'campaign_id' => $request->input('campaign_id'),
-                'client_id' => $request->input('client_id'),
                 'lead_id' => $request->input('lead_id'),
                 'notes' => $request->input('notes'),
                 'recording_url' => $request->input('recording_url'),
@@ -148,18 +120,17 @@ class WebhookController extends Controller
                     now(),
             ];
 
-            // Registrar llamada
-            $call = $this->callHistoryService->registerIncomingCall($callData);
+            $call = $this->leadCallService->registerIncomingCall($callData);
 
             Log::info('Llamada registrada exitosamente desde webhook', [
                 'call_id' => $call->id,
-                'phone' => $call->phone,
-                'status' => $call->status->value,
+                'lead_id' => $call->lead_id,
+                'status' => $call->status,
                 'duration' => $call->duration_seconds,
             ]);
 
             return $this->createdResponse(
-                new CallHistoryResource($call->load(['campaign', 'client', 'lead'])),
+                new LeadCallResource($call->load(['campaign', 'lead'])),
                 'Call received and processed successfully'
             );
         } catch (\InvalidArgumentException $e) {

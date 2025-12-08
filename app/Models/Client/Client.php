@@ -1,8 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Client;
 
 use App\Enums\ClientStatus;
+use App\Models\Campaign\Campaign;
+use App\Models\Lead\LeadActivity;
+use App\Models\Lead\LeadCall;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,27 +33,24 @@ class Client extends Model
         'status' => ClientStatus::class,
     ];
 
-    /**
-     * Relación con el usuario que creó el cliente
-     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Relación con las campañas del cliente
-     */
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
     }
 
-    /**
-     * Relación con el historial de llamadas del cliente
-     */
-    public function callHistories(): HasMany
+    public function calls(): HasMany
     {
-        return $this->hasMany(CallHistory::class);
+        return $this->hasMany(LeadCall::class);
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(LeadActivity::class);
     }
 }
+

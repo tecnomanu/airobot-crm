@@ -3,9 +3,9 @@
 namespace App\Jobs\Lead;
 
 use App\Contracts\WhatsAppSenderInterface;
-use App\Enums\InteractionDirection;
-use App\Models\Lead;
-use App\Services\Lead\LeadInteractionService;
+use App\Enums\MessageDirection;
+use App\Models\Lead\Lead;
+use App\Services\Lead\LeadMessageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,10 +15,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Job para enviar respuesta automática con debouncing
- *
- * Si el lead envía múltiples mensajes rápidos, solo se enviará
- * UNA respuesta después de que pasen X segundos sin nuevos mensajes.
+ * Job for sending auto-reply with debouncing
  */
 class SendAutoReplyJob implements ShouldQueue
 {
@@ -28,10 +25,6 @@ class SendAutoReplyJob implements ShouldQueue
 
     public $timeout = 30;
 
-    /**
-     * @param  string  $leadId  ID del lead
-     * @param  int  $expectedVersion  Versión esperada para debouncing
-     */
     public function __construct(
         private string $leadId,
         private int $expectedVersion
@@ -39,9 +32,8 @@ class SendAutoReplyJob implements ShouldQueue
 
     public function handle(
         WhatsAppSenderInterface $whatsappSender,
-        LeadInteractionService $interactionService
+        LeadMessageService $messageService
     ): void {
-        // Verificar versión (debouncing)
         $cacheKey = "auto_reply:{$this->leadId}";
         $currentVersion = Cache::get($cacheKey, 0);
 
@@ -66,10 +58,8 @@ class SendAutoReplyJob implements ShouldQueue
         }
 
         try {
-            // TODO: Hacer mensaje configurable por campaña
             $autoReplyMessage = 'Gracias por tu mensaje. Un asesor revisará tu consulta y te responderá a la brevedad. 📱';
 
-            // Obtener la fuente de WhatsApp de la campaña
             $campaign = $lead->campaign;
             if (! $campaign) {
                 Log::warning('Lead sin campaña, no se puede enviar auto-respuesta', [
@@ -79,7 +69,6 @@ class SendAutoReplyJob implements ShouldQueue
                 return;
             }
 
-            // Buscar source de WhatsApp usado en las opciones de la campaña
             $whatsappOption = $campaign->options()
                 ->where('action', 'whatsapp')
                 ->whereNotNull('source_id')
@@ -95,18 +84,17 @@ class SendAutoReplyJob implements ShouldQueue
 
             $source = $whatsappOption->source;
 
-            // Enviar mensaje
             $whatsappSender->sendMessage($source, $lead, $autoReplyMessage, []);
 
-            // Guardar la respuesta automática como interacción saliente
-            $interactionService->createFromWhatsAppMessage(
+            // Save auto-reply using LeadMessageService
+            $messageService->createFromWhatsAppMessage(
                 leadId: $lead->id,
                 campaignId: $lead->campaign_id,
                 content: $autoReplyMessage,
-                payload: ['type' => 'auto_reply'],
-                externalId: null,
+                metadata: ['type' => 'auto_reply'],
+                externalProviderId: null,
                 phone: $lead->phone,
-                direction: InteractionDirection::OUTBOUND
+                direction: MessageDirection::OUTBOUND
             );
 
             Log::info('Auto-respuesta enviada exitosamente (debounced)', [
@@ -120,7 +108,6 @@ class SendAutoReplyJob implements ShouldQueue
             ]);
             throw $e;
         } finally {
-            // Limpiar cache
             Cache::forget($cacheKey);
         }
     }
