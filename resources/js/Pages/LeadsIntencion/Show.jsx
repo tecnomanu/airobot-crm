@@ -247,7 +247,7 @@ export default function LeadIntencionShow({ lead }) {
                 title: "Detalle de Intención",
                 subtitle: "Análisis completo de interacciones y comportamiento",
                 backButton: {
-                    onClick: () => router.visit(route("leads-intencion.index")),
+                    onClick: () => router.visit(route("leads-manager.index")),
                     variant: "outline",
                 },
                 actions: (

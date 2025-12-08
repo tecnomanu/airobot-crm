@@ -22,7 +22,7 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
 
     const handleFilterChange = (name, value) => {
         router.get(
-            route("leads-intencion.index"),
+            route("leads-manager.index"),
             { ...filters, [name]: value },
             { preserveState: true }
         );
@@ -31,7 +31,7 @@ export default function LeadsIntencionIndex({ leads, campaigns, filters }) {
     const handleSearch = (e) => {
         e.preventDefault();
         router.get(
-            route("leads-intencion.index"),
+            route("leads-manager.index"),
             { ...filters, search: searchTerm },
             { preserveState: true }
         );

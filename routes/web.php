@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Client\ClientController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\Lead\LeadController;
 use App\Http\Controllers\Web\Lead\LeadIntencionController;
+use App\Http\Controllers\Web\Lead\LeadsManagerController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SourceController;
 use App\Http\Controllers\Web\WebhookConfigController;
@@ -29,22 +30,24 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Leads
-    Route::prefix('leads')->name('leads.')->group(function () {
-        Route::get('/', [LeadController::class, 'index'])->name('index');
-        Route::get('/{id}', [LeadController::class, 'show'])->name('show');
-        Route::post('/', [LeadController::class, 'store'])->name('store');
-        Route::put('/{id}', [LeadController::class, 'update'])->name('update');
-        Route::delete('/{id}', [LeadController::class, 'destroy'])->name('destroy');
-        
+    // Leads Manager (Unified View with Tabs)
+    Route::prefix('leads')->name('leads-manager.')->group(function () {
+        Route::get('/', [LeadsManagerController::class, 'index'])->name('index');
+        Route::get('/{id}', [LeadsManagerController::class, 'show'])->name('show');
+        Route::post('/', [LeadsManagerController::class, 'store'])->name('store');
+        Route::put('/{id}', [LeadsManagerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [LeadsManagerController::class, 'destroy'])->name('destroy');
+
         // Automation retry
-        Route::post('/{id}/retry-automation', [LeadController::class, 'retryAutomation'])->name('retry-automation');
-        Route::post('/retry-automation-batch', [LeadController::class, 'retryAutomationBatch'])->name('retry-automation-batch');
+        Route::post('/{id}/retry-automation', [LeadsManagerController::class, 'retryAutomation'])->name('retry-automation');
+        Route::post('/retry-automation-batch', [LeadsManagerController::class, 'retryAutomationBatch'])->name('retry-automation-batch');
+
+        // Quick actions
+        Route::post('/{id}/call', [LeadsManagerController::class, 'callAction'])->name('call-action');
+        Route::post('/{id}/whatsapp', [LeadsManagerController::class, 'whatsappAction'])->name('whatsapp-action');
     });
 
-    // Leads Intención
-    Route::get('/leads-intencion', [LeadIntencionController::class, 'index'])->name('leads-intencion.index');
-    Route::get('/leads-intencion/{id}', [LeadIntencionController::class, 'show'])->name('leads-intencion.show');
+    // Legacy routes removed - use leads-manager instead
 
     // Campaigns
     Route::prefix('campaigns')->name('campaigns.')->group(function () {
@@ -87,7 +90,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'update'])->name('update');
         Route::delete('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'destroy'])->name('destroy');
     });
-    
+
     // Calculator
     Route::prefix('calculator')->name('calculator.')->group(function () {
         Route::get('/', [CalculatorController::class, 'index'])->name('index');
@@ -96,4 +99,4 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

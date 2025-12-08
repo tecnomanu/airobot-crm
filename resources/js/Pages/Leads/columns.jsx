@@ -186,7 +186,7 @@ export const getLeadColumns = (handleDelete, handleRetry) => [
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                            router.visit(route("leads.show", lead.id))
+                            router.visit(route("leads-manager.show", lead.id))
                         }
                     >
                         <Eye className="h-4 w-4" />

@@ -44,12 +44,7 @@ import {
 
 const navigation = [
     { name: "Dashboard", href: route("dashboard"), icon: Home },
-    { name: "Leads", href: route("leads.index"), icon: Users },
-    {
-        name: "Leads Intención",
-        href: route("leads-intencion.index"),
-        icon: MessageSquare,
-    },
+    { name: "Leads Manager", href: route("leads-manager.index"), icon: Users },
     { name: "Campañas", href: route("campaigns.index"), icon: Megaphone },
     { name: "Fuentes", href: route("sources.index"), icon: PlugZap },
     { name: "Clientes", href: route("clients.index"), icon: Building2 },

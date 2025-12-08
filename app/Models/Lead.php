@@ -17,6 +17,7 @@ class Lead extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'client_id', // Direct client relationship (decoupled from campaign)
         'phone',
         'name',
         'city',
@@ -81,11 +82,25 @@ class Lead extends Model
     }
 
     /**
-     * Relación con el cliente a través de la campaña
+     * Direct relationship with Client (decoupled from campaign)
      */
     public function client(): BelongsTo
     {
-        return $this->campaign->client();
+        return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Get the client - either directly assigned or through campaign
+     */
+    public function getClientAttribute()
+    {
+        // If client_id is set, use direct relationship
+        if ($this->client_id) {
+            return $this->client()->first();
+        }
+
+        // Otherwise, get client through campaign
+        return $this->campaign?->client;
     }
 
     /**
@@ -102,5 +117,77 @@ class Lead extends Model
     public function interactions(): HasMany
     {
         return $this->hasMany(LeadInteraction::class);
+    }
+
+    /**
+     * Check if lead is owned by client (uploaded by client vs managed internally)
+     */
+    public function getIsClientOwnedAttribute(): bool
+    {
+        // Lead is client-owned if it has direct client_id but no campaign
+        // or if source indicates manual upload by client
+        return $this->client_id !== null && $this->campaign_id === null;
+    }
+
+    /**
+     * Scope: Inbox/Raw - Newly ingested leads (IVR, Webhooks) not processed or qualified
+     */
+    public function scopeInbox($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('automation_status', LeadAutomationStatus::PENDING->value)
+                ->orWhere('automation_status', LeadAutomationStatus::SKIPPED->value);
+        })
+            ->whereNull('intention_status')
+            ->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Scope: Active Pipeline - Leads being processed or in automation flow
+     */
+    public function scopeActivePipeline($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('automation_status', LeadAutomationStatus::PROCESSING->value)
+                ->orWhere('automation_status', LeadAutomationStatus::COMPLETED->value)
+                ->orWhere(function ($subQuery) {
+                    $subQuery->whereNotNull('intention_status')
+                        ->where('intention_status', '!=', LeadIntentionStatus::FINALIZED->value);
+                });
+        })
+            ->where('status', '!=', LeadStatus::CLOSED->value)
+            ->orderBy('next_action_at', 'asc')
+            ->orderBy('updated_at', 'desc');
+    }
+
+    /**
+     * Scope: Sales Ready - High intention leads requiring immediate human action
+     */
+    public function scopeSalesReady($query)
+    {
+        return $query->where('intention_status', LeadIntentionStatus::FINALIZED->value)
+            ->where('status', '!=', LeadStatus::CLOSED->value)
+            ->orderBy('intention_decided_at', 'desc');
+    }
+
+    /**
+     * Scope: Filter by client (direct or through campaign)
+     */
+    public function scopeForClient($query, $clientId)
+    {
+        return $query->where(function ($q) use ($clientId) {
+            $q->where('client_id', $clientId)
+                ->orWhereHas('campaign', function ($subQuery) use ($clientId) {
+                    $subQuery->where('client_id', $clientId);
+                });
+        });
+    }
+
+    /**
+     * Scope: Has interactions (for filtering leads with conversation history)
+     */
+    public function scopeHasInteractions($query)
+    {
+        return $query->whereHas('interactions');
     }
 }

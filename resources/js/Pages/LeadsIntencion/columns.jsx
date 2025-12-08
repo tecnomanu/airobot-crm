@@ -139,7 +139,7 @@ export const getLeadIntencionColumns = () => [
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => router.visit(route("leads-intencion.show", lead.id))}
+                        onClick={() => router.visit(route("leads-manager.show", lead.id))}
                         title="View intention details"
                     >
                         <Eye className="h-4 w-4" />

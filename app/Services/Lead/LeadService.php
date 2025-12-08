@@ -43,6 +43,77 @@ class LeadService
     }
 
     /**
+     * Get leads for unified Leads Manager view with tab support
+     * 
+     * @param string $tab One of: 'inbox', 'active', 'sales_ready'
+     * @param array $filters Additional filters (campaign_id, status, search, client_id)
+     * @param int $perPage Pagination size
+     */
+    public function getLeadsForManager(string $tab, array $filters = [], int $perPage = 15)
+    {
+        $query = Lead::query();
+
+        // Apply tab-specific scope
+        match ($tab) {
+            'inbox' => $query->inbox(),
+            'active' => $query->activePipeline(),
+            'sales_ready' => $query->salesReady(),
+            default => $query->inbox(), // Default to inbox
+        };
+
+        // Apply additional filters
+        if (!empty($filters['campaign_id'])) {
+            $query->where('campaign_id', $filters['campaign_id']);
+        }
+
+        if (!empty($filters['client_id'])) {
+            $query->forClient($filters['client_id']);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('phone', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+
+        // Eager load common relationships
+        $query->with(['campaign.client', 'creator', 'interactions' => function ($q) {
+            $q->latest()->limit(3);
+        }]);
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Get count summary for all tabs
+     */
+    public function getTabCounts(array $filters = []): array
+    {
+        $baseQuery = Lead::query();
+
+        // Apply base filters (not tab-specific)
+        if (!empty($filters['campaign_id'])) {
+            $baseQuery->where('campaign_id', $filters['campaign_id']);
+        }
+
+        if (!empty($filters['client_id'])) {
+            $baseQuery->forClient($filters['client_id']);
+        }
+
+        return [
+            'inbox' => (clone $baseQuery)->inbox()->count(),
+            'active' => (clone $baseQuery)->activePipeline()->count(),
+            'sales_ready' => (clone $baseQuery)->salesReady()->count(),
+        ];
+    }
+
+    /**
      * Obtener un lead por ID
      */
     public function getLeadById(string $id): ?Lead
