@@ -55,7 +55,7 @@ const navigation = [
     },
     {
         name: "Historial Llamadas",
-        href: route("call-history.index"),
+        href: route("lead-calls.index"),
         icon: Phone,
     },
     {

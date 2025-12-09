@@ -48,8 +48,8 @@ class LeadController extends Controller
             abort(404, 'Lead no encontrado');
         }
 
-        // Cargar interacciones para mostrar el historial completo
-        $lead->load(['interactions' => function ($query) {
+        // Cargar mensajes para mostrar el historial completo
+        $lead->load(['messages' => function ($query) {
             $query->orderBy('created_at', 'desc');
         }]);
 

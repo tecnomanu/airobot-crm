@@ -84,7 +84,7 @@ class LeadService
         }
 
         // Eager load common relationships
-        $query->with(['campaign.client', 'creator', 'interactions' => function ($q) {
+        $query->with(['campaign.client', 'creator', 'messages' => function ($q) {
             $q->latest()->limit(3);
         }]);
 
@@ -119,7 +119,7 @@ class LeadService
      */
     public function getLeadById(string $id): ?Lead
     {
-        return $this->leadRepository->findById($id, ['campaign.client', 'creator', 'callHistories']);
+        return $this->leadRepository->findById($id, ['campaign.client', 'creator', 'calls']);
     }
 
     /**

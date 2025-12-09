@@ -125,7 +125,7 @@ export const getCallHistoryColumns = () => [
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                            router.visit(route("call-history.show", call.id))
+                            router.visit(route("lead-calls.show", call.id))
                         }
                     >
                         <Eye className="h-4 w-4" />

@@ -36,15 +36,15 @@ class LeadResource extends JsonResource
             'intention_status' => $this->intention_status?->value,
             'intention_origin' => $this->intention_origin?->value,
             'last_message' => $this->getLastInboundMessage(),
-            'interactions_count' => $this->whenCounted('interactions'),
-            'interactions' => $this->whenLoaded('interactions', function () {
-                return $this->interactions->map(function ($interaction) {
+            'messages_count' => $this->whenCounted('messages'),
+            'messages' => $this->whenLoaded('messages', function () {
+                return $this->messages->map(function ($message) {
                     return [
-                        'id' => $interaction->id,
-                        'direction' => $interaction->direction->value,
-                        'channel' => $interaction->channel->value,
-                        'content' => $interaction->content,
-                        'created_at' => $interaction->created_at->toIso8601String(),
+                        'id' => $message->id,
+                        'direction' => $message->direction->value,
+                        'channel' => $message->channel->value,
+                        'content' => $message->content,
+                        'created_at' => $message->created_at->toIso8601String(),
                     ];
                 });
             }),
@@ -129,9 +129,9 @@ class LeadResource extends JsonResource
      */
     private function getLastInboundMessage(): ?string
     {
-        // Si las interacciones ya están cargadas (eager loading), usar eso
-        if ($this->relationLoaded('interactions')) {
-            $lastInbound = $this->interactions
+        // Si los mensajes ya están cargados (eager loading), usar eso
+        if ($this->relationLoaded('messages')) {
+            $lastInbound = $this->messages
                 ->where('direction', 'inbound')
                 ->sortByDesc('created_at')
                 ->first();
@@ -139,8 +139,8 @@ class LeadResource extends JsonResource
             return $lastInbound?->content;
         }
 
-        // Fallback: hacer query si no están cargadas (no debería pasar)
-        $lastInbound = $this->interactions()
+        // Fallback: hacer query si no están cargados (no debería pasar)
+        $lastInbound = $this->messages()
             ->where('direction', 'inbound')
             ->orderBy('created_at', 'desc')
             ->first();
@@ -157,8 +157,8 @@ class LeadResource extends JsonResource
         // 1. Tiene error de automation
         // 2. O está en status failed o pending
         // 3. Y tiene una opción seleccionada
-        return ($this->automation_error !== null 
-                || in_array($this->automation_status?->value, ['failed', 'pending']))
+        return ($this->automation_error !== null
+            || in_array($this->automation_status?->value, ['failed', 'pending']))
             && $this->option_selected !== null;
     }
 }

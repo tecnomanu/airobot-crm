@@ -56,7 +56,7 @@ class AnalyzeLeadIntentionJob implements ShouldQueue
             return;
         }
 
-        $lead = Lead::with(['interactions' => function ($query) {
+        $lead = Lead::with(['messages' => function ($query) {
             $query->where('channel', 'whatsapp')
                 ->where('direction', 'inbound')
                 ->orderBy('created_at', 'desc')
@@ -82,9 +82,9 @@ class AnalyzeLeadIntentionJob implements ShouldQueue
             return;
         }
 
-        // Si no hay interacciones, no hay nada que analizar
-        if ($lead->interactions->isEmpty()) {
-            Log::info('No hay interacciones para analizar', [
+        // Si no hay mensajes, no hay nada que analizar
+        if ($lead->messages->isEmpty()) {
+            Log::info('No hay mensajes para analizar', [
                 'lead_id' => $this->leadId,
             ]);
             Cache::forget($cacheKey);
@@ -93,7 +93,7 @@ class AnalyzeLeadIntentionJob implements ShouldQueue
         }
 
         // Construir contexto de mensajes
-        $messages = $lead->interactions
+        $messages = $lead->messages
             ->reverse() // Orden cronológico
             ->pluck('content')
             ->filter()

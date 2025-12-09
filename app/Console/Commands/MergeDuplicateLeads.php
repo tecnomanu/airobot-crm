@@ -62,7 +62,7 @@ class MergeDuplicateLeads extends Command
             // Obtener todos los leads con este teléfono + campaña
             $leads = Lead::where('phone', $duplicate->phone)
                 ->where('campaign_id', $duplicate->campaign_id)
-                ->with(['interactions', 'campaign'])
+                ->with(['messages', 'campaign'])
                 ->orderBy('created_at', 'asc') // El más antiguo primero
                 ->get();
 
@@ -80,24 +80,24 @@ class MergeDuplicateLeads extends Command
             $this->line("   → Lead principal: {$mainLead->id} ({$mainLead->name})");
 
             if ($dryRun) {
-                $this->line("   🔶 [DRY-RUN] Se consolidarían las interacciones de:");
+                $this->line("   🔶 [DRY-RUN] Se consolidarían los mensajes de:");
                 foreach ($duplicateLeads as $dup) {
-                    $interactionsCount = $dup->interactions->count();
-                    $this->line("      - {$dup->id} ({$dup->name}) - {$interactionsCount} interacciones");
+                    $messagesCount = $dup->messages->count();
+                    $this->line("      - {$dup->id} ({$dup->name}) - {$messagesCount} mensajes");
                 }
                 $this->newLine();
                 continue;
             }
 
-            // Consolidar interacciones de duplicados al lead principal
+            // Consolidar mensajes de duplicados al lead principal
             DB::transaction(function () use ($mainLead, $duplicateLeads, &$totalRemoved) {
                 foreach ($duplicateLeads as $dupLead) {
-                    $interactionsCount = $dupLead->interactions->count();
+                    $messagesCount = $dupLead->messages->count();
 
-                    // Mover interacciones al lead principal
-                    if ($interactionsCount > 0) {
-                        $dupLead->interactions()->update(['lead_id' => $mainLead->id]);
-                        $this->line("      ✓ Migradas {$interactionsCount} interacciones de {$dupLead->id}");
+                    // Mover mensajes al lead principal
+                    if ($messagesCount > 0) {
+                        $dupLead->messages()->update(['lead_id' => $mainLead->id]);
+                        $this->line("      ✓ Migrados {$messagesCount} mensajes de {$dupLead->id}");
                     }
 
                     // Actualizar datos del lead principal si el duplicado tiene mejor información

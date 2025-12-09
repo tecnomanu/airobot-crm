@@ -19,21 +19,21 @@ class LeadIntencionController extends Controller
 
     public function index(Request $request): Response
     {
-        // Filtrar leads que tienen interacciones (donde se analiza intención)
+        // Filtrar leads que tienen mensajes (donde se analiza intención)
         $filters = [
-            'has_interactions' => true, // Solo leads con interacciones
+            'has_messages' => true, // Solo leads con mensajes
             'campaign_id' => $request->input('campaign_id'),
             'status' => $request->input('status'),
             'search' => $request->input('search'),
         ];
 
-        // Eager load interactions para optimizar
+        // Eager load messages para optimizar
         $leads = $this->leadService->getLeads($filters, $request->input('per_page', 15));
 
         // Cargar solo el último mensaje inbound para cada lead (optimizado)
         $leads->each(function ($lead) {
-            $lead->loadCount('interactions');
-            $lead->load(['interactions' => function ($query) {
+            $lead->loadCount('messages');
+            $lead->load(['messages' => function ($query) {
                 $query->where('direction', 'inbound')
                     ->orderBy('created_at', 'desc')
                     ->limit(1);
@@ -50,7 +50,7 @@ class LeadIntencionController extends Controller
     }
 
     /**
-     * Mostrar detalle de intención de un lead con todas sus interacciones
+     * Mostrar detalle de intención de un lead con todos sus mensajes
      */
     public function show(string $id): Response
     {
@@ -60,9 +60,9 @@ class LeadIntencionController extends Controller
             abort(404);
         }
 
-        // Cargar todas las interacciones ordenadas por fecha y la campaña
+        // Cargar todos los mensajes ordenados por fecha y la campaña
         $lead->load([
-            'interactions' => function ($query) {
+            'messages' => function ($query) {
                 $query->orderBy('created_at', 'asc');
             },
             'campaign',

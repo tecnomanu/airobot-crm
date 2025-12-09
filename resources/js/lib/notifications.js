@@ -231,8 +231,8 @@ class NotificationManager {
             requireInteraction: false,
             playSound: call.status === 'completed', // Sonido solo para completadas
             onClick: () => {
-                if (!window.location.pathname.includes('/call-history')) {
-                    window.location.href = '/call-history';
+                if (!window.location.pathname.includes('/lead-calls')) {
+                    window.location.href = '/lead-calls';
                 }
             },
         });

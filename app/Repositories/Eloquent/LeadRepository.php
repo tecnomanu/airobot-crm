@@ -41,9 +41,9 @@ class LeadRepository implements LeadRepositoryInterface
             });
         }
 
-        // Filtro por existencia de interacciones
-        if (! empty($filters['has_interactions'])) {
-            $query->has('interactions');
+        // Filtro por existencia de mensajes
+        if (! empty($filters['has_messages'])) {
+            $query->has('messages');
         }
 
         return $query->orderBy('created_at', 'desc')->paginate($perPage);

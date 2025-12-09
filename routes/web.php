@@ -5,8 +5,6 @@ use App\Http\Controllers\Web\Campaign\CampaignController;
 use App\Http\Controllers\Web\CalculatorController;
 use App\Http\Controllers\Web\Client\ClientController;
 use App\Http\Controllers\Web\DashboardController;
-use App\Http\Controllers\Web\Lead\LeadController;
-use App\Http\Controllers\Web\Lead\LeadIntencionController;
 use App\Http\Controllers\Web\Lead\LeadsManagerController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SourceController;
@@ -31,7 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Leads Manager (Unified View with Tabs)
-    Route::prefix('leads')->name('leads-manager.')->group(function () {
+    Route::prefix('leads-manager')->name('leads-manager.')->group(function () {
         Route::get('/', [LeadsManagerController::class, 'index'])->name('index');
         Route::get('/{id}', [LeadsManagerController::class, 'show'])->name('show');
         Route::post('/', [LeadsManagerController::class, 'store'])->name('store');

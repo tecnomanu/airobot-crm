@@ -81,13 +81,13 @@ class LeadsManagerController extends Controller
             abort(404, 'Lead no encontrado');
         }
 
-        // Load all interactions for timeline view
+        // Load all messages and calls for timeline view
         $lead->load([
-            'interactions' => function ($query) {
+            'messages' => function ($query) {
                 $query->orderBy('created_at', 'asc');
             },
             'campaign.client',
-            'callHistories' => function ($query) {
+            'calls' => function ($query) {
                 $query->orderBy('created_at', 'desc')->limit(5);
             }
         ]);

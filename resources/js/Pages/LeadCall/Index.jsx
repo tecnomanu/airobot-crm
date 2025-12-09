@@ -28,7 +28,7 @@ export default function CallHistoryIndex({
 
     const handleFilterChange = (name, value) => {
         router.get(
-            route("call-history.index"),
+            route("lead-calls.index"),
             { ...filters, [name]: value },
             { preserveState: true }
         );
@@ -37,7 +37,7 @@ export default function CallHistoryIndex({
     const handleSearch = (e) => {
         e.preventDefault();
         router.get(
-            route("call-history.index"),
+            route("lead-calls.index"),
             { ...filters, search: searchTerm },
             { preserveState: true }
         );
@@ -45,7 +45,7 @@ export default function CallHistoryIndex({
 
     const handleClearFilters = () => {
         setSearchTerm("");
-        router.get(route("call-history.index"), {}, { preserveState: true });
+        router.get(route("lead-calls.index"), {}, { preserveState: true });
     };
 
     const stats = [
@@ -73,7 +73,7 @@ export default function CallHistoryIndex({
      * Escucha eventos de nuevas llamadas en tiempo real
      */
     useEffect(() => {
-        const channel = window.Echo.channel('call-history');
+        const channel = window.Echo.channel('lead-calls');
 
         channel.listen('.call.created', (event) => {
             const { call } = event;

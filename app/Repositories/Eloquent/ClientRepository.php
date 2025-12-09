@@ -73,7 +73,7 @@ class ClientRepository implements ClientRepositoryInterface
 
     public function getMetrics(string $clientId): array
     {
-        $client = Client::with(['campaigns', 'callHistories'])->find($clientId);
+        $client = Client::with(['campaigns', 'calls'])->find($clientId);
 
         if (! $client) {
             return [];
@@ -87,9 +87,9 @@ class ClientRepository implements ClientRepositoryInterface
             'total_campaigns' => $client->campaigns->count(),
             'active_campaigns' => $client->campaigns->where('status', 'active')->count(),
             'total_leads' => $totalLeads,
-            'total_calls' => $client->callHistories->count(),
-            'total_cost' => $client->callHistories->sum('cost'),
-            'completed_calls' => $client->callHistories->where('status', 'completed')->count(),
+            'total_calls' => $client->calls->count(),
+            'total_cost' => $client->calls->sum('cost'),
+            'completed_calls' => $client->calls->where('status', 'completed')->count(),
         ];
     }
 }
