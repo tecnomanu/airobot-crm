@@ -15,8 +15,10 @@ return new class extends Migration
             $table->foreign('client_id')->references('id')->on('clients')->onDelete('cascade');
             $table->text('description')->nullable();
             $table->string('status')->default('active'); // active, paused
-            $table->string('campaign_type')->default('inbound')
-                ->comment('Campaign type: inbound (reactive, IVR), outbound (proactive, bulk)');
+            $table->string('strategy_type')->default('dynamic')
+                ->comment('Strategy type: direct (linear execution), dynamic (conditional based on option_selected)');
+            $table->json('configuration')->nullable()
+                ->comment('Strategy configuration JSON: direct={trigger_action,agent_id,...}, dynamic={fallback_action,mapping:{...}}');
             $table->string('export_rule')->default('interested_only')
                 ->comment('Regla de exportación: interested_only, not_interested_only, both, none');
             $table->string('match_pattern')->nullable()->unique();
@@ -39,7 +41,7 @@ return new class extends Migration
             // Indexes
             $table->index('status');
             $table->index('client_id');
-            $table->index('campaign_type');
+            $table->index('strategy_type');
             $table->index('campaign_slug');
             $table->index('send_intention_interested_webhook');
             $table->index('send_intention_not_interested_webhook');

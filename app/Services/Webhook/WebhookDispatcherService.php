@@ -3,8 +3,8 @@
 namespace App\Services\Webhook;
 
 use App\Jobs\SendLeadToClientWebhook;
-use App\Models\Lead;
-use App\Models\Source;
+use App\Models\Lead\Lead;
+use App\Models\Integration\Source;
 use Illuminate\Support\Facades\Log;
 
 /**

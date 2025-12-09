@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Contracts\WebhookSenderInterface;
 use App\Enums\SourceStatus;
-use App\Models\Lead;
+use App\Models\Lead\Lead;
 use App\Services\Lead\LeadService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

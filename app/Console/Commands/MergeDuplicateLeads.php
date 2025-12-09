@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Lead;
+use App\Models\Lead\Lead;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

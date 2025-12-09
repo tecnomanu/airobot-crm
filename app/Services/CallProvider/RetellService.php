@@ -2,7 +2,7 @@
 
 namespace App\Services\CallProvider;
 
-use App\Models\CampaignCallAgent;
+use App\Models\Campaign\CampaignCallAgent;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;

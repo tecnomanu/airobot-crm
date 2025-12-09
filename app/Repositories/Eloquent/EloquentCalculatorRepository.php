@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories\Eloquent;
 
-use App\Models\Calculator;
+use App\Models\Tool\Calculator;
 use App\Repositories\Interfaces\CalculatorRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 

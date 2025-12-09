@@ -3,7 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\ClientStatus;
-use App\Models\Client;
+use App\Models\Client\Client;
 use App\Repositories\Interfaces\ClientRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;

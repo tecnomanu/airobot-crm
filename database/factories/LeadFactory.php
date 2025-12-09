@@ -4,7 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\LeadAutomationStatus;
 use App\Enums\LeadStatus;
-use App\Models\Campaign;
+use App\Models\Campaign\Campaign;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

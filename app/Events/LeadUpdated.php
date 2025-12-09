@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use App\Models\Lead;
+use App\Models\Lead\Lead;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;

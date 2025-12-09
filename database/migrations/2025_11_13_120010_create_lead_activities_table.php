@@ -25,7 +25,7 @@ return new class extends Migration
             $table->foreign('client_id')->references('id')->on('clients')->onDelete('cascade');
 
             // Polymorphic columns for subject (the specific event)
-            $table->string('subject_type'); // App\Models\LeadCall, App\Models\LeadMessage, etc.
+            $table->string('subject_type'); // App\Models\Lead\LeadCall, App\Models\Lead\LeadMessage, etc.
             $table->uuid('subject_id');
 
             $table->timestamps();

@@ -2,7 +2,7 @@
 
 namespace App\Services\CallProvider;
 
-use App\Models\CallAgentDefaultConfig;
+use App\Models\Integration\CallAgentDefaultConfig;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 

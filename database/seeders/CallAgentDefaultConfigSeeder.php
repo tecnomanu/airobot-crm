@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\CallAgentDefaultConfig;
+use App\Models\Integration\CallAgentDefaultConfig;
 use Illuminate\Database\Seeder;
 
 class CallAgentDefaultConfigSeeder extends Seeder

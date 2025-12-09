@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Campaign;
-use App\Models\CampaignWhatsappTemplate;
+use App\Models\Campaign\Campaign;
+use App\Models\Campaign\CampaignWhatsappTemplate;
 use Illuminate\Database\Seeder;
 
 class CampaignWhatsappTemplateSeeder extends Seeder

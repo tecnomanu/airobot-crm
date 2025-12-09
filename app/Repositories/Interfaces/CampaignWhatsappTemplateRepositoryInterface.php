@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Interfaces;
 
-use App\Models\CampaignWhatsappTemplate;
+use App\Models\Campaign\CampaignWhatsappTemplate;
 use Illuminate\Database\Eloquent\Collection;
 
 interface CampaignWhatsappTemplateRepositoryInterface

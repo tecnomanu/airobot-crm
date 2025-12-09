@@ -2,8 +2,8 @@
 
 namespace App\Helpers;
 
-use App\Models\Campaign;
-use App\Models\Lead;
+use App\Models\Campaign\Campaign;
+use App\Models\Lead\Lead;
 
 class PhoneHelper
 {

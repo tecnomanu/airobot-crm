@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Client;
-use App\Models\Source;
+use App\Models\Client\Client;
+use App\Models\Integration\Source;
 use Illuminate\Database\Seeder;
 
 class SourceSeeder extends Seeder

@@ -4,7 +4,7 @@ namespace App\Jobs\Lead;
 
 use App\Enums\LeadIntentionOrigin;
 use App\Enums\LeadIntentionStatus;
-use App\Models\Lead;
+use App\Models\Lead\Lead;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
 use App\Services\Lead\LeadIntentionAnalyzerService;
 use Illuminate\Bus\Queueable;

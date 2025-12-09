@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Campaign;
+use App\Models\Campaign\Campaign;
 use Illuminate\Console\Command;
 
 class MigrateCampaignDataToJson extends Command

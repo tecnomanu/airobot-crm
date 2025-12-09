@@ -6,7 +6,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\SourceStatus;
 use App\Enums\SourceType;
-use App\Models\Source;
+use App\Models\Integration\Source;
 use App\Repositories\Interfaces\SourceRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;

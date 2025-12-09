@@ -2,7 +2,7 @@
 
 namespace App\Services\Client;
 
-use App\Models\Client;
+use App\Models\Client\Client;
 use App\Repositories\Interfaces\ClientRepositoryInterface;
 
 class ClientService

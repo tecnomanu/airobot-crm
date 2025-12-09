@@ -3,7 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\LeadStatus;
-use App\Models\Lead;
+use App\Models\Lead\Lead;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;

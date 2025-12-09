@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Interfaces;
 
-use App\Models\Campaign;
+use App\Models\Campaign\Campaign;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 

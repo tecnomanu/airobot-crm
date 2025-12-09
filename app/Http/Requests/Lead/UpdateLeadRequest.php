@@ -6,8 +6,8 @@ use App\Enums\LeadOptionSelected;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
 use App\Helpers\PhoneHelper;
-use App\Models\Campaign;
-use App\Models\Lead;
+use App\Models\Campaign\Campaign;
+use App\Models\Lead\Lead;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

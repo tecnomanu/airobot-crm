@@ -5,7 +5,7 @@ namespace App\Services\Campaign;
 use App\Enums\SourceStatus;
 use App\Enums\SourceType;
 use App\Exceptions\Business\ValidationException;
-use App\Models\Campaign;
+use App\Models\Campaign\Campaign;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\ClientRepositoryInterface;
 use App\Repositories\Interfaces\SourceRepositoryInterface;

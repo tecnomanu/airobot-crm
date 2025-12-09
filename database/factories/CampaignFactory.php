@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\CampaignStatus;
-use App\Models\Client;
+use App\Models\Client\Client;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

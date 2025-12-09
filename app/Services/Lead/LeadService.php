@@ -12,7 +12,8 @@ use App\Enums\LeadStatus;
 use App\Events\LeadUpdated;
 use App\Exceptions\Business\ConfigurationException;
 use App\Helpers\PhoneHelper;
-use App\Models\Lead;
+use App\Models\Campaign\Campaign;
+use App\Models\Lead\Lead;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
 use App\Services\Webhook\WebhookDispatcherService;
@@ -361,6 +362,7 @@ class LeadService
 
     /**
      * Procesar automáticamente un lead si la campaña lo permite
+     * Bifurca la lógica según strategy_type: DIRECT vs DYNAMIC
      */
     protected function autoProcessLeadIfEnabled(Lead $lead): void
     {
@@ -376,22 +378,46 @@ class LeadService
             return;
         }
 
+        // Bifurcar según strategy_type
+        if ($campaign->isDirect()) {
+            $this->processDirectLead($lead, $campaign);
+        } else {
+            $this->processDynamicLead($lead, $campaign);
+        }
+    }
+
+    /**
+     * Process lead for DYNAMIC campaigns (conditional execution)
+     * Requires option_selected to determine which action to execute from mapping
+     */
+    protected function processDynamicLead(Lead $lead, Campaign $campaign): void
+    {
         // Verificar si el lead tiene una opción seleccionada
         if (! $lead->option_selected) {
-            Log::info('Lead no tiene opción seleccionada, no se auto-procesa', [
+            Log::info('Lead DYNAMIC sin opción seleccionada - esperando selección', [
                 'lead_id' => $lead->id,
+                'campaign_id' => $campaign->id,
+                'strategy_type' => 'dynamic',
             ]);
 
             return;
         }
 
-        // Buscar la configuración de la opción
-        $option = $campaign->getOption($lead->option_selected);
+        $optionKey = $lead->option_selected;
+
+        // Check if using JSON configuration mapping (new way)
+        if ($campaign->hasDynamicConfig()) {
+            $this->processDynamicLeadFromConfig($lead, $campaign, $optionKey);
+            return;
+        }
+
+        // Fallback: Legacy CampaignOption model (old way)
+        $option = $campaign->getOption($optionKey);
 
         if (! $option) {
             Log::warning('No se encontró configuración para la opción seleccionada', [
                 'lead_id' => $lead->id,
-                'option_selected' => $lead->option_selected,
+                'option_selected' => $optionKey,
             ]);
 
             return;
@@ -409,7 +435,7 @@ class LeadService
 
         // Ejecutar la acción según el tipo
         try {
-            Log::info('Ejecutando auto-procesamiento de lead', [
+            Log::info('Ejecutando auto-procesamiento DYNAMIC (legacy)', [
                 'lead_id' => $lead->id,
                 'option_key' => $option->option_key,
                 'action' => $option->action->value,
@@ -437,38 +463,315 @@ class LeadService
                 'automation_error' => null,
             ]);
 
-            Log::info('Auto-procesamiento completado exitosamente', [
+            Log::info('Auto-procesamiento DYNAMIC completado exitosamente', [
                 'lead_id' => $lead->id,
                 'automation_status' => $finalStatus->value,
             ]);
         } catch (ConfigurationException $e) {
-            // Errores de configuración se marcan como SKIPPED (no es un error técnico)
             $this->leadRepository->update($lead, [
                 'automation_status' => LeadAutomationStatus::SKIPPED,
                 'automation_error' => $e->getMessage(),
             ]);
 
-            Log::warning('Auto-procesamiento omitido por error de configuración', [
+            Log::warning('Auto-procesamiento DYNAMIC omitido por error de configuración', [
                 'lead_id' => $lead->id,
                 'option_key' => $option->option_key,
                 'error' => $e->getMessage(),
             ]);
-            // No lanzar excepción para no bloquear la creación del lead
         } catch (\Exception $e) {
-            // Errores técnicos se marcan como FAILED
             $this->leadRepository->update($lead, [
                 'automation_status' => LeadAutomationStatus::FAILED,
                 'automation_error' => $e->getMessage(),
             ]);
 
-            Log::error('Error en auto-procesamiento de lead', [
+            Log::error('Error en auto-procesamiento DYNAMIC', [
                 'lead_id' => $lead->id,
                 'option_key' => $option->option_key,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            // No lanzar excepción para no bloquear la creación del lead
         }
+    }
+
+    /**
+     * Process dynamic lead using JSON configuration mapping
+     */
+    protected function processDynamicLeadFromConfig(Lead $lead, Campaign $campaign, string $optionKey): void
+    {
+        $optionConfig = $campaign->getConfigForOption($optionKey);
+
+        if (! $optionConfig) {
+            // Try fallback action
+            $fallbackAction = $campaign->getFallbackAction();
+            if ($fallbackAction) {
+                Log::info('Usando fallback_action para opción no mapeada', [
+                    'lead_id' => $lead->id,
+                    'option_selected' => $optionKey,
+                    'fallback_action' => $fallbackAction,
+                ]);
+                $optionConfig = ['action' => $fallbackAction];
+            } else {
+                Log::warning('Opción no encontrada en mapping y sin fallback', [
+                    'lead_id' => $lead->id,
+                    'option_selected' => $optionKey,
+                ]);
+                return;
+            }
+        }
+
+        $actionValue = $optionConfig['action'] ?? null;
+
+        if (! $actionValue || $actionValue === 'do_nothing') {
+            Log::info('Acción configurada como do_nothing, no se procesa', [
+                'lead_id' => $lead->id,
+                'option_selected' => $optionKey,
+            ]);
+            return;
+        }
+
+        try {
+            $actionType = CampaignActionType::from($actionValue);
+        } catch (\ValueError $e) {
+            Log::error('Tipo de acción inválido en mapping', [
+                'lead_id' => $lead->id,
+                'option_selected' => $optionKey,
+                'action_value' => $actionValue,
+            ]);
+            return;
+        }
+
+        try {
+            Log::info('Ejecutando auto-procesamiento DYNAMIC desde config', [
+                'lead_id' => $lead->id,
+                'option_key' => $optionKey,
+                'action' => $actionType->value,
+            ]);
+
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::PROCESSING,
+                'last_automation_run_at' => now(),
+                'automation_attempts' => $lead->automation_attempts + 1,
+            ]);
+
+            // Execute action with option-specific config
+            $this->executeActionFromConfig($lead, $campaign, $actionType, $optionConfig);
+
+            $finalStatus = match ($actionType) {
+                CampaignActionType::MANUAL_REVIEW => LeadAutomationStatus::SKIPPED,
+                CampaignActionType::SKIP => LeadAutomationStatus::SKIPPED,
+                default => LeadAutomationStatus::COMPLETED,
+            };
+
+            $this->leadRepository->update($lead, [
+                'automation_status' => $finalStatus,
+                'automation_error' => null,
+            ]);
+
+            Log::info('Auto-procesamiento DYNAMIC completado exitosamente', [
+                'lead_id' => $lead->id,
+                'automation_status' => $finalStatus->value,
+            ]);
+        } catch (ConfigurationException $e) {
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::SKIPPED,
+                'automation_error' => $e->getMessage(),
+            ]);
+
+            Log::warning('Auto-procesamiento DYNAMIC omitido por error de configuración', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+            ]);
+        } catch (\Exception $e) {
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::FAILED,
+                'automation_error' => $e->getMessage(),
+            ]);
+
+            Log::error('Error en auto-procesamiento DYNAMIC', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    /**
+     * Process lead for DIRECT campaigns (linear execution)
+     * Triggers configured action immediately without waiting for option_selected
+     */
+    protected function processDirectLead(Lead $lead, Campaign $campaign): void
+    {
+        // Verificar si la campaña tiene configuración directa
+        if (! $campaign->hasDirectConfig()) {
+            Log::warning('Campaña DIRECT sin configuración de acción', [
+                'lead_id' => $lead->id,
+                'campaign_id' => $campaign->id,
+                'strategy_type' => 'direct',
+            ]);
+
+            return;
+        }
+
+        $triggerAction = $campaign->getTriggerAction();
+
+        try {
+            $actionType = CampaignActionType::from($triggerAction);
+        } catch (\ValueError $e) {
+            Log::error('Tipo de trigger_action inválido', [
+                'lead_id' => $lead->id,
+                'campaign_id' => $campaign->id,
+                'trigger_action' => $triggerAction,
+            ]);
+
+            return;
+        }
+
+        // Handle delay if configured
+        $delaySeconds = $campaign->getDelaySeconds();
+
+        try {
+            Log::info('Ejecutando auto-procesamiento DIRECT', [
+                'lead_id' => $lead->id,
+                'campaign_id' => $campaign->id,
+                'action' => $actionType->value,
+                'delay_seconds' => $delaySeconds,
+            ]);
+
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::PROCESSING,
+                'last_automation_run_at' => now(),
+                'automation_attempts' => $lead->automation_attempts + 1,
+            ]);
+
+            // Build config from campaign's direct configuration
+            $config = [
+                'agent_id' => $campaign->getAgentId(),
+                'source_id' => $campaign->getSourceId(),
+                'template_id' => $campaign->getTemplateId(),
+                'message' => $campaign->getMessage(),
+            ];
+
+            // TODO: If delay > 0, dispatch as delayed job instead of immediate execution
+            $this->executeActionFromConfig($lead, $campaign, $actionType, $config);
+
+            $finalStatus = match ($actionType) {
+                CampaignActionType::MANUAL_REVIEW => LeadAutomationStatus::SKIPPED,
+                CampaignActionType::SKIP => LeadAutomationStatus::SKIPPED,
+                default => LeadAutomationStatus::COMPLETED,
+            };
+
+            $this->leadRepository->update($lead, [
+                'automation_status' => $finalStatus,
+                'automation_error' => null,
+            ]);
+
+            Log::info('Auto-procesamiento DIRECT completado exitosamente', [
+                'lead_id' => $lead->id,
+                'automation_status' => $finalStatus->value,
+            ]);
+        } catch (ConfigurationException $e) {
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::SKIPPED,
+                'automation_error' => $e->getMessage(),
+            ]);
+
+            Log::warning('Auto-procesamiento DIRECT omitido por error de configuración', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+            ]);
+        } catch (\Exception $e) {
+            $this->leadRepository->update($lead, [
+                'automation_status' => LeadAutomationStatus::FAILED,
+                'automation_error' => $e->getMessage(),
+            ]);
+
+            Log::error('Error en auto-procesamiento DIRECT', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    /**
+     * Execute action from configuration array (shared between DIRECT and DYNAMIC)
+     */
+    protected function executeActionFromConfig(Lead $lead, Campaign $campaign, CampaignActionType $actionType, array $config): void
+    {
+        match ($actionType) {
+            CampaignActionType::CALL_AI => $this->executeCallAction($lead, $campaign, $config),
+            CampaignActionType::WHATSAPP => $this->executeWhatsAppAction($lead, $campaign, $config),
+            CampaignActionType::WEBHOOK_CRM => $this->executeWebhookAction($lead, $campaign, $config),
+            CampaignActionType::MANUAL_REVIEW => $this->executeManualReviewAction($lead, $campaign, $config),
+            CampaignActionType::SKIP => null,
+        };
+    }
+
+    /**
+     * Execute call action using agent from config
+     */
+    protected function executeCallAction(Lead $lead, Campaign $campaign, array $config): void
+    {
+        Log::info('Ejecutando llamada con agente', [
+            'lead_id' => $lead->id,
+            'agent_id' => $config['agent_id'] ?? null,
+        ]);
+
+        // TODO: Implement call dispatch using configured agent_id
+        $lead->update([
+            'status' => LeadStatus::IN_PROGRESS,
+            'last_automation_run_at' => now(),
+        ]);
+    }
+
+    /**
+     * Execute WhatsApp action using source/template from config
+     */
+    protected function executeWhatsAppAction(Lead $lead, Campaign $campaign, array $config): void
+    {
+        Log::info('Ejecutando WhatsApp con configuración', [
+            'lead_id' => $lead->id,
+            'source_id' => $config['source_id'] ?? null,
+            'template_id' => $config['template_id'] ?? null,
+        ]);
+
+        // TODO: Implement WhatsApp send using configured source_id, template_id, or message
+        $lead->update([
+            'status' => LeadStatus::IN_PROGRESS,
+            'intention_status' => LeadIntentionStatus::PENDING,
+            'intention_origin' => LeadIntentionOrigin::WHATSAPP,
+        ]);
+    }
+
+    /**
+     * Execute webhook action
+     */
+    protected function executeWebhookAction(Lead $lead, Campaign $campaign, array $config): void
+    {
+        Log::info('Ejecutando webhook', [
+            'lead_id' => $lead->id,
+        ]);
+
+        // TODO: Implement webhook dispatch
+        $lead->update([
+            'status' => LeadStatus::IN_PROGRESS,
+            'last_automation_run_at' => now(),
+        ]);
+    }
+
+    /**
+     * Execute manual review action
+     */
+    protected function executeManualReviewAction(Lead $lead, Campaign $campaign, array $config): void
+    {
+        Log::info('Lead marcado para revisión manual', [
+            'lead_id' => $lead->id,
+        ]);
+
+        $lead->update([
+            'status' => LeadStatus::PENDING,
+            'last_automation_run_at' => now(),
+        ]);
     }
 
     /**

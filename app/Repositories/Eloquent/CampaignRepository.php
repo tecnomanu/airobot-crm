@@ -3,7 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\CampaignStatus;
-use App\Models\Campaign;
+use App\Models\Campaign\Campaign;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;

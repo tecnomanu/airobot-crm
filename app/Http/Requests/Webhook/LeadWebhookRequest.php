@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Webhook;
 
+use App\Helpers\PhoneHelper;
+use App\Models\Campaign\Campaign;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -77,10 +79,10 @@ class LeadWebhookRequest extends FormRequest
             // Obtener campaña si viene campaign_id
             $campaign = null;
             if ($this->has('campaign_id')) {
-                $campaign = \App\Models\Campaign::find($this->campaign_id);
+                $campaign = Campaign::find($this->campaign_id);
             }
 
-            $normalizedPhone = \App\Helpers\PhoneHelper::normalizeForLead(
+            $normalizedPhone = PhoneHelper::normalizeForLead(
                 $this->phone,
                 $campaign
             );

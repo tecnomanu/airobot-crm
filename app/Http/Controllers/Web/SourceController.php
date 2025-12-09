@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Source\StoreSourceRequest;
 use App\Http\Requests\Source\UpdateSourceRequest;
 use App\Http\Resources\Source\SourceResource;
+use App\Models\Campaign\CampaignOption;
 use App\Services\Client\ClientService;
 use App\Services\Source\SourceService;
 use Illuminate\Http\Request;
@@ -45,7 +46,7 @@ class SourceController extends Controller
         // Agregar conteo de campañas a cada source usando through()
         $sources->through(function ($source) {
             // Contar campañas que usan este source en campaign_options
-            $source->campaigns_count = \App\Models\CampaignOption::where('source_id', $source->id)
+            $source->campaigns_count = CampaignOption::where('source_id', $source->id)
                 ->distinct('campaign_id')
                 ->count('campaign_id');
 
@@ -56,7 +57,7 @@ class SourceController extends Controller
             'sources' => SourceResource::collection($sources),
             'clients' => $clients,
             'filters' => $filters,
-            'source_types' => collect(SourceType::cases())->map(fn ($type) => [
+            'source_types' => collect(SourceType::cases())->map(fn($type) => [
                 'value' => $type->value,
                 'label' => $type->label(),
             ]),
@@ -73,7 +74,7 @@ class SourceController extends Controller
         return Inertia::render('Sources/Form', [
             'source' => null,
             'clients' => $clients,
-            'source_types' => collect(SourceType::cases())->map(fn ($type) => [
+            'source_types' => collect(SourceType::cases())->map(fn($type) => [
                 'value' => $type->value,
                 'label' => $type->label(),
                 'required_fields' => $type->requiredConfigFields(),
@@ -114,7 +115,7 @@ class SourceController extends Controller
         return Inertia::render('Sources/Form', [
             'source' => new SourceResource($source),
             'clients' => $clients,
-            'source_types' => collect(SourceType::cases())->map(fn ($type) => [
+            'source_types' => collect(SourceType::cases())->map(fn($type) => [
                 'value' => $type->value,
                 'label' => $type->label(),
                 'required_fields' => $type->requiredConfigFields(),

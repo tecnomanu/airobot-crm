@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Interfaces;
 
-use App\Models\Lead;
+use App\Models\Lead\Lead;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 

@@ -7,8 +7,8 @@ namespace App\Services\External;
 use App\Contracts\WebhookSenderInterface;
 use App\DTOs\External\WebhookResultDTO;
 use App\Enums\SourceType;
-use App\Models\Lead;
-use App\Models\Source;
+use App\Models\Lead\Lead;
+use App\Models\Integration\Source;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 

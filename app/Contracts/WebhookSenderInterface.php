@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Contracts;
 
 use App\DTOs\External\WebhookResultDTO;
-use App\Models\Lead;
-use App\Models\Source;
+use App\Models\Lead\Lead;
+use App\Models\Integration\Source;
 
 /**
  * Interfaz para envío de webhooks a destinos externos (CRMs, etc.)

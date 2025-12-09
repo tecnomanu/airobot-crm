@@ -14,7 +14,7 @@ use App\Events\Calculator\ColumnDeleted;
 use App\Events\Calculator\RowDeleted;
 use App\Events\Calculator\NameUpdated;
 use App\Events\Calculator\CursorMoved;
-use App\Models\Calculator;
+use App\Models\Tool\Calculator;
 use App\Repositories\Interfaces\CalculatorRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
