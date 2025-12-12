@@ -23,3 +23,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 docs/
+
+# Excluded projects
+omnileads-crm/
+cookies.txt

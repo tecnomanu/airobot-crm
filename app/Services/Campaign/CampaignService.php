@@ -67,6 +67,7 @@ class CampaignService
                 'description' => $data['description'] ?? null,
                 'status' => $data['status'] ?? 'active',
                 'slug' => $slug,
+                'strategy_type' => $data['strategy_type'] ?? 'dynamic',
                 'auto_process_enabled' => $data['auto_process_enabled'] ?? true,
                 'intention_interested_webhook_id' => $data['intention_interested_webhook_id'] ?? null,
                 'intention_not_interested_webhook_id' => $data['intention_not_interested_webhook_id'] ?? null,
@@ -85,9 +86,12 @@ class CampaignService
                 $this->createOrUpdateWhatsappAgent($campaign, $data['whatsapp_agent']);
             }
 
-            // Crear opciones (por defecto: 1, 2, i, t)
-            $options = $data['options'] ?? $this->getDefaultOptions();
-            $this->syncOptions($campaign, $options);
+            // Crear opciones solo para campañas dinámicas (por defecto: 1, 2, i, t)
+            $strategyType = $data['strategy_type'] ?? 'dynamic';
+            if ($strategyType === 'dynamic') {
+                $options = $data['options'] ?? $this->getDefaultOptions();
+                $this->syncOptions($campaign, $options);
+            }
 
             return $campaign->fresh([
                 'callAgent',

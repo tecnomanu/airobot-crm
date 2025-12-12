@@ -1,6 +1,5 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import {
     Dialog,
@@ -117,75 +116,78 @@ export default function ClientsIndex({ clients, filters }) {
         >
             <Head title="Clientes" />
 
-            <div className="space-y-6">
-
-                {/* Filters */}
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <form
-                                onSubmit={handleSearch}
-                                className="flex gap-2"
-                            >
-                                <Input
-                                    placeholder="Buscar cliente..."
-                                    value={searchTerm}
-                                    onChange={(e) =>
-                                        setSearchTerm(e.target.value)
-                                    }
-                                />
-                                <Button
-                                    type="submit"
-                                    size="icon"
-                                    variant="outline"
-                                >
-                                    <Search className="h-4 w-4" />
-                                </Button>
-                            </form>
-
-                            <Select
-                                value={filters.status || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange(
-                                        "status",
-                                        value === "all" ? "" : value
-                                    )
+            {/* Main Card Container */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                {/* Header Section with padding */}
+                <div className="p-6 space-y-4">
+                    {/* Filters Row */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <form
+                            onSubmit={handleSearch}
+                            className="flex-1 max-w-md relative"
+                        >
+                            <Input
+                                placeholder="Buscar cliente..."
+                                value={searchTerm}
+                                onChange={(e) =>
+                                    setSearchTerm(e.target.value)
                                 }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Todos los estados" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        Todos los estados
-                                    </SelectItem>
-                                    <SelectItem value="active">
-                                        Activo
-                                    </SelectItem>
-                                    <SelectItem value="inactive">
-                                        Inactivo
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-
+                                className="pl-4 pr-10 py-2.5 bg-indigo-50 border-0 rounded-lg"
+                            />
                             <Button
-                                variant="outline"
-                                onClick={handleClearFilters}
-                                className="w-full"
+                                type="submit"
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                             >
-                                <X className="mr-2 h-4 w-4" />
-                                Limpiar
+                                <Search className="h-4 w-4 text-gray-400" />
                             </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </form>
 
-                {/* Table */}
-                <DataTable
-                    columns={getClientColumns(handleDelete)}
-                    data={clients.data}
-                    filterColumn="name"
-                />
+                        <Select
+                            value={filters.status || "all"}
+                            onValueChange={(value) =>
+                                handleFilterChange(
+                                    "status",
+                                    value === "all" ? "" : value
+                                )
+                            }
+                        >
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Todos los estados" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    Todos los estados
+                                </SelectItem>
+                                <SelectItem value="active">
+                                    Activo
+                                </SelectItem>
+                                <SelectItem value="inactive">
+                                    Inactivo
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Button
+                            variant="outline"
+                            onClick={handleClearFilters}
+                            size="sm"
+                        >
+                            <X className="mr-2 h-4 w-4" />
+                            Limpiar
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Table with padding */}
+                <div className="px-6 pb-6">
+                    <DataTable
+                        columns={getClientColumns(handleDelete)}
+                        data={clients.data}
+                        filterColumn="name"
+                    />
+                </div>
             </div>
 
             {/* Create Client Modal */}

@@ -18,6 +18,10 @@ class CampaignResource extends JsonResource
             'status_label' => $this->status->label(),
             'status_color' => $this->status->color(),
             'slug' => $this->slug,
+            'strategy_type' => $this->strategy_type?->value ?? 'dynamic',
+            'strategy_type_label' => $this->strategy_type?->label() ?? 'Dinámica (Opciones)',
+            'is_direct' => $this->isDirect(),
+            'is_dynamic' => $this->isDynamic(),
             'auto_process_enabled' => $this->auto_process_enabled,
 
             // Agente de llamadas

@@ -18,14 +18,30 @@ class LeadResource extends JsonResource
             'id' => $this->id,
             'phone' => $this->phone,
             'name' => $this->name,
+            'email' => $this->email,
             'city' => $this->city,
             'option_selected' => $this->option_selected,
             'option_selected_label' => $this->getOptionLabel(),
             'campaign_id' => $this->campaign_id,
-            'campaign' => [
+            'campaign' => $this->whenLoaded('campaign', function () {
+                return [
+                    'id' => $this->campaign->id,
+                    'name' => $this->campaign->name,
+                    'client' => $this->campaign->relationLoaded('client') ? [
+                        'id' => $this->campaign->client?->id,
+                        'name' => $this->campaign->client?->name,
+                    ] : null,
+                ];
+            }, [
                 'id' => $this->campaign?->id,
                 'name' => $this->campaign?->name,
-            ],
+            ]),
+            'client' => $this->whenLoaded('client', function () {
+                return [
+                    'id' => $this->client->id,
+                    'name' => $this->client->name,
+                ];
+            }),
             'status' => $this->status?->value,
             'status_label' => $this->status?->label(),
             'status_color' => $this->status?->color(),
@@ -34,6 +50,7 @@ class LeadResource extends JsonResource
             'sent_at' => $this->sent_at?->toIso8601String(),
             'intention' => $this->intention,
             'intention_status' => $this->intention_status?->value,
+            'intention_status_label' => $this->intention_status?->label(),
             'intention_origin' => $this->intention_origin?->value,
             'last_message' => $this->getLastInboundMessage(),
             'messages_count' => $this->whenCounted('messages'),
@@ -48,8 +65,25 @@ class LeadResource extends JsonResource
                     ];
                 });
             }),
+            'calls' => $this->whenLoaded('calls', function () {
+                return $this->calls->map(function ($call) {
+                    return [
+                        'id' => $call->id,
+                        'call_date' => $call->call_date?->toIso8601String(),
+                        'duration_seconds' => $call->duration_seconds,
+                        'status' => $call->status,
+                        'summary' => $call->summary,
+                        'notes' => $call->notes,
+                        'recording_url' => $call->recording_url,
+                        'created_at' => $call->created_at->toIso8601String(),
+                    ];
+                });
+            }),
             'notes' => $this->notes,
             'tags' => $this->tags,
+            'manual_classification' => $this->manual_classification,
+            'decision_notes' => $this->decision_notes,
+            'ai_agent_active' => $this->ai_agent_active ?? false,
             'webhook_sent' => $this->webhook_sent,
             'webhook_result' => $this->webhook_result,
             'intention_webhook_sent' => $this->intention_webhook_sent,

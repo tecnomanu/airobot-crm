@@ -19,6 +19,11 @@ class HandleInertiaRequests extends Middleware
      */
     public function version(Request $request): ?string
     {
+        // Disable version check in development to prevent 409 conflicts with Vite HMR
+        if (app()->environment('local')) {
+            return null;
+        }
+
         return parent::version($request);
     }
 

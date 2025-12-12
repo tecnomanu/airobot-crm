@@ -5,6 +5,7 @@ namespace App\Http\Requests\Campaign;
 use App\Enums\CallAgentProvider;
 use App\Enums\CampaignActionType;
 use App\Enums\CampaignStatus;
+use App\Enums\CampaignStrategy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +24,7 @@ class StoreCampaignRequest extends FormRequest
             'client_id' => ['required', 'string', 'uuid', 'exists:clients,id'],
             'description' => ['nullable', 'string'],
             'status' => ['nullable', Rule::enum(CampaignStatus::class)],
+            'strategy_type' => ['nullable', Rule::enum(CampaignStrategy::class)],
 
             // Agente de llamadas
             'call_agent' => ['nullable', 'array'],
@@ -65,12 +67,14 @@ class StoreCampaignRequest extends FormRequest
 
     /**
      * Prepara los datos para ser validados
-     * Asegura que siempre existan las 4 opciones por defecto
+     * Solo crea opciones por defecto para campañas dinámicas (IVR)
      */
     protected function prepareForValidation(): void
     {
-        // Si no se envían opciones, crear las 4 por defecto
-        if (! $this->has('options') || empty($this->input('options'))) {
+        $strategyType = $this->input('strategy_type', 'dynamic');
+
+        // Only create default options for dynamic (IVR) campaigns
+        if ($strategyType === 'dynamic' && (! $this->has('options') || empty($this->input('options')))) {
             $this->merge([
                 'options' => [
                     ['option_key' => '1', 'action' => 'skip', 'enabled' => true, 'delay' => 5],
@@ -79,6 +83,11 @@ class StoreCampaignRequest extends FormRequest
                     ['option_key' => 't', 'action' => 'skip', 'enabled' => true, 'delay' => 5],
                 ],
             ]);
+        }
+
+        // For direct campaigns, ensure no options are created
+        if ($strategyType === 'direct') {
+            $this->merge(['options' => []]);
         }
     }
 }

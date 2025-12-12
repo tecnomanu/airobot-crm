@@ -1,111 +1,121 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { router } from "@inertiajs/react";
-import { ArrowUpDown, Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2, Zap, GitBranch } from "lucide-react";
 
 export const getCampaignColumns = (handleDelete, handleToggleStatus) => [
     {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) =>
-                    table.toggleAllPageRowsSelected(!!value)
-                }
-                aria-label="Seleccionar todo"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Seleccionar fila"
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
         accessorKey: "name",
-        header: ({ column }) => {
+        header: "NOMBRE",
+        cell: ({ row }) => {
+            const campaign = row.original;
             return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === "asc")
-                    }
-                >
-                    Nombre
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
+                <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                        {campaign.name}
+                    </span>
+                    {campaign.description && (
+                        <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                            {campaign.description}
+                        </span>
+                    )}
+                </div>
             );
         },
-        cell: ({ row }) => (
-            <div className="font-medium">{row.getValue("name")}</div>
-        ),
     },
     {
         accessorKey: "client",
-        header: "Cliente",
-        cell: ({ row }) => <div>{row.original.client?.name || "-"}</div>,
+        header: "CLIENTE",
+        cell: ({ row }) => (
+            <span className="text-sm text-gray-600">
+                {row.original.client?.name || "-"}
+            </span>
+        ),
         enableSorting: false,
     },
     {
-        accessorKey: "slug",
-        header: "Slug",
-        cell: ({ row }) => (
-            <div className="font-mono text-xs">
-                {row.getValue("slug") || (
-                    <span className="text-muted-foreground">-</span>
-                )}
-            </div>
-        ),
-    },
-    {
-        accessorKey: "webhook_enabled",
-        header: "Webhook",
+        accessorKey: "strategy_type",
+        header: "TIPO",
         cell: ({ row }) => {
-            const enabled = row.getValue("webhook_enabled");
-            return enabled ? (
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                    Activo
+            const strategy = row.original.strategy_type;
+            const isDirect = strategy === "direct";
+            
+            return (
+                <Badge
+                    variant="outline"
+                    className={`text-[10px] font-medium px-2 py-0.5 flex items-center gap-1 w-fit ${
+                        isDirect
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : "bg-blue-50 text-blue-700 border-blue-200"
+                    }`}
+                >
+                    {isDirect ? (
+                        <Zap className="h-3 w-3" />
+                    ) : (
+                        <GitBranch className="h-3 w-3" />
+                    )}
+                    {isDirect ? "DIRECTA" : "MÚLTIPLE"}
                 </Badge>
-            ) : (
-                <Badge variant="outline">Inactivo</Badge>
             );
         },
     },
     {
-        id: "actions",
-        enableHiding: false,
+        accessorKey: "leads_count",
+        header: "LEADS",
+        cell: ({ row }) => (
+            <span className="text-sm text-gray-600">
+                {row.original.leads_count ?? 0}
+            </span>
+        ),
+    },
+    {
+        id: "status",
+        header: "ESTADO",
         cell: ({ row }) => {
             const campaign = row.original;
             const isActive = campaign.status === "active";
 
             return (
-                <div className="flex justify-end items-center gap-3">
+                <div className="flex items-center gap-2">
                     <Switch
                         checked={isActive}
                         onCheckedChange={() => handleToggleStatus(campaign)}
-                        className="data-[state=checked]:bg-green-600"
+                        className="data-[state=checked]:bg-green-600 h-5 w-9"
                     />
+                    <span className={`text-xs font-medium ${
+                        isActive ? "text-green-600" : "text-gray-500"
+                    }`}>
+                        {isActive ? "Activa" : "Pausada"}
+                    </span>
+                </div>
+            );
+        },
+    },
+    {
+        id: "actions",
+        header: "ACCIONES",
+        enableHiding: false,
+        cell: ({ row }) => {
+            const campaign = row.original;
+
+            return (
+                <div className="flex justify-end items-center gap-1">
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() =>
-                            router.visit(route("campaigns.show", campaign.id))
-                        }
+                        className="h-7 w-7"
+                        onClick={() => router.visit(route("campaigns.show", campaign.id))}
                     >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5 text-gray-500" />
                     </Button>
                     <Button
                         variant="ghost"
                         size="icon"
+                        className="h-7 w-7"
                         onClick={() => handleDelete(campaign)}
                     >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
                     </Button>
                 </div>
             );

@@ -11,7 +11,7 @@ class ClientMonthlySummary
      * @param  CampaignSummary[]  $campaigns
      */
     public function __construct(
-        public int $clientId,
+        public string $clientId,
         public string $clientName,
         public string $period,
         public int $totalLeads,

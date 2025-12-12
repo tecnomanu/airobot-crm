@@ -5,7 +5,7 @@ use App\Http\Controllers\Web\Campaign\CampaignController;
 use App\Http\Controllers\Web\CalculatorController;
 use App\Http\Controllers\Web\Client\ClientController;
 use App\Http\Controllers\Web\DashboardController;
-use App\Http\Controllers\Web\Lead\LeadsManagerController;
+use App\Http\Controllers\Web\Lead\LeadController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SourceController;
 use App\Http\Controllers\Web\WebhookConfigController;
@@ -28,24 +28,22 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Leads Manager (Unified View with Tabs)
-    Route::prefix('leads-manager')->name('leads-manager.')->group(function () {
-        Route::get('/', [LeadsManagerController::class, 'index'])->name('index');
-        Route::get('/{id}', [LeadsManagerController::class, 'show'])->name('show');
-        Route::post('/', [LeadsManagerController::class, 'store'])->name('store');
-        Route::put('/{id}', [LeadsManagerController::class, 'update'])->name('update');
-        Route::delete('/{id}', [LeadsManagerController::class, 'destroy'])->name('destroy');
-
-        // Automation retry
-        Route::post('/{id}/retry-automation', [LeadsManagerController::class, 'retryAutomation'])->name('retry-automation');
-        Route::post('/retry-automation-batch', [LeadsManagerController::class, 'retryAutomationBatch'])->name('retry-automation-batch');
-
-        // Quick actions
-        Route::post('/{id}/call', [LeadsManagerController::class, 'callAction'])->name('call-action');
-        Route::post('/{id}/whatsapp', [LeadsManagerController::class, 'whatsappAction'])->name('whatsapp-action');
+    // Leads - Note: Using closure for index due to route resolution issue
+    Route::prefix('leads')->name('leads.')->group(function () {
+        Route::get('/', function (\Illuminate\Http\Request $request) {
+            return app(\App\Http\Controllers\Web\Lead\LeadController::class)->index($request);
+        })->name('index');
+        Route::get('/{id}', function (\Illuminate\Http\Request $request, string $id) {
+            return app(\App\Http\Controllers\Web\Lead\LeadController::class)->show($id);
+        })->name('show');
+        Route::post('/', [LeadController::class, 'store'])->name('store');
+        Route::put('/{id}', [LeadController::class, 'update'])->name('update');
+        Route::delete('/{id}', [LeadController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/retry-automation', [LeadController::class, 'retryAutomation'])->name('retry-automation');
+        Route::post('/retry-automation-batch', [LeadController::class, 'retryAutomationBatch'])->name('retry-automation-batch');
+        Route::post('/{id}/call', [LeadController::class, 'callAction'])->name('call-action');
+        Route::post('/{id}/whatsapp', [LeadController::class, 'whatsappAction'])->name('whatsapp-action');
     });
-
-    // Legacy routes removed - use leads-manager instead
 
     // Campaigns
     Route::prefix('campaigns')->name('campaigns.')->group(function () {
@@ -66,10 +64,20 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [ClientController::class, 'destroy'])->name('destroy');
     });
 
-    // Lead Calls (formerly Call History)
+    // Lead Calls (Call History)
     Route::prefix('lead-calls')->name('lead-calls.')->group(function () {
         Route::get('/', [LeadCallController::class, 'index'])->name('index');
         Route::get('/{id}', [LeadCallController::class, 'show'])->name('show');
+    });
+
+    // Messages (Chat Interface)
+    Route::prefix('messages')->name('messages.')->group(function () {
+        Route::get('/', function (\Illuminate\Http\Request $request) {
+            return app(\App\Http\Controllers\Web\Message\MessagesController::class)->index($request);
+        })->name('index');
+        Route::get('/{leadId}/messages', [\App\Http\Controllers\Web\Message\MessagesController::class, 'getMessages'])->name('get');
+        Route::post('/{leadId}/send', [\App\Http\Controllers\Web\Message\MessagesController::class, 'sendMessage'])->name('send');
+        Route::post('/{leadId}/toggle-ai', [\App\Http\Controllers\Web\Message\MessagesController::class, 'toggleAiAgent'])->name('toggle-ai');
     });
 
     // Webhook Configuration

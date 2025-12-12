@@ -124,7 +124,7 @@ export default function Dashboard({
                                     </CardDescription>
                                 </div>
                                 <Link
-                                    href={route("leads-manager.index")}
+                                    href={route("leads.index")}
                                     className="flex items-center text-sm font-medium text-primary hover:underline"
                                 >
                                     Ver todos

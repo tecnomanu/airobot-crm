@@ -1,205 +1,251 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { router } from "@inertiajs/react";
-import { AlertCircle, ArrowUpDown, Eye, RefreshCw, Trash2 } from "lucide-react";
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Eye,
+    Phone,
+    MessageSquare,
+    Trash2,
+    Edit,
+    MoreHorizontal,
+    Play,
+    Pause,
+    RefreshCw,
+} from "lucide-react";
 
-export const getLeadColumns = (handleDelete, handleRetry) => [
-    {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) =>
-                    table.toggleAllPageRowsSelected(!!value)
+/**
+ * Status badge component for leads
+ */
+const StatusBadge = ({ status, label }) => {
+    const colors = {
+        pending: "bg-blue-50 text-blue-700 border-blue-200",
+        new: "bg-blue-50 text-blue-700 border-blue-200",
+        in_progress: "bg-yellow-50 text-yellow-700 border-yellow-200",
+        qualifying: "bg-yellow-50 text-yellow-700 border-yellow-200",
+        contacted: "bg-purple-50 text-purple-700 border-purple-200",
+        sales_ready: "bg-green-50 text-green-700 border-green-200",
+        closed: "bg-gray-50 text-gray-700 border-gray-200",
+        invalid: "bg-red-50 text-red-700 border-red-200",
+    };
+
+    return (
+        <Badge
+            variant="outline"
+            className={`${colors[status] || "bg-gray-50 text-gray-700"} text-[10px] font-medium px-2 py-0.5`}
+        >
+            {label || status?.toUpperCase()}
+        </Badge>
+    );
+};
+
+/**
+ * Source badge component
+ */
+const SourceBadge = ({ source, label }) => {
+    const colors = {
+        ivr: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        webhook: "bg-green-50 text-green-700 border-green-200",
+        webhook_inicial: "bg-green-50 text-green-700 border-green-200",
+        csv: "bg-blue-50 text-blue-700 border-blue-200",
+        manual: "bg-gray-50 text-gray-700 border-gray-200",
+        whatsapp: "bg-orange-50 text-orange-700 border-orange-200",
+        agente_ia: "bg-purple-50 text-purple-700 border-purple-200",
+    };
+
+    const sourceKey = source?.toLowerCase() || "";
+    const colorClass = colors[sourceKey] || "bg-gray-50 text-gray-700 border-gray-200";
+
+    return (
+        <Badge variant="outline" className={`${colorClass} text-[10px] font-medium px-2 py-0.5`}>
+            {(label || source || "UNKNOWN").toUpperCase()}
+        </Badge>
+    );
+};
+
+/**
+ * Format date for display
+ */
+const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+    });
+};
+
+/**
+ * Column definitions for leads table
+ * Shows: NAME (with phone), SOURCE, STATUS, CREATED, ACTIONS
+ */
+export const getLeadColumns = (activeTab, handlers = {}) => {
+    const { onDelete, onCall, onWhatsApp, onView, onEdit, onRetryAutomation } = handlers;
+
+    return [
+        // NAME Column - Name + Phone
+        {
+            accessorKey: "name",
+            header: "NAME",
+            cell: ({ row }) => {
+                const lead = row.original;
+                return (
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                            {lead.name || "Unknown User"}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                            {lead.phone}
+                        </span>
+                    </div>
+                );
+            },
+        },
+
+        // SOURCE Column - with option if IVR
+        {
+            accessorKey: "source",
+            header: "SOURCE",
+            cell: ({ row }) => {
+                const lead = row.original;
+                const sourceText = lead.source_label || lead.source || "Unknown";
+                const optionText = lead.option_selected ? `(Opt: ${lead.option_selected})` : "";
+                
+                return (
+                    <div className="flex flex-col gap-1">
+                        <SourceBadge source={lead.source} label={sourceText} />
+                        {lead.option_selected && (
+                            <span className="text-[10px] text-gray-500 ml-0.5">
+                                {optionText}
+                            </span>
+                        )}
+                    </div>
+                );
+            },
+        },
+
+        // STATUS Column
+        {
+            accessorKey: "status",
+            header: "STATUS",
+            cell: ({ row }) => {
+                const lead = row.original;
+                let displayLabel = lead.status_label;
+
+                // Custom labels based on tab
+                if (activeTab === "inbox") {
+                    displayLabel = "NEW";
+                } else if (activeTab === "active") {
+                    displayLabel = "QUALIFYING";
+                } else if (activeTab === "sales_ready") {
+                    displayLabel = "SALES READY";
                 }
-                aria-label="Seleccionar todo"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Seleccionar fila"
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        accessorKey: "phone",
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === "asc")
-                    }
-                >
-                    Teléfono
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => (
-            <div className="font-medium">{row.getValue("phone")}</div>
-        ),
-    },
-    {
-        accessorKey: "name",
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() =>
-                        column.toggleSorting(column.getIsSorted() === "asc")
-                    }
-                >
-                    Nombre
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            );
-        },
-        cell: ({ row }) => <div>{row.getValue("name") || "-"}</div>,
-    },
-    {
-        accessorKey: "city",
-        header: "Ciudad",
-        cell: ({ row }) => <div>{row.getValue("city") || "-"}</div>,
-    },
-    {
-        accessorKey: "campaign",
-        header: "Campaña",
-        cell: ({ row }) => <div>{row.original.campaign?.name || "-"}</div>,
-        enableSorting: false,
-    },
-    {
-        accessorKey: "status",
-        header: "Estado",
-        cell: ({ row }) => {
-            const status = row.getValue("status");
-            const colors = {
-                pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-                in_progress: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-                contacted: "bg-purple-100 text-purple-800 hover:bg-purple-100",
-                closed: "bg-green-100 text-green-800 hover:bg-green-100",
-                invalid: "bg-red-100 text-red-800 hover:bg-red-100",
-            };
-            return (
-                <Badge
-                    className={colors[status] || "bg-gray-100 text-gray-800"}
-                >
-                    {row.original.status_label}
-                </Badge>
-            );
-        },
-    },
-    {
-        accessorKey: "source",
-        header: "Fuente",
-        cell: ({ row }) => (
-            <div className="capitalize">{row.original.source_label || "-"}</div>
-        ),
-    },
-    {
-        accessorKey: "option_selected",
-        header: "Opción",
-        cell: ({ row }) => {
-            const option = row.getValue("option_selected");
-            return option ? (
-                <Badge variant="outline">Opción {option}</Badge>
-            ) : (
-                <span className="text-muted-foreground">-</span>
-            );
-        },
-    },
-    {
-        accessorKey: "automation_status",
-        header: "Auto-Proceso",
-        cell: ({ row }) => {
-            const status = row.getValue("automation_status");
-            const label = row.original.automation_status_label;
-            const error = row.original.automation_error;
 
-            if (!status)
-                return <span className="text-muted-foreground">-</span>;
-
-            const colors = {
-                pending: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-                processing: "bg-blue-100 text-blue-800 hover:bg-blue-100",
-                completed: "bg-green-100 text-green-800 hover:bg-green-100",
-                failed: "bg-red-100 text-red-800 hover:bg-red-100",
-                skipped: "bg-gray-100 text-gray-800 hover:bg-gray-100",
-            };
-
-            return (
-                <div className="flex items-center gap-2">
-                    <Badge
-                        className={
-                            colors[status] || "bg-gray-100 text-gray-800"
-                        }
-                    >
-                        {label}
-                    </Badge>
-                    {error && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <AlertCircle className="h-4 w-4 text-red-600 cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-md">
-                                    <p className="whitespace-normal break-words">
-                                        {error}
-                                    </p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                </div>
-            );
+                return <StatusBadge status={lead.status} label={displayLabel} />;
+            },
         },
-    },
-    {
-        id: "actions",
-        enableHiding: false,
-        cell: ({ row }) => {
-            const lead = row.original;
-            return (
-                <div className="flex justify-end gap-2">
-                    {lead.can_retry_automation && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRetry(lead)}
-                            title="Reintentar procesamiento"
-                        >
-                            <RefreshCw className="h-4 w-4 text-blue-500" />
-                        </Button>
-                    )}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                            router.visit(route("leads-manager.show", lead.id))
-                        }
-                    >
-                        <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(lead)}
-                    >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                </div>
-            );
+
+        // CREATED Column
+        {
+            accessorKey: "created_at",
+            header: "CREATED",
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-600">
+                    {formatDate(row.original.created_at)}
+                </span>
+            ),
         },
-    },
-];
+
+        // ACTIONS Column - Dropdown Menu
+        {
+            id: "actions",
+            header: "",
+            enableHiding: false,
+            cell: ({ row }) => {
+                const lead = row.original;
+                return (
+                    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-gray-100"
+                                >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Abrir menú</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                {/* View */}
+                                <DropdownMenuItem
+                                    onClick={() => onView?.(lead)}
+                                    className="cursor-pointer"
+                                >
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Ver detalles
+                                </DropdownMenuItem>
+
+                                {/* Edit */}
+                                <DropdownMenuItem
+                                    onClick={() => onEdit?.(lead)}
+                                    className="cursor-pointer"
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Editar
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                {/* Communication Actions */}
+                                <DropdownMenuItem
+                                    onClick={() => onCall?.(lead)}
+                                    className="cursor-pointer"
+                                >
+                                    <Phone className="mr-2 h-4 w-4 text-green-600" />
+                                    Llamar
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                    onClick={() => onWhatsApp?.(lead)}
+                                    className="cursor-pointer"
+                                >
+                                    <MessageSquare className="mr-2 h-4 w-4 text-blue-600" />
+                                    Abrir WhatsApp
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                {/* Campaign Actions */}
+                                <DropdownMenuItem
+                                    onClick={() => onRetryAutomation?.(lead)}
+                                    className="cursor-pointer"
+                                >
+                                    <RefreshCw className="mr-2 h-4 w-4 text-purple-600" />
+                                    Re-ejecutar campaña
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                {/* Destructive */}
+                                <DropdownMenuItem
+                                    onClick={() => onDelete?.(lead)}
+                                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                );
+            },
+        },
+    ];
+};

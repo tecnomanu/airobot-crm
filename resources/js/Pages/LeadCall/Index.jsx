@@ -19,9 +19,9 @@ import { getCallHistoryColumns } from "./columns";
 
 export default function CallHistoryIndex({
     calls,
-    clients,
-    campaigns,
-    filters,
+    clients = [],
+    campaigns = [],
+    filters = {},
     totals = { calls: 0, duration: 0, cost: 0 },
 }) {
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
@@ -53,34 +53,28 @@ export default function CallHistoryIndex({
             title: "Total Llamadas",
             value: totals?.calls || 0,
             icon: Phone,
-            subtitle: "Llamadas registradas",
+            color: "text-blue-600 bg-blue-50",
         },
         {
             title: "Duración Total",
             value: `${Math.floor((totals?.duration || 0) / 60)} min`,
             icon: Clock,
-            subtitle: "Tiempo total de llamadas",
+            color: "text-green-600 bg-green-50",
         },
         {
             title: "Costo Total",
             value: `$${(totals?.cost || 0).toFixed(2)}`,
             icon: DollarSign,
-            subtitle: "Inversión en llamadas",
+            color: "text-amber-600 bg-amber-50",
         },
     ];
 
-    /**
-     * Escucha eventos de nuevas llamadas en tiempo real
-     */
     useEffect(() => {
         const channel = window.Echo.channel('lead-calls');
 
         channel.listen('.call.created', (event) => {
             const { call } = event;
-            
-            console.log('Evento de llamada recibido:', { call });
 
-            // Recargar solo si estamos en la primera página sin filtros específicos
             const isFirstPage = !filters.page || filters.page === 1;
             const shouldReload = isFirstPage && !filters.search;
 
@@ -106,7 +100,6 @@ export default function CallHistoryIndex({
                 });
             }
 
-            // Notificación nativa del navegador
             if (hasNotificationPermission()) {
                 notifyCallCompleted(call);
             }
@@ -126,51 +119,54 @@ export default function CallHistoryIndex({
         >
             <Head title="Historial de Llamadas" />
 
-            <div className="space-y-6">
-
-                {/* Stats */}
-                <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-4">
+                {/* Stats Cards */}
+                <div className="grid gap-3 md:grid-cols-3">
                     {stats.map((stat) => (
-                        <Card key={stat.title}>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">
-                                    {stat.title}
-                                </CardTitle>
-                                <stat.icon className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
-                                    {stat.value}
+                        <div
+                            key={stat.title}
+                            className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-gray-500 font-medium">
+                                        {stat.title}
+                                    </p>
+                                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                                        {stat.value}
+                                    </p>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {stat.subtitle}
-                                </p>
-                            </CardContent>
-                        </Card>
+                                <div className={`p-2.5 rounded-lg ${stat.color}`}>
+                                    <stat.icon className="h-5 w-5" />
+                                </div>
+                            </div>
+                        </div>
                     ))}
                 </div>
 
-                {/* Filters */}
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="grid gap-4 md:grid-cols-5">
+                {/* Main Card Container */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                    {/* Header Section with padding */}
+                    <div className="p-6 space-y-4">
+                        {/* Filters Row */}
+                        <div className="flex flex-wrap items-center gap-3">
                             <form
                                 onSubmit={handleSearch}
-                                className="flex gap-2"
+                                className="flex-1 max-w-md relative"
                             >
                                 <Input
                                     placeholder="Buscar teléfono..."
                                     value={searchTerm}
-                                    onChange={(e) =>
-                                        setSearchTerm(e.target.value)
-                                    }
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-4 pr-10 py-2.5 bg-indigo-50 border-0 rounded-lg"
                                 />
                                 <Button
                                     type="submit"
                                     size="icon"
-                                    variant="outline"
+                                    variant="ghost"
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                                 >
-                                    <Search className="h-4 w-4" />
+                                    <Search className="h-4 w-4 text-gray-400" />
                                 </Button>
                             </form>
 
@@ -183,7 +179,7 @@ export default function CallHistoryIndex({
                                     )
                                 }
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Todos los clientes" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -191,10 +187,7 @@ export default function CallHistoryIndex({
                                         Todos los clientes
                                     </SelectItem>
                                     {clients.map((c) => (
-                                        <SelectItem
-                                            key={c.id}
-                                            value={c.id.toString()}
-                                        >
+                                        <SelectItem key={c.id} value={c.id.toString()}>
                                             {c.name}
                                         </SelectItem>
                                     ))}
@@ -210,7 +203,7 @@ export default function CallHistoryIndex({
                                     )
                                 }
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Todas las campañas" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -218,10 +211,7 @@ export default function CallHistoryIndex({
                                         Todas las campañas
                                     </SelectItem>
                                     {campaigns.map((c) => (
-                                        <SelectItem
-                                            key={c.id}
-                                            value={c.id.toString()}
-                                        >
+                                        <SelectItem key={c.id} value={c.id.toString()}>
                                             {c.name}
                                         </SelectItem>
                                     ))}
@@ -237,52 +227,40 @@ export default function CallHistoryIndex({
                                     )
                                 }
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="w-[160px]">
                                     <SelectValue placeholder="Todos los estados" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">
-                                        Todos los estados
-                                    </SelectItem>
-                                    <SelectItem value="completed">
-                                        Completada
-                                    </SelectItem>
-                                    <SelectItem value="no_answer">
-                                        Sin Respuesta
-                                    </SelectItem>
-                                    <SelectItem value="hung_up">
-                                        Colgó
-                                    </SelectItem>
-                                    <SelectItem value="failed">
-                                        Fallida
-                                    </SelectItem>
-                                    <SelectItem value="busy">
-                                        Ocupado
-                                    </SelectItem>
-                                    <SelectItem value="voicemail">
-                                        Buzón de Voz
-                                    </SelectItem>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="completed">Completada</SelectItem>
+                                    <SelectItem value="no_answer">Sin Respuesta</SelectItem>
+                                    <SelectItem value="hung_up">Colgó</SelectItem>
+                                    <SelectItem value="failed">Fallida</SelectItem>
+                                    <SelectItem value="busy">Ocupado</SelectItem>
+                                    <SelectItem value="voicemail">Buzón de Voz</SelectItem>
                                 </SelectContent>
                             </Select>
 
                             <Button
                                 variant="outline"
                                 onClick={handleClearFilters}
-                                className="w-full"
+                                size="sm"
                             >
                                 <X className="mr-2 h-4 w-4" />
                                 Limpiar
                             </Button>
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
 
-                {/* Table */}
-                <DataTable
-                    columns={getCallHistoryColumns()}
-                    data={calls.data}
-                    filterColumn="phone"
-                />
+                    {/* Table with padding */}
+                    <div className="px-6 pb-6">
+                        <DataTable
+                            columns={getCallHistoryColumns()}
+                            data={calls?.data || []}
+                            filterColumn="phone"
+                        />
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

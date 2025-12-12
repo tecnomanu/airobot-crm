@@ -1,6 +1,6 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import {
     Dialog,
@@ -25,12 +25,28 @@ import {
     notifyLeadDeleted,
 } from "@/lib/notifications";
 import { Head, router, useForm } from "@inertiajs/react";
-import { Plus, RefreshCw, Search, X } from "lucide-react";
+import {
+    Plus,
+    Search,
+    Filter,
+    Download,
+    Clock,
+    Inbox,
+    CheckCircle,
+    FileUp,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getLeadColumns } from "./columns";
 
-export default function LeadsIndex({ leads, campaigns, filters }) {
+export default function LeadsIndex({
+    leads,
+    campaigns,
+    clients,
+    filters,
+    activeTab,
+    tabCounts,
+}) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
     const [deleteDialog, setDeleteDialog] = useState({
@@ -38,26 +54,84 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
         id: null,
         name: "",
     });
-    const [retryDialog, setRetryDialog] = useState({
-        open: false,
-        id: null,
-        name: "",
-    });
-    const [isRetryingBatch, setIsRetryingBatch] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         phone: "",
         name: "",
         city: "",
+        country: "",
         campaign_id: "",
-        option_selected: "",
+        tab_placement: "inbox", // Controls automation_status + intention_status
+        option_selected: "none", // "none" will be transformed to empty on submit
+        source: "manual",
         notes: "",
     });
 
-    const handleFilterChange = (name, value) => {
+    // Tab placement options for the form (determines automation_status + intention_status)
+    const tabPlacementOptions = [
+        { 
+            value: "inbox", 
+            label: "Inbox", 
+            description: "New lead pending processing",
+            badge: "bg-blue-100 text-blue-700"
+        },
+        { 
+            value: "active", 
+            label: "Active Pipeline", 
+            description: "Lead being actively worked (automation in progress)",
+            badge: "bg-yellow-100 text-yellow-700"
+        },
+        { 
+            value: "sales_ready", 
+            label: "Sales Ready", 
+            description: "Ready for sales call (automation completed)",
+            badge: "bg-green-100 text-green-700"
+        },
+    ];
+
+    // Option selected values (for IVR campaigns)
+    const optionValues = [
+        { value: "none", label: "Sin opción" },
+        { value: "1", label: "Opción 1" },
+        { value: "2", label: "Opción 2" },
+        { value: "i", label: "Opción I (Información)" },
+        { value: "t", label: "Opción T (Transferencia)" },
+    ];
+
+    // Get selected campaign to check if it's IVR type
+    const selectedCampaign = campaigns.find(c => c.id.toString() === data.campaign_id);
+
+    // Tab configuration matching the UI mockups
+    const tabs = [
+        {
+            value: "inbox",
+            label: "Inbox",
+            count: tabCounts.inbox,
+            icon: Inbox,
+            activeColor: "text-gray-900",
+        },
+        {
+            value: "active",
+            label: "Active Pipeline",
+            count: tabCounts.active,
+            icon: Clock,
+            activeColor: "text-indigo-600",
+            countColor: "bg-indigo-100 text-indigo-700",
+        },
+        {
+            value: "sales_ready",
+            label: "Sales Ready",
+            count: tabCounts.sales_ready,
+            icon: CheckCircle,
+            activeColor: "text-emerald-600",
+            countColor: "bg-emerald-100 text-emerald-700",
+        },
+    ];
+
+    const handleTabChange = (newTab) => {
         router.get(
             route("leads.index"),
-            { ...filters, [name]: value },
+            { ...filters, tab: newTab },
             { preserveState: true }
         );
     };
@@ -66,28 +140,57 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
         e.preventDefault();
         router.get(
             route("leads.index"),
-            { ...filters, search: searchTerm },
+            { ...filters, tab: activeTab, search: searchTerm },
             { preserveState: true }
         );
     };
 
-    const handleClearFilters = () => {
-        setSearchTerm("");
-        router.get(route("leads.index"), {}, { preserveState: true });
-    };
-
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route("leads.store"), {
+        
+        // Transform data before submit - "none" should be null for option_selected
+        const submitData = {
+            phone: data.phone,
+            name: data.name,
+            city: data.city,
+            country: data.country,
+            campaign_id: data.campaign_id,
+            tab_placement: data.tab_placement,
+            option_selected: data.option_selected === "none" ? null : data.option_selected,
+            source: data.source,
+            notes: data.notes,
+        };
+        
+        console.log("Submitting data:", submitData);
+        
+        router.post(route("leads.store"), submitData, {
+            preserveScroll: true,
             onSuccess: () => {
                 setIsCreateModalOpen(false);
                 reset();
                 toast.success("Lead creado exitosamente");
             },
-            onError: () => {
-                toast.error("Error al crear el lead");
+            onError: (errors) => {
+                console.error("Validation Errors:", JSON.stringify(errors, null, 2));
+                // Show all errors
+                const errorMessages = Object.entries(errors)
+                    .map(([field, msg]) => `${field}: ${msg}`)
+                    .join("\n");
+                toast.error("Error de validación", {
+                    description: errorMessages || "Error desconocido",
+                });
             },
         });
+    };
+
+    // Lead Action Handlers
+    const handleView = (lead) => {
+        router.visit(route("leads.show", lead.id));
+    };
+
+    const handleEdit = (lead) => {
+        // TODO: Implement edit modal or redirect to edit page
+        router.visit(route("leads.show", lead.id));
     };
 
     const handleDelete = (lead) => {
@@ -110,96 +213,75 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
         setDeleteDialog({ open: false, id: null, name: "" });
     };
 
-    const handleRetry = (lead) => {
-        setRetryDialog({
-            open: true,
-            id: lead.id,
-            name: lead.name || lead.phone,
+    const handleCall = (lead) => {
+        router.post(route("leads.call-action", lead.id), {}, {
+            onSuccess: () => {
+                toast.success("Llamada iniciada");
+            },
+            onError: () => {
+                toast.error("Error al iniciar la llamada");
+            },
         });
     };
 
-    const confirmRetry = () => {
-        router.post(
-            route("leads.retry-automation", retryDialog.id),
-            {},
-            {
+    const handleWhatsApp = (lead) => {
+        router.post(route("leads.whatsapp-action", lead.id), {}, {
                 onSuccess: () => {
-                    toast.success("Procesamiento reiniciado exitosamente");
+                toast.success("WhatsApp enviado");
                 },
                 onError: () => {
-                    toast.error("Error al reiniciar procesamiento");
-                },
-            }
-        );
-        setRetryDialog({ open: false, id: null, name: "" });
+                toast.error("Error al enviar WhatsApp");
+            },
+        });
     };
 
-    const handleRetryBatch = () => {
-        setIsRetryingBatch(true);
-        router.post(
-            route("leads.retry-automation-batch"),
-            { ...filters },
-            {
+    const handleRetryAutomation = (lead) => {
+        router.post(route("leads.retry-automation", lead.id), {}, {
                 onSuccess: () => {
-                    toast.success("Procesamiento masivo completado");
-                    setIsRetryingBatch(false);
+                toast.success("Campaña re-ejecutada correctamente");
                 },
                 onError: () => {
-                    toast.error("Error en procesamiento masivo");
-                    setIsRetryingBatch(false);
-                },
-            }
-        );
+                toast.error("Error al re-ejecutar la campaña");
+            },
+        });
     };
 
-    /**
-     * Escucha eventos de WebSocket para actualizaciones en tiempo real
-     * Cuando llega un nuevo lead o se actualiza uno existente,
-     * recarga la página solo si estamos en la primera página o si el lead es visible
-     */
+    // Double click to open lead detail
+    const handleRowDoubleClick = (lead) => {
+        router.visit(route("leads.show", lead.id));
+    };
+
+    // Real-time updates via WebSocket
     useEffect(() => {
         const channel = window.Echo.channel("leads");
 
         channel.listen(".lead.updated", (event) => {
             const { lead, action } = event;
 
-            console.log("Evento de lead recibido:", { action, lead });
-
-            // Determinar si debemos recargar
             const shouldReload = () => {
-                // Si es un lead nuevo, solo recargar si estamos en la primera página sin filtros
                 if (action === "created") {
                     const isFirstPage = !filters.page || filters.page === 1;
                     const hasNoFilters =
                         !filters.search &&
                         !filters.status &&
-                        !filters.campaign_id;
-                    return isFirstPage && hasNoFilters;
+                        !filters.campaign_id &&
+                        !filters.client_id;
+                    return isFirstPage && hasNoFilters && activeTab === "inbox";
                 }
 
-                // Si es una actualización, verificar si el lead está visible en la página actual
-                if (action === "updated") {
-                    const isVisible = leads.data.some((l) => l.id === lead.id);
-                    return isVisible;
-                }
-
-                // Si es una eliminación, siempre recargar si el lead está visible
-                if (action === "deleted") {
-                    const isVisible = leads.data.some((l) => l.id === lead.id);
-                    return isVisible;
+                if (action === "updated" || action === "deleted") {
+                    return leads.data.some((l) => l.id === lead.id);
                 }
 
                 return false;
             };
 
             if (shouldReload()) {
-                // Recargar preservando el estado actual de la página
                 router.reload({
                     preserveState: true,
                     preserveScroll: true,
-                    only: ["leads"],
+                    only: ["leads", "tabCounts"],
                     onSuccess: () => {
-                        // Toast para feedback inmediato
                         if (action === "created") {
                             toast.success(
                                 `Nuevo lead: ${lead.name || lead.phone}`
@@ -217,7 +299,7 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                 });
             }
 
-            // Notificaciones nativas del navegador (si están habilitadas)
+            // Browser notifications
             if (hasNotificationPermission()) {
                 if (action === "created") {
                     notifyNewLead(lead);
@@ -229,151 +311,122 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
             }
         });
 
-        // Cleanup al desmontar
         return () => {
             channel.stopListening(".lead.updated");
         };
-    }, [leads.data, filters]);
+    }, [leads.data, filters, activeTab]);
+
+    // Get columns with all handlers
+    const columns = getLeadColumns(activeTab, {
+        onView: handleView,
+        onEdit: handleEdit,
+        onDelete: handleDelete,
+        onCall: handleCall,
+        onWhatsApp: handleWhatsApp,
+        onRetryAutomation: handleRetryAutomation,
+    });
 
     return (
         <AppLayout
             header={{
-                title: "Leads",
-                subtitle: "Gestión de leads y contactos",
-                actions: [
-                    <Button
-                        key="retry"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs px-2"
-                        onClick={handleRetryBatch}
-                        disabled={isRetryingBatch}
-                    >
-                        <RefreshCw
-                            className={`h-3.5 w-3.5 mr-1.5 ${
-                                isRetryingBatch ? "animate-spin" : ""
-                            }`}
-                        />
-                        Reintentar Fallidos
-                    </Button>,
-                    <Button
-                        key="create"
-                        size="sm"
-                        className="h-8 text-xs px-2"
-                        onClick={() => setIsCreateModalOpen(true)}
-                    >
-                        <Plus className="h-3.5 w-3.5 mr-1.5" />
-                        Nuevo Lead
-                    </Button>,
-                ],
+                title: "Leads Manager",
+                subtitle: "Gestión unificada de leads",
             }}
         >
-            <Head title="Leads" />
+            <Head title="Leads Manager" />
 
-            <div className="space-y-6">
-                {/* Filters */}
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="grid gap-4 md:grid-cols-4">
-                            <form
-                                onSubmit={handleSearch}
-                                className="flex gap-2"
+            {/* Main Card Container */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                {/* Header Section with padding */}
+                <div className="p-6 space-y-4">
+                    {/* Row 1: Tabs */}
+                    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.value}
+                                onClick={() => handleTabChange(tab.value)}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all whitespace-nowrap border ${
+                                    activeTab === tab.value
+                                        ? "bg-gray-100 border-gray-200 text-gray-900"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                }`}
                             >
-                                <Input
-                                    placeholder="Buscar teléfono o nombre..."
-                                    value={searchTerm}
-                                    onChange={(e) =>
-                                        setSearchTerm(e.target.value)
-                                    }
-                                />
-                                <Button
-                                    type="submit"
-                                    size="icon"
-                                    variant="outline"
-                                >
-                                    <Search className="h-4 w-4" />
-                                </Button>
-                            </form>
+                                <tab.icon className="h-4 w-4" />
+                                <span>{tab.label}</span>
+                                {tab.count > 0 && (
+                                    <span
+                                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                            activeTab === tab.value
+                                                ? "bg-gray-200 text-gray-700"
+                                                : "bg-gray-100 text-gray-600"
+                                        }`}
+                                    >
+                                        {tab.count}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
 
-                            <Select
-                                value={filters.campaign_id || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange(
-                                        "campaign_id",
-                                        value === "all" ? "" : value
-                                    )
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Todas las campañas" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        Todas las campañas
-                                    </SelectItem>
-                                    {campaigns.map((c) => (
-                                        <SelectItem
-                                            key={c.id}
-                                            value={c.id.toString()}
-                                        >
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <Select
-                                value={filters.status || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange(
-                                        "status",
-                                        value === "all" ? "" : value
-                                    )
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Todos los estados" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        Todos los estados
-                                    </SelectItem>
-                                    <SelectItem value="pending">
-                                        Pendiente
-                                    </SelectItem>
-                                    <SelectItem value="in_progress">
-                                        En Progreso
-                                    </SelectItem>
-                                    <SelectItem value="contacted">
-                                        Contactado
-                                    </SelectItem>
-                                    <SelectItem value="closed">
-                                        Cerrado
-                                    </SelectItem>
-                                    <SelectItem value="invalid">
-                                        Inválido
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-
+                    {/* Row 2: Action Buttons */}
+                    <div className="flex items-center gap-3">
                             <Button
                                 variant="outline"
-                                onClick={handleClearFilters}
-                                className="w-full"
-                            >
-                                <X className="mr-2 h-4 w-4" />
-                                Limpiar
+                            size="sm"
+                            className="text-sm h-9"
+                        >
+                            <FileUp className="h-4 w-4 mr-2" />
+                            Import CSV
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="text-sm h-9 bg-indigo-600 hover:bg-indigo-700"
+                            onClick={() => setIsCreateModalOpen(true)}
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Lead
                             </Button>
                         </div>
-                    </CardContent>
-                </Card>
 
-                {/* Table */}
+                    {/* Row 3: Search Bar */}
+                    <div className="flex items-center gap-3">
+                        <form
+                            onSubmit={handleSearch}
+                            className="flex-1 max-w-md relative"
+                        >
+                            <input
+                                type="text"
+                                placeholder="Search leads..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-4 pr-10 py-2.5 text-sm bg-indigo-50 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 placeholder-gray-500"
+                            />
+                            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        </form>
+
+                        <button className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                            <Filter className="h-4 w-4" />
+                        </button>
+                        <button className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                            <Download className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    {/* Hint for double-click */}
+                    <p className="text-xs text-gray-400">
+                        Tip: Doble click en una fila para ver detalles del lead
+                    </p>
+                </div>
+
+                {/* Data Table with padding */}
+                <div className="px-6 pb-6">
                 <DataTable
-                    columns={getLeadColumns(handleDelete, handleRetry)}
+                        columns={columns}
                     data={leads.data}
-                    filterColumn="phone"
+                        filterColumn="name"
+                        onRowDoubleClick={handleRowDoubleClick}
                 />
+                </div>
             </div>
 
             {/* Create Lead Modal */}
@@ -383,131 +436,172 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
             >
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Crear Nuevo Lead</DialogTitle>
+                        <DialogTitle className="text-base">Add Manual Lead</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Teléfono *</Label>
-                                <Input
-                                    id="phone"
-                                    type="text"
-                                    value={data.phone}
-                                    onChange={(e) =>
-                                        setData("phone", e.target.value)
-                                    }
-                                    placeholder="+34600111222"
-                                />
-                                {errors.phone && (
-                                    <p className="text-sm text-red-500">
-                                        {errors.phone}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Nombre</Label>
+                        {/* Row 1: Name & Phone */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <Label htmlFor="name" className="text-xs">Name</Label>
                                 <Input
                                     id="name"
                                     type="text"
                                     value={data.name}
-                                    onChange={(e) =>
-                                        setData("name", e.target.value)
-                                    }
+                                    onChange={(e) => setData("name", e.target.value)}
+                                    placeholder="John Doe"
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <Label htmlFor="phone" className="text-xs">Phone *</Label>
+                                <Input
+                                    id="phone"
+                                    type="text"
+                                    value={data.phone}
+                                    onChange={(e) => setData("phone", e.target.value)}
+                                    placeholder="+34600111222"
+                                    className="h-8 text-sm"
+                                />
+                                {errors.phone && (
+                                    <p className="text-[10px] text-red-500">{errors.phone}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Row 2: City & Country */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <Label htmlFor="city" className="text-xs">City</Label>
+                                <Input
+                                    id="city"
+                                    type="text"
+                                    value={data.city}
+                                    onChange={(e) => setData("city", e.target.value)}
+                                    placeholder="Madrid"
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <Label htmlFor="country" className="text-xs">Country (2 chars)</Label>
+                                <Input
+                                    id="country"
+                                    type="text"
+                                    maxLength={2}
+                                    value={data.country}
+                                    onChange={(e) => setData("country", e.target.value.toUpperCase())}
+                                    placeholder="ES"
+                                    className="h-8 text-sm uppercase"
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="city">Ciudad</Label>
-                            <Input
-                                id="city"
-                                type="text"
-                                value={data.city}
-                                onChange={(e) =>
-                                    setData("city", e.target.value)
-                                }
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="campaign_id">Campaña *</Label>
+                        {/* Row 3: Campaign (Required) */}
+                        <div className="space-y-1">
+                            <Label htmlFor="campaign_id" className="text-xs">Campaign *</Label>
                             <Select
                                 value={data.campaign_id}
-                                onValueChange={(value) =>
-                                    setData("campaign_id", value)
-                                }
+                                onValueChange={(value) => setData("campaign_id", value)}
                             >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar campaña" />
+                                <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder="Select a campaign" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {campaigns.map((c) => (
-                                        <SelectItem
-                                            key={c.id}
-                                            value={c.id.toString()}
-                                        >
-                                            {c.name}
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.name} {c.is_dynamic && "(IVR)"}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                             {errors.campaign_id && (
-                                <p className="text-sm text-red-500">
-                                    {errors.campaign_id}
+                                <p className="text-[10px] text-red-500">{errors.campaign_id}</p>
+                            )}
+                        </div>
+
+                        {/* Row 4: Tab Placement */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-medium">Place in Tab *</Label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {tabPlacementOptions.map((tab) => (
+                                    <button
+                                        key={tab.value}
+                                        type="button"
+                                        onClick={() => setData("tab_placement", tab.value)}
+                                        className={`p-3 rounded-lg border-2 text-left transition-all ${
+                                            data.tab_placement === tab.value
+                                                ? "border-indigo-500 bg-indigo-50"
+                                                : "border-gray-200 hover:border-gray-300"
+                                        }`}
+                                    >
+                                        <Badge className={`${tab.badge} text-[10px] mb-1`}>
+                                            {tab.label}
+                                        </Badge>
+                                        <p className="text-[10px] text-gray-500 mt-1">
+                                            {tab.description}
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Row 5: Option Selected (for IVR) */}
+                        <div className="space-y-1">
+                            <Label htmlFor="option_selected" className="text-xs">
+                                Option Selected {selectedCampaign?.is_dynamic && <Badge variant="outline" className="text-[9px] ml-1">IVR Campaign</Badge>}
+                            </Label>
+                            <Select
+                                value={data.option_selected}
+                                onValueChange={(value) => setData("option_selected", value)}
+                            >
+                                <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder="Sin opción" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {optionValues.map((o) => (
+                                        <SelectItem key={o.value || "none"} value={o.value}>
+                                            {o.label}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {selectedCampaign?.is_dynamic && (
+                                <p className="text-[10px] text-blue-600">
+                                    Esta campaña es IVR - la opción determinará la acción a ejecutar
                                 </p>
                             )}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="option_selected">
-                                Opción Seleccionada
-                            </Label>
-                            <Select
-                                value={data.option_selected}
-                                onValueChange={(value) =>
-                                    setData("option_selected", value)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar opción" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1">Opción 1</SelectItem>
-                                    <SelectItem value="2">Opción 2</SelectItem>
-                                    <SelectItem value="i">
-                                        Opción I (Información)
-                                    </SelectItem>
-                                    <SelectItem value="t">
-                                        Opción T (Transferir)
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="notes">Notas</Label>
+                        {/* Row 6: Notes */}
+                        <div className="space-y-1">
+                            <Label htmlFor="notes" className="text-xs">Notes</Label>
                             <textarea
                                 id="notes"
                                 value={data.notes}
-                                onChange={(e) =>
-                                    setData("notes", e.target.value)
-                                }
-                                rows={3}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                onChange={(e) => setData("notes", e.target.value)}
+                                placeholder="Additional notes about this lead..."
+                                rows={2}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                             />
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-4">
+                        <div className="flex justify-end gap-2 pt-3 border-t">
                             <Button
                                 type="button"
                                 variant="outline"
+                                size="sm"
                                 onClick={() => setIsCreateModalOpen(false)}
                             >
-                                Cancelar
+                                Cancel
                             </Button>
-                            <Button type="submit" disabled={processing}>
-                                {processing ? "Creando..." : "Crear Lead"}
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={processing}
+                                className="bg-indigo-600 hover:bg-indigo-700"
+                            >
+                                {processing ? "Creating..." : "Create Lead"}
                             </Button>
                         </div>
                     </form>
@@ -521,24 +615,11 @@ export default function LeadsIndex({ leads, campaigns, filters }) {
                     setDeleteDialog({ ...deleteDialog, open })
                 }
                 onConfirm={confirmDelete}
-                title="¿Eliminar lead?"
-                description={`¿Estás seguro de eliminar el lead "${deleteDialog.name}"? Esta acción no se puede deshacer.`}
-                confirmText="Eliminar"
-                cancelText="Cancelar"
+                title="Delete lead?"
+                description={`Are you sure you want to delete "${deleteDialog.name}"? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
                 variant="destructive"
-            />
-
-            {/* Confirm Retry Dialog */}
-            <ConfirmDialog
-                open={retryDialog.open}
-                onOpenChange={(open) =>
-                    setRetryDialog({ ...retryDialog, open })
-                }
-                onConfirm={confirmRetry}
-                title="¿Reintentar procesamiento?"
-                description={`¿Deseas reintentar el procesamiento automático del lead "${retryDialog.name}"?`}
-                confirmText="Reintentar"
-                cancelText="Cancelar"
             />
         </AppLayout>
     );

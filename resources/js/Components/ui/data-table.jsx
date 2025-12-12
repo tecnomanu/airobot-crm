@@ -25,7 +25,14 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-export function DataTable({ columns, data, filterColumn }) {
+export function DataTable({
+    columns,
+    data,
+    filterColumn,
+    onRowClick,
+    onRowDoubleClick,
+    rowClassName,
+}) {
     const [sorting, setSorting] = React.useState([]);
     const [columnFilters, setColumnFilters] = React.useState([]);
     const [columnVisibility, setColumnVisibility] = React.useState({});
@@ -118,6 +125,13 @@ export function DataTable({ columns, data, filterColumn }) {
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    onClick={() => onRowClick?.(row.original)}
+                                    onDoubleClick={() => onRowDoubleClick?.(row.original)}
+                                    className={`
+                                        ${onRowClick || onRowDoubleClick ? "cursor-pointer" : ""}
+                                        hover:bg-gray-50 transition-colors
+                                        ${typeof rowClassName === 'function' ? rowClassName(row.original) : rowClassName || ''}
+                                    `}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>
@@ -169,4 +183,3 @@ export function DataTable({ columns, data, filterColumn }) {
         </div>
     );
 }
-

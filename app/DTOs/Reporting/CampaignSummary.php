@@ -8,7 +8,7 @@ namespace App\DTOs\Reporting;
 class CampaignSummary
 {
     public function __construct(
-        public int $campaignId,
+        public string $campaignId,
         public string $campaignName,
         public string $status,
         public int $totalLeads,
