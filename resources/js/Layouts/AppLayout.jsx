@@ -30,6 +30,7 @@ import {
     Bot,
     Building2,
     Home,
+    Link2,
     LogOut,
     Megaphone,
     MessageSquare,
@@ -44,6 +45,7 @@ const navigation = [
     { name: "Leads Manager", href: route("leads.index"), icon: Users },
     { name: "Messages", href: route("messages.index"), icon: MessageSquare },
     { name: "Campaigns", href: route("campaigns.index"), icon: Megaphone },
+    { name: "Sources", href: route("sources.index"), icon: Link2 },
     { name: "Clients", href: route("clients.index"), icon: Building2 },
     { name: "Retell Agents", href: route("call-agents.index"), icon: Bot },
     { name: "Call History", href: route("lead-calls.index"), icon: Phone },
@@ -93,10 +95,10 @@ function AppSidebar() {
             <SidebarHeader className="h-12 flex items-center justify-center border-b border-gray-100 bg-white">
                 <div className="flex items-center gap-2 px-2">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
-                        <span className="text-sm font-bold">O</span>
+                        <span className="text-sm font-bold">A</span>
                     </div>
                     {open && (
-                        <span className="text-base font-semibold text-gray-900">OmniLeads</span>
+                        <span className="text-base font-semibold text-gray-900">AiRobot</span>
                     )}
                 </div>
             </SidebarHeader>

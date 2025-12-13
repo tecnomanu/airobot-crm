@@ -2,6 +2,7 @@
 
 namespace App\Services\Lead;
 
+use App\Contracts\WhatsAppSenderInterface;
 use App\Enums\CampaignActionType;
 use App\Enums\LeadAutomationStatus;
 use App\Enums\LeadIntention;
@@ -9,11 +10,17 @@ use App\Enums\LeadIntentionOrigin;
 use App\Enums\LeadIntentionStatus;
 use App\Enums\LeadSource;
 use App\Enums\LeadStatus;
+use App\Enums\MessageChannel;
+use App\Enums\MessageDirection;
+use App\Enums\MessageStatus;
+use App\Enums\SourceStatus;
 use App\Events\LeadUpdated;
 use App\Exceptions\Business\ConfigurationException;
 use App\Helpers\PhoneHelper;
 use App\Models\Campaign\Campaign;
+use App\Models\Integration\Source;
 use App\Models\Lead\Lead;
+use App\Models\Lead\LeadMessage;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
 use App\Services\Webhook\WebhookDispatcherService;
@@ -27,6 +34,7 @@ class LeadService
         private LeadRepositoryInterface $leadRepository,
         private CampaignRepositoryInterface $campaignRepository,
         private WebhookDispatcherService $webhookDispatcher,
+        private WhatsAppSenderInterface $whatsappSender,
         private ?LeadOptionProcessorService $optionProcessor = null
     ) {
         // Lazy load del servicio para evitar dependencias circulares
@@ -703,8 +711,35 @@ class LeadService
             CampaignActionType::WHATSAPP => $this->executeWhatsAppAction($lead, $campaign, $config),
             CampaignActionType::WEBHOOK_CRM => $this->executeWebhookAction($lead, $campaign, $config),
             CampaignActionType::MANUAL_REVIEW => $this->executeManualReviewAction($lead, $campaign, $config),
-            CampaignActionType::SKIP => null,
+            CampaignActionType::SKIP => $this->executeSkipAction($lead, $campaign, $config),
         };
+    }
+
+    /**
+     * Execute skip action - marks lead as pre-validated and ready for sales
+     * This is used when a lead should go directly to Sales Ready without further validation
+     */
+    protected function executeSkipAction(Lead $lead, Campaign $campaign, array $config): void
+    {
+        Log::info('Ejecutando Skip: Lead pasa directo a Sales Ready', [
+            'lead_id' => $lead->id,
+            'campaign_id' => $campaign->id,
+            'option_selected' => $lead->option_selected,
+        ]);
+
+        $lead->update([
+            'status' => LeadStatus::CONTACTED,
+            'intention' => LeadIntention::INTERESTED->value,
+            'intention_status' => LeadIntentionStatus::FINALIZED,
+            'intention_decided_at' => now(),
+            'intention_origin' => LeadIntentionOrigin::IVR,
+        ]);
+
+        Log::info('Lead marcado como pre-validado (Sales Ready)', [
+            'lead_id' => $lead->id,
+            'intention' => LeadIntention::INTERESTED->value,
+            'intention_status' => LeadIntentionStatus::FINALIZED->value,
+        ]);
     }
 
     /**
@@ -729,18 +764,102 @@ class LeadService
      */
     protected function executeWhatsAppAction(Lead $lead, Campaign $campaign, array $config): void
     {
+        $sourceId = $config['source_id'] ?? null;
+        $message = $config['message'] ?? null;
+
         Log::info('Ejecutando WhatsApp con configuración', [
             'lead_id' => $lead->id,
-            'source_id' => $config['source_id'] ?? null,
+            'source_id' => $sourceId,
             'template_id' => $config['template_id'] ?? null,
         ]);
 
-        // TODO: Implement WhatsApp send using configured source_id, template_id, or message
-        $lead->update([
-            'status' => LeadStatus::IN_PROGRESS,
-            'intention_status' => LeadIntentionStatus::PENDING,
-            'intention_origin' => LeadIntentionOrigin::WHATSAPP,
-        ]);
+        if (! $sourceId) {
+            throw new ConfigurationException('WhatsApp action requires source_id in configuration');
+        }
+
+        $source = Source::find($sourceId);
+
+        if (! $source) {
+            throw new ConfigurationException("Source with ID '{$sourceId}' not found");
+        }
+
+        if ($source->status !== SourceStatus::ACTIVE) {
+            throw new ConfigurationException("Source '{$source->name}' is not active");
+        }
+
+        // Build message body with variable replacement
+        $messageBody = $this->buildMessageBody($message, $lead);
+
+        if (empty($messageBody)) {
+            $messageBody = "Hola {$lead->name}, gracias por tu interés. Un asesor se contactará contigo pronto.";
+        }
+
+        try {
+            $result = $this->whatsappSender->sendMessage(
+                $source,
+                $lead,
+                $messageBody
+            );
+
+            Log::info('Mensaje WhatsApp enviado exitosamente', [
+                'lead_id' => $lead->id,
+                'source_id' => $source->id,
+                'result' => $result,
+            ]);
+
+            // Create LeadMessage record
+            LeadMessage::create([
+                'lead_id' => $lead->id,
+                'campaign_id' => $lead->campaign_id,
+                'channel' => MessageChannel::WHATSAPP,
+                'direction' => MessageDirection::OUTBOUND,
+                'status' => MessageStatus::SENT,
+                'content' => $messageBody,
+                'metadata' => [
+                    'source_id' => $source->id,
+                    'automation' => true,
+                    'result' => $result,
+                ],
+                'phone' => $lead->phone,
+            ]);
+
+            $lead->update([
+                'status' => LeadStatus::IN_PROGRESS,
+                'intention_status' => LeadIntentionStatus::PENDING,
+                'intention_origin' => LeadIntentionOrigin::WHATSAPP,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error enviando mensaje WhatsApp', [
+                'lead_id' => $lead->id,
+                'source_id' => $source->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Build message body with variable replacement
+     */
+    protected function buildMessageBody(?string $template, Lead $lead): string
+    {
+        if (empty($template)) {
+            return '';
+        }
+
+        // Replace common variables
+        $replacements = [
+            '{{name}}' => $lead->name ?? 'Cliente',
+            '{{phone}}' => $lead->phone ?? '',
+            '{{city}}' => $lead->city ?? '',
+            '{{campaign}}' => $lead->campaign?->name ?? '',
+        ];
+
+        return str_replace(
+            array_keys($replacements),
+            array_values($replacements),
+            $template
+        );
     }
 
     /**
@@ -817,7 +936,52 @@ class LeadService
         // Normalizar teléfono
         $normalizedPhone = PhoneHelper::normalizeWithCountry($phone, 'AR');
 
-        // Determinar campaña primero
+        // PRIORITY 1: Find lead waiting for WhatsApp response (intention_status=pending)
+        // This ensures replies go to the correct lead that sent the original message
+        $leadAwaitingResponse = Lead::where('phone', $normalizedPhone)
+            ->where('intention_status', LeadIntentionStatus::PENDING)
+            ->where('intention_origin', LeadIntentionOrigin::WHATSAPP)
+            ->orderBy('updated_at', 'desc')
+            ->first();
+
+        if ($leadAwaitingResponse) {
+            Log::info('Lead encontrado esperando respuesta de WhatsApp', [
+                'lead_id' => $leadAwaitingResponse->id,
+                'phone' => $normalizedPhone,
+                'campaign_id' => $leadAwaitingResponse->campaign_id,
+            ]);
+
+            // Update contact info if WhatsApp data available
+            if ($whatsappData && isset($whatsappData['pushName'])) {
+                $this->updateContactInfoFromWhatsApp($leadAwaitingResponse, $whatsappData);
+            }
+
+            return $leadAwaitingResponse;
+        }
+
+        // PRIORITY 2: Find most recent lead with this phone (to continue conversation)
+        // This ensures messages go to existing lead even if it's already finalized
+        $existingLead = Lead::where('phone', $normalizedPhone)
+            ->orderBy('updated_at', 'desc')
+            ->first();
+
+        if ($existingLead) {
+            Log::info('Lead existente encontrado por teléfono (continuando conversación)', [
+                'lead_id' => $existingLead->id,
+                'phone' => $normalizedPhone,
+                'campaign_id' => $existingLead->campaign_id,
+                'intention_status' => $existingLead->intention_status?->value,
+            ]);
+
+            // Actualizar nombre si viene de WhatsApp y es mejor que el actual
+            if ($whatsappData && isset($whatsappData['pushName'])) {
+                $this->updateContactInfoFromWhatsApp($existingLead, $whatsappData);
+            }
+
+            return $existingLead;
+        }
+
+        // PRIORITY 3: Create new lead only if no existing lead found
         $campaignId = $defaultCampaignId;
         if (! $campaignId) {
             // Buscar primera campaña activa como fallback
@@ -829,26 +993,7 @@ class LeadService
             }
         }
 
-        // Buscar lead con el mismo teléfono Y campaña (evita duplicados)
-        $lead = $this->leadRepository->findByPhoneAndCampaign($normalizedPhone, $campaignId);
-
-        if ($lead) {
-            Log::info('Lead encontrado por teléfono y campaña', [
-                'lead_id' => $lead->id,
-                'phone' => $normalizedPhone,
-                'campaign_id' => $campaignId,
-            ]);
-
-            // Actualizar nombre si viene de WhatsApp y es mejor que el actual
-            if ($whatsappData && isset($whatsappData['pushName'])) {
-                $this->updateContactInfoFromWhatsApp($lead, $whatsappData);
-            }
-
-            return $lead;
-        }
-
-        // Si no existe, crear un nuevo lead
-        Log::info('Creando nuevo lead desde WhatsApp', [
+        Log::info('Creando nuevo lead desde WhatsApp (no existe lead previo)', [
             'phone' => $normalizedPhone,
             'campaign_id' => $campaignId,
             'has_whatsapp_data' => (bool) $whatsappData,

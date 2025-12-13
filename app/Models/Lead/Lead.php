@@ -143,6 +143,11 @@ class Lead extends Model
                 });
         })
             ->where('status', '!=', LeadStatus::CLOSED->value)
+            // Exclude leads already finalized (those go to Sales Ready)
+            ->where(function ($q) {
+                $q->whereNull('intention_status')
+                    ->orWhere('intention_status', '!=', LeadIntentionStatus::FINALIZED->value);
+            })
             ->orderBy('next_action_at', 'asc')
             ->orderBy('updated_at', 'desc');
     }

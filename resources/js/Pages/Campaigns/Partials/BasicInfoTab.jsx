@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, GitBranch, Zap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -132,20 +133,52 @@ export default function BasicInfoTab({
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="status">Estado</Label>
-                    <Select
-                        value={data.status}
-                        onValueChange={(value) => setData("status", value)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="active">Activa</SelectItem>
-                            <SelectItem value="paused">Pausada</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="status">Estado</Label>
+                        <Select
+                            value={data.status}
+                            onValueChange={(value) => setData("status", value)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="active">Activa</SelectItem>
+                                <SelectItem value="paused">Pausada</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Tipo de Campaña</Label>
+                        <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                            campaign.strategy_type === "direct"
+                                ? "bg-green-50 border-green-200"
+                                : "bg-blue-50 border-blue-200"
+                        }`}>
+                            {campaign.strategy_type === "direct" ? (
+                                <>
+                                    <Zap className="h-5 w-5 text-green-600" />
+                                    <div>
+                                        <p className="font-medium text-sm text-green-900">Directa</p>
+                                        <p className="text-xs text-green-700">Una acción para todos los leads</p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <GitBranch className="h-5 w-5 text-blue-600" />
+                                    <div>
+                                        <p className="font-medium text-sm text-blue-900">Múltiple (IVR)</p>
+                                        <p className="text-xs text-blue-700">Acciones según opción seleccionada</p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            El tipo de campaña no se puede cambiar después de crearla.
+                        </p>
+                    </div>
                 </div>
 
                 {/* Auto Process Enabled */}
@@ -158,8 +191,10 @@ export default function BasicInfoTab({
                             Procesamiento Automático
                         </Label>
                         <p className="text-sm text-muted-foreground">
-                            Ejecutar automáticamente las acciones configuradas
-                            cuando lleguen leads con opciones 1, 2, i o t
+                            {campaign.strategy_type === "direct"
+                                ? "Ejecutar automáticamente la acción configurada cuando lleguen nuevos leads"
+                                : "Ejecutar automáticamente las acciones configuradas cuando lleguen leads con opciones 1, 2, i o t"
+                            }
                         </p>
                     </div>
                     <Switch

@@ -18,13 +18,18 @@ class StoreCampaignRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             // Datos básicos de la campaña
             'name' => ['required', 'string', 'max:255'],
             'client_id' => ['required', 'string', 'uuid', 'exists:clients,id'],
             'description' => ['nullable', 'string'],
             'status' => ['nullable', Rule::enum(CampaignStatus::class)],
             'strategy_type' => ['nullable', Rule::enum(CampaignStrategy::class)],
+
+            // Direct campaign configuration
+            'trigger_action' => ['nullable', Rule::enum(CampaignActionType::class)],
+            'source_id' => ['nullable', 'string', 'uuid', 'exists:sources,id'],
+            'message' => ['nullable', 'string'],
 
             // Agente de llamadas
             'call_agent' => ['nullable', 'array'],
@@ -50,6 +55,14 @@ class StoreCampaignRequest extends FormRequest
             'options.*.delay' => ['nullable', 'integer', 'min:0'],
             'options.*.enabled' => ['nullable', 'boolean'],
         ];
+
+        // Add required validation for direct campaigns with WhatsApp action
+        if ($this->input('strategy_type') === 'direct' && $this->input('trigger_action') === 'whatsapp') {
+            $rules['source_id'] = ['required', 'string', 'uuid', 'exists:sources,id'];
+            $rules['message'] = ['required', 'string', 'min:10'];
+        }
+
+        return $rules;
     }
 
     public function messages(): array
@@ -58,6 +71,10 @@ class StoreCampaignRequest extends FormRequest
             'name.required' => 'El nombre de la campaña es obligatorio',
             'client_id.required' => 'El cliente es obligatorio',
             'client_id.exists' => 'El cliente seleccionado no existe',
+            'source_id.required' => 'La fuente de WhatsApp es obligatoria para campañas directas',
+            'source_id.exists' => 'La fuente de WhatsApp seleccionada no existe',
+            'message.required' => 'El mensaje de WhatsApp es obligatorio para campañas directas',
+            'message.min' => 'El mensaje debe tener al menos :min caracteres',
             'call_agent.name.required_with' => 'El nombre del agente de llamadas es obligatorio',
             'whatsapp_agent.name.required_with' => 'El nombre del agente de WhatsApp es obligatorio',
             'options.*.option_key.required' => 'La clave de opción es obligatoria',
@@ -85,9 +102,19 @@ class StoreCampaignRequest extends FormRequest
             ]);
         }
 
-        // For direct campaigns, ensure no options are created
+        // For direct campaigns, prepare configuration and ensure no options are created
         if ($strategyType === 'direct') {
-            $this->merge(['options' => []]);
+            $configuration = [
+                'trigger_action' => $this->input('trigger_action', 'skip'),
+                'source_id' => $this->input('source_id'),
+                'message' => $this->input('message'),
+                'delay_seconds' => 0,
+            ];
+
+            $this->merge([
+                'options' => [],
+                'configuration' => $configuration,
+            ]);
         }
     }
 }

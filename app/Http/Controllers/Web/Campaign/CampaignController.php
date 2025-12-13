@@ -36,10 +36,15 @@ class CampaignController extends Controller
         $campaigns = $this->campaignService->getCampaigns($filters, $request->input('per_page', 15));
         $clients = $this->clientService->getActiveClients();
 
+        // Get WhatsApp sources for campaign creation
+        $allActiveSources = $this->sourceService->getAll(['active_only' => true]);
+        $whatsappSources = $allActiveSources->filter(fn ($s) => $s->type->isWhatsApp());
+
         return Inertia::render('Campaigns/Index', [
             'campaigns' => $campaigns,
             'clients' => $clients,
             'filters' => $filters,
+            'whatsapp_sources' => $whatsappSources->values()->map(fn ($s) => (new SourceResource($s))->resolve()),
         ]);
     }
 

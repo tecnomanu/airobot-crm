@@ -19,12 +19,13 @@ import {
 } from "@/components/ui/select";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, router, useForm } from "@inertiajs/react";
-import { Plus, Search, X, Zap, GitBranch, Info } from "lucide-react";
+import { Plus, Search, X, Zap, GitBranch, Info, MessageCircle, Phone, SkipForward } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getCampaignColumns } from "./columns";
 
-export default function CampaignsIndex({ campaigns, clients, filters }) {
+export default function CampaignsIndex({ campaigns, clients, filters, whatsapp_sources = [] }) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
     const [deleteDialog, setDeleteDialog] = useState({
@@ -44,6 +45,10 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
         description: "",
         status: "active",
         strategy_type: "dynamic", // default to dynamic (IVR/multiple options)
+        // Direct campaign config
+        trigger_action: "whatsapp", // whatsapp, call, skip
+        source_id: "",
+        message: "",
     });
 
     const handleFilterChange = (name, value) => {
@@ -382,8 +387,7 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
                                             <p className="font-medium">Campaña Directa</p>
                                             <p className="mt-0.5 text-green-700">
                                                 Ideal para CSV, listas manuales. Al activar un lead, 
-                                                se ejecutará automáticamente la acción configurada 
-                                                (llamada, WhatsApp, etc).
+                                                se ejecutará automáticamente la acción configurada.
                                             </p>
                                         </>
                                     ) : (
@@ -391,13 +395,128 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
                                             <p className="font-medium">Campaña Múltiple (IVR)</p>
                                             <p className="mt-0.5 text-blue-700">
                                                 Ideal para IVR y formularios. Cada opción (1, 2, 0, i) 
-                                                puede tener una acción diferente. El sistema espera 
-                                                la opción seleccionada antes de ejecutar.
+                                                puede tener una acción diferente. Configurarás las 
+                                                opciones después de crear la campaña.
                                             </p>
                                         </>
                                     )}
                                 </div>
                             </div>
+
+                            {/* Direct Campaign Action Config */}
+                            {data.strategy_type === "direct" && (
+                                <div className="border border-green-200 rounded-lg p-4 bg-green-50/30 space-y-4">
+                                    <h4 className="text-sm font-medium text-gray-900">Configuración de Acción</h4>
+                                    
+                                    {/* Action Type */}
+                                    <div className="space-y-2">
+                                        <Label className="text-xs text-gray-600">Tipo de Acción *</Label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setData("trigger_action", "whatsapp")}
+                                                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs ${
+                                                    data.trigger_action === "whatsapp"
+                                                        ? "border-green-500 bg-green-100 text-green-800"
+                                                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                                                }`}
+                                            >
+                                                <MessageCircle className="h-4 w-4" />
+                                                WhatsApp
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setData("trigger_action", "call")}
+                                                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs ${
+                                                    data.trigger_action === "call"
+                                                        ? "border-green-500 bg-green-100 text-green-800"
+                                                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                                                }`}
+                                            >
+                                                <Phone className="h-4 w-4" />
+                                                Llamada IA
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setData("trigger_action", "skip")}
+                                                className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs ${
+                                                    data.trigger_action === "skip"
+                                                        ? "border-green-500 bg-green-100 text-green-800"
+                                                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                                                }`}
+                                            >
+                                                <SkipForward className="h-4 w-4" />
+                                                Sales Ready
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* WhatsApp Source Selection */}
+                                    {data.trigger_action === "whatsapp" && (
+                                        <>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs text-gray-600">Fuente WhatsApp *</Label>
+                                                <Select
+                                                    value={data.source_id}
+                                                    onValueChange={(value) => setData("source_id", value)}
+                                                >
+                                                    <SelectTrigger className="h-9">
+                                                        <SelectValue placeholder="Seleccionar fuente..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {whatsapp_sources.map((source) => (
+                                                            <SelectItem key={source.id} value={source.id}>
+                                                                {source.name}
+                                                                {source.config?.phone_number && (
+                                                                    <span className="text-gray-400 ml-2">
+                                                                        ({source.config.phone_number})
+                                                                    </span>
+                                                                )}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                {errors.source_id && (
+                                                    <p className="text-xs text-red-500">{errors.source_id}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs text-gray-600">
+                                                    Mensaje de WhatsApp *
+                                                    <span className="text-gray-400 ml-1 font-normal">
+                                                        (usa {"{{name}}"} para el nombre del lead)
+                                                    </span>
+                                                </Label>
+                                                <textarea
+                                                    value={data.message}
+                                                    onChange={(e) => setData("message", e.target.value)}
+                                                    rows={3}
+                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                                                    placeholder="Hola {{name}}! Gracias por tu interés..."
+                                                />
+                                                {errors.message && (
+                                                    <p className="text-xs text-red-500">{errors.message}</p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Call AI Info */}
+                                    {data.trigger_action === "call" && (
+                                        <div className="text-xs text-amber-700 bg-amber-50 rounded p-2">
+                                            <p>La configuración del agente de llamadas se realiza después de crear la campaña.</p>
+                                        </div>
+                                    )}
+
+                                    {/* Skip Info */}
+                                    {data.trigger_action === "skip" && (
+                                        <div className="text-xs text-gray-600 bg-gray-50 rounded p-2">
+                                            <p>Los leads pasarán directamente a "Sales Ready" sin acción previa.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Status */}

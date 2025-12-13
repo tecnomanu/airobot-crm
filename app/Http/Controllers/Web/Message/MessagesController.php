@@ -50,9 +50,10 @@ class MessagesController extends Controller
         // Transform leads for the conversation list
         $conversations = $leadsWithMessages->through(function ($lead) {
             $lastMessage = $lead->messages->first();
+
             return [
                 'id' => $lead->id,
-                'name' => $lead->name ?: 'Unknown User',
+                'name' => $lead->name ?: 'Sin nombre',
                 'phone' => $lead->phone,
                 'last_message' => $lastMessage?->content,
                 'last_message_time' => $lastMessage?->created_at?->toIso8601String(),
@@ -60,7 +61,19 @@ class MessagesController extends Controller
                 'source_label' => $this->getSourceLabel($lead->source),
                 'messages_count' => $lead->messages_count,
                 'status' => $lead->status?->value,
-                'ai_active' => $lead->ai_agent_active ?? true, // Default AI is driving
+                'status_label' => $lead->status?->label(),
+                'intention_status' => $lead->intention_status?->value,
+                'intention_status_label' => $lead->intention_status?->label(),
+                'automation_status' => $lead->automation_status?->value,
+                'ai_active' => $lead->ai_agent_active ?? true,
+                'campaign' => $lead->campaign ? [
+                    'id' => $lead->campaign->id,
+                    'name' => $lead->campaign->name,
+                ] : null,
+                'client' => $lead->campaign?->client ? [
+                    'id' => $lead->campaign->client->id,
+                    'name' => $lead->campaign->client->name,
+                ] : null,
             ];
         });
 
@@ -74,15 +87,25 @@ class MessagesController extends Controller
             if ($selectedLead) {
                 $selectedConversation = [
                     'id' => $selectedLead->id,
-                    'name' => $selectedLead->name ?: 'Unknown User',
+                    'name' => $selectedLead->name ?: 'Sin nombre',
                     'phone' => $selectedLead->phone,
                     'source' => $selectedLead->source,
                     'source_label' => $this->getSourceLabel($selectedLead->source),
                     'status' => $selectedLead->status?->value,
+                    'status_label' => $selectedLead->status?->label(),
+                    'intention_status' => $selectedLead->intention_status?->value,
+                    'intention_status_label' => $selectedLead->intention_status?->label(),
+                    'intention' => $selectedLead->intention,
+                    'intention_label' => $this->getIntentionLabel($selectedLead->intention),
+                    'automation_status' => $selectedLead->automation_status?->value,
                     'ai_active' => $selectedLead->ai_agent_active ?? true,
                     'campaign' => $selectedLead->campaign ? [
                         'id' => $selectedLead->campaign->id,
                         'name' => $selectedLead->campaign->name,
+                    ] : null,
+                    'client' => $selectedLead->campaign?->client ? [
+                        'id' => $selectedLead->campaign->client->id,
+                        'name' => $selectedLead->campaign->client->name,
                     ] : null,
                 ];
 
@@ -196,7 +219,7 @@ class MessagesController extends Controller
      */
     private function getSourceLabel(?string $source): string
     {
-        if (!$source) {
+        if (! $source) {
             return 'Unknown';
         }
 
@@ -213,6 +236,23 @@ class MessagesController extends Controller
         ];
 
         return $sourceMap[$source] ?? strtoupper($source);
+    }
+
+    /**
+     * Get intention label for display
+     */
+    private function getIntentionLabel(?string $intention): string
+    {
+        if (! $intention) {
+            return 'Sin definir';
+        }
+
+        $intentionMap = [
+            'interested' => 'Interesado',
+            'not_interested' => 'No interesado',
+        ];
+
+        return $intentionMap[$intention] ?? ucfirst($intention);
     }
 }
 

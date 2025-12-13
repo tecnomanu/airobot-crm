@@ -95,6 +95,9 @@ class LeadResource extends JsonResource
             'automation_attempts' => $this->automation_attempts,
             'automation_error' => $this->automation_error,
             'last_automation_run_at' => $this->last_automation_run_at?->toIso8601String(),
+            'intention_decided_at' => $this->intention_decided_at?->toIso8601String(),
+            'contact_source_name' => $this->getContactSourceName(),
+            'contact_source_phone' => $this->getContactSourcePhone(),
             'can_retry_automation' => $this->canRetryAutomation(),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
@@ -194,5 +197,60 @@ class LeadResource extends JsonResource
         return ($this->automation_error !== null
             || in_array($this->automation_status?->value, ['failed', 'pending']))
             && $this->option_selected !== null;
+    }
+
+    /**
+     * Get the name of the source that contacted the lead (from campaign config or first outbound message)
+     */
+    private function getContactSourceName(): ?string
+    {
+        // Try to get from campaign configuration
+        if ($this->campaign) {
+            $config = $this->campaign->configuration ?? [];
+            $sourceId = $config['source_id'] ?? null;
+
+            // For dynamic campaigns, check the option mapping
+            if (! $sourceId && $this->option_selected && isset($config['mapping'][$this->option_selected])) {
+                $sourceId = $config['mapping'][$this->option_selected]['source_id'] ?? null;
+            }
+
+            if ($sourceId) {
+                $source = \App\Models\Integration\Source::find($sourceId);
+                if ($source) {
+                    return $source->name;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the phone number of the source that contacted the lead
+     */
+    private function getContactSourcePhone(): ?string
+    {
+        // Try to get from campaign configuration
+        if ($this->campaign) {
+            $config = $this->campaign->configuration ?? [];
+            $sourceId = $config['source_id'] ?? null;
+
+            // For dynamic campaigns, check the option mapping
+            if (! $sourceId && $this->option_selected && isset($config['mapping'][$this->option_selected])) {
+                $sourceId = $config['mapping'][$this->option_selected]['source_id'] ?? null;
+            }
+
+            if ($sourceId) {
+                $source = \App\Models\Integration\Source::find($sourceId);
+                if ($source) {
+                    // Get phone from source config (stored in 'config' column, not 'configuration')
+                    $sourceConfig = $source->config ?? [];
+
+                    return $sourceConfig['phone_number'] ?? $sourceConfig['phone'] ?? null;
+                }
+            }
+        }
+
+        return null;
     }
 }

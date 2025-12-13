@@ -8,15 +8,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-    Eye,
-    Phone,
-    MessageSquare,
-    Trash2,
     Edit,
+    Eye,
+    MessageSquare,
     MoreHorizontal,
-    Play,
-    Pause,
+    Phone,
     RefreshCw,
+    Trash2,
 } from "lucide-react";
 
 /**
@@ -37,7 +35,9 @@ const StatusBadge = ({ status, label }) => {
     return (
         <Badge
             variant="outline"
-            className={`${colors[status] || "bg-gray-50 text-gray-700"} text-[10px] font-medium px-2 py-0.5`}
+            className={`${
+                colors[status] || "bg-gray-50 text-gray-700"
+            } text-[10px] font-medium px-2 py-0.5`}
         >
             {label || status?.toUpperCase()}
         </Badge>
@@ -59,10 +59,14 @@ const SourceBadge = ({ source, label }) => {
     };
 
     const sourceKey = source?.toLowerCase() || "";
-    const colorClass = colors[sourceKey] || "bg-gray-50 text-gray-700 border-gray-200";
+    const colorClass =
+        colors[sourceKey] || "bg-gray-50 text-gray-700 border-gray-200";
 
     return (
-        <Badge variant="outline" className={`${colorClass} text-[10px] font-medium px-2 py-0.5`}>
+        <Badge
+            variant="outline"
+            className={`${colorClass} text-[10px] font-medium px-2 py-0.5`}
+        >
             {(label || source || "UNKNOWN").toUpperCase()}
         </Badge>
     );
@@ -86,7 +90,8 @@ const formatDate = (dateString) => {
  * Shows: NAME (with phone), SOURCE, STATUS, CREATED, ACTIONS
  */
 export const getLeadColumns = (activeTab, handlers = {}) => {
-    const { onDelete, onCall, onWhatsApp, onView, onEdit, onRetryAutomation } = handlers;
+    const { onDelete, onCall, onWhatsApp, onView, onEdit, onRetryAutomation } =
+        handlers;
 
     return [
         // NAME Column - Name + Phone
@@ -108,24 +113,37 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
             },
         },
 
-        // SOURCE Column - with option if IVR
+        // SOURCE Column
         {
             accessorKey: "source",
             header: "SOURCE",
             cell: ({ row }) => {
                 const lead = row.original;
-                const sourceText = lead.source_label || lead.source || "Unknown";
-                const optionText = lead.option_selected ? `(Opt: ${lead.option_selected})` : "";
-                
+                const sourceText =
+                    lead.source_label || lead.source || "Unknown";
+
+                return <SourceBadge source={lead.source} label={sourceText} />;
+            },
+        },
+
+        // OPTION Column - IVR option selected (only shown if exists)
+        {
+            accessorKey: "option_selected",
+            header: "OPTION",
+            cell: ({ row }) => {
+                const option = row.original.option_selected;
+
+                if (!option) {
+                    return <span className="text-xs text-gray-300">—</span>;
+                }
+
                 return (
-                    <div className="flex flex-col gap-1">
-                        <SourceBadge source={lead.source} label={sourceText} />
-                        {lead.option_selected && (
-                            <span className="text-[10px] text-gray-500 ml-0.5">
-                                {optionText}
-                            </span>
-                        )}
-                    </div>
+                    <Badge
+                        variant="outline"
+                        className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] font-medium px-2 py-0.5"
+                    >
+                        Opt: {option}
+                    </Badge>
                 );
             },
         },
@@ -147,7 +165,9 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
                     displayLabel = "SALES READY";
                 }
 
-                return <StatusBadge status={lead.status} label={displayLabel} />;
+                return (
+                    <StatusBadge status={lead.status} label={displayLabel} />
+                );
             },
         },
 
@@ -170,7 +190,10 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
             cell: ({ row }) => {
                 const lead = row.original;
                 return (
-                    <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="flex justify-end"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
