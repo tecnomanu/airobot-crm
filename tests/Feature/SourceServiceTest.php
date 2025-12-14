@@ -12,6 +12,7 @@ use App\Models\Integration\Source;
 use App\Models\User;
 use App\Services\Source\SourceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -36,8 +37,8 @@ class SourceServiceTest extends TestCase
         $this->user = User::factory()->create();
     }
 
-    /** @test */
-    public function puede_crear_fuente_whatsapp()
+    #[Test]
+    public function can_create_whatsapp_source()
     {
         $data = [
             'name' => 'WhatsApp Test',
@@ -63,8 +64,8 @@ class SourceServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function puede_crear_fuente_webhook()
+    #[Test]
+    public function can_create_webhook_source()
     {
         $data = [
             'name' => 'Webhook Test',
@@ -85,8 +86,8 @@ class SourceServiceTest extends TestCase
         $this->assertEquals(SourceType::WEBHOOK, $source->type);
     }
 
-    /** @test */
-    public function no_puede_crear_fuente_con_config_incompleta()
+    #[Test]
+    public function cannot_create_source_with_incomplete_config()
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Configuración incompleta');
@@ -104,8 +105,8 @@ class SourceServiceTest extends TestCase
         $this->service->create($data);
     }
 
-    /** @test */
-    public function no_puede_crear_fuente_con_nombre_duplicado()
+    #[Test]
+    public function cannot_create_source_with_duplicate_name()
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Ya existe una fuente con ese nombre');
@@ -131,8 +132,8 @@ class SourceServiceTest extends TestCase
         $this->service->create($data);
     }
 
-    /** @test */
-    public function puede_actualizar_fuente()
+    #[Test]
+    public function can_update_source()
     {
         $source = Source::factory()->create([
             'name' => 'Original',
@@ -151,8 +152,8 @@ class SourceServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function puede_activar_fuente_con_config_valida()
+    #[Test]
+    public function can_activate_source_with_valid_config()
     {
         $source = Source::factory()->create([
             'type' => SourceType::WHATSAPP->value,
@@ -170,8 +171,8 @@ class SourceServiceTest extends TestCase
         $this->assertEquals(SourceStatus::ACTIVE, $activated->status);
     }
 
-    /** @test */
-    public function no_puede_activar_fuente_sin_config_valida()
+    #[Test]
+    public function cannot_activate_source_without_valid_config()
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('No se puede activar la fuente sin una configuración válida');
@@ -186,8 +187,8 @@ class SourceServiceTest extends TestCase
         $this->service->activate($source->id);
     }
 
-    /** @test */
-    public function puede_desactivar_fuente()
+    #[Test]
+    public function can_deactivate_source()
     {
         $source = Source::factory()->create([
             'status' => SourceStatus::ACTIVE->value,
@@ -199,8 +200,8 @@ class SourceServiceTest extends TestCase
         $this->assertEquals(SourceStatus::INACTIVE, $deactivated->status);
     }
 
-    /** @test */
-    public function puede_obtener_fuentes_por_tipo()
+    #[Test]
+    public function can_get_sources_by_type()
     {
         Source::factory()->count(3)->create([
             'type' => SourceType::WHATSAPP->value,
@@ -219,8 +220,8 @@ class SourceServiceTest extends TestCase
         $this->assertCount(2, $webhookSources);
     }
 
-    /** @test */
-    public function puede_obtener_fuentes_por_cliente()
+    #[Test]
+    public function can_get_sources_by_client()
     {
         $otherClient = Client::factory()->create();
 
@@ -232,8 +233,8 @@ class SourceServiceTest extends TestCase
         $this->assertCount(3, $clientSources);
     }
 
-    /** @test */
-    public function puede_obtener_estadisticas()
+    #[Test]
+    public function can_get_statistics()
     {
         Source::factory()->count(2)->create([
             'type' => SourceType::WHATSAPP->value,
@@ -253,8 +254,8 @@ class SourceServiceTest extends TestCase
         $this->assertEquals(1, $stats['by_type']['webhook']);
     }
 
-    /** @test */
-    public function valida_url_invalida_en_webhook()
+    #[Test]
+    public function validates_invalid_url_in_webhook()
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('URL de webhook inválida');
@@ -273,8 +274,8 @@ class SourceServiceTest extends TestCase
         $this->service->create($data);
     }
 
-    /** @test */
-    public function valida_metodo_http_invalido_en_webhook()
+    #[Test]
+    public function validates_invalid_http_method_in_webhook()
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Método HTTP inválido');

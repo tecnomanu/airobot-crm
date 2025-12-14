@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class LeadFactory extends Factory
 {
+    protected $model = \App\Models\Lead\Lead::class;
+
     /**
      * Define the model's default state.
      *

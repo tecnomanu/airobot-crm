@@ -111,88 +111,13 @@ class LeadController extends Controller
                 ->withInput();
         }
     }
-
-    /**
-     * Update lead
-     */
-    public function update(UpdateLeadRequest $request, string $id): RedirectResponse
-    {
-        try {
-            $this->leadService->updateLead($id, $request->validated());
-
-            return redirect()->back()
-                ->with('success', 'Lead actualizado exitosamente');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', $e->getMessage())
-                ->withInput();
-        }
-    }
-
-    /**
-     * Delete lead
-     */
-    public function destroy(string $id): RedirectResponse
-    {
-        try {
-            $this->leadService->deleteLead($id);
-
-            return redirect()->route('leads.index')
-                ->with('success', 'Lead eliminado exitosamente');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', $e->getMessage());
-        }
-    }
-
-    /**
-     * Retry automation for single lead
-     */
-    public function retryAutomation(string $id): RedirectResponse
-    {
-        try {
-            $this->leadService->retryAutomation($id);
-
-            return redirect()->back()
-                ->with('success', 'Procesamiento reiniciado exitosamente');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Error al reiniciar procesamiento: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Retry automation for multiple leads (batch)
-     */
-    public function retryAutomationBatch(Request $request): RedirectResponse
-    {
-        try {
-            $filters = [
-                'campaign_id' => $request->input('campaign_id'),
-                'client_id' => $request->input('client_id'),
-            ];
-
-            $results = $this->leadService->retryAutomationBatch($filters);
-
-            $message = sprintf(
-                'Procesamiento completado: %d exitosos, %d fallidos de %d totales',
-                $results['success'],
-                $results['failed'],
-                $results['total']
-            );
-
-            return redirect()->back()
-                ->with($results['failed'] > 0 ? 'warning' : 'success', $message);
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Error en procesamiento masivo: ' . $e->getMessage());
-        }
-    }
+    
+    // ...
 
     /**
      * Quick action: Call lead
      */
-    public function callAction(string $id): RedirectResponse
+    public function initiateCall(string $id): RedirectResponse
     {
         $lead = $this->leadService->getLeadById($id);
 
@@ -207,7 +132,7 @@ class LeadController extends Controller
     /**
      * Quick action: Send WhatsApp message
      */
-    public function whatsappAction(string $id): RedirectResponse
+    public function initiateWhatsapp(string $id): RedirectResponse
     {
         $lead = $this->leadService->getLeadById($id);
 

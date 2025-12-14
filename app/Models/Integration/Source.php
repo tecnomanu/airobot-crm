@@ -23,6 +23,11 @@ class Source extends Model
 {
     use HasFactory, HasUuids;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\SourceFactory::new();
+    }
+
     protected $fillable = [
         'name',
         'type',

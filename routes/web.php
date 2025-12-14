@@ -41,8 +41,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [LeadController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/retry-automation', [LeadController::class, 'retryAutomation'])->name('retry-automation');
         Route::post('/retry-automation-batch', [LeadController::class, 'retryAutomationBatch'])->name('retry-automation-batch');
-        Route::post('/{id}/call', [LeadController::class, 'callAction'])->name('call-action');
-        Route::post('/{id}/whatsapp', [LeadController::class, 'whatsappAction'])->name('whatsapp-action');
+        Route::post('/{id}/call', [LeadController::class, 'initiateCall'])->name('call-action');
+        Route::post('/{id}/whatsapp', [LeadController::class, 'initiateWhatsapp'])->name('whatsapp-action');
     });
 
     // Campaigns

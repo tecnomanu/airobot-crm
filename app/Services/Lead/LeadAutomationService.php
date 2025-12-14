@@ -41,7 +41,32 @@ class LeadAutomationService
             throw new ValidationException('Lead no tiene campaña asociada');
         }
 
-        $actionValue = $campaign->{$optionField};
+        $actionValue = null;
+
+        // Try to resolve action from CampaignOption relation or configuration
+        if (preg_match('/option_(.*?)_action/', $optionField, $matches)) {
+            $optionKey = $matches[1];
+            
+            // 1. Try relation
+            $option = $campaign->getOption($optionKey);
+            if ($option) {
+                $actionValue = $option->action;
+                // If action is enum, get backing value if needed, but DB likely stores string
+                if ($actionValue instanceof \BackedEnum) {
+                    $actionValue = $actionValue->value;
+                }
+            } 
+            
+            // 2. Fallback to config
+            if (!$actionValue) {
+                $actionValue = $campaign->getActionForOption($optionKey);
+            }
+        }
+
+        // 3. Last resort: attribute access (legacy)
+        if (!$actionValue) {
+            $actionValue = $campaign->{$optionField};
+        }
 
         if (! $actionValue) {
             Log::info('No hay acción configurada para esta opción', [
@@ -71,7 +96,7 @@ class LeadAutomationService
 
         match ($actionType) {
             CampaignActionType::WHATSAPP => $this->executeWhatsAppAction($lead, $optionField),
-            CampaignActionType::WEBHOOK_CRM => $this->executeWebhookAction($lead),
+            CampaignActionType::WEBHOOK_CRM => $this->executeWebhookAction($lead, $optionField),
             CampaignActionType::CALL_AI => $this->executeCallAIAction($lead),
             CampaignActionType::MANUAL_REVIEW => $this->executeManualReviewAction($lead),
             CampaignActionType::SKIP => null,
@@ -81,10 +106,35 @@ class LeadAutomationService
     protected function executeWhatsAppAction(Lead $lead, string $optionField): void
     {
         $campaign = $lead->campaign;
+        $source = null;
 
-        if ($campaign->whatsappSource) {
-            $source = $campaign->whatsappSource;
+        // 1. Try to get source from Option configuration
+        // Extract key from optionField (e.g. 'option_2_action' -> '2')
+        if (preg_match('/option_(.*?)_action/', $optionField, $matches)) {
+            $optionKey = $matches[1];
+            
+            // Try getting from relation first (preferred)
+            $option = $campaign->getOption($optionKey);
+            if ($option && $option->source_id) {
+                 $source = $option->source;
+            } elseif ($option && $option->config && !empty($option->config['source_id'])) {
+                 // Fallback if source_id is in config json of the option
+                 $source = \App\Models\Integration\Source::find($option->config['source_id']);
+            } else {
+                // Fallback to JSON config on campaign
+                $optionConfig = $campaign->getConfigForOption($optionKey);
+                if (!empty($optionConfig['source_id'])) {
+                    $source = \App\Models\Integration\Source::find($optionConfig['source_id']);
+                }
+            }
+        }
 
+        // 2. If not in option, try campaign default agent
+        if (!$source && $campaign->whatsappAgent && $campaign->whatsappAgent->source) {
+            $source = $campaign->whatsappAgent->source;
+        }
+
+        if ($source) {
             if ($source->status !== SourceStatus::ACTIVE) {
                 Log::warning('Fuente de WhatsApp no está activa', [
                     'lead_id' => $lead->id,
@@ -154,20 +204,45 @@ class LeadAutomationService
                 throw $e;
             }
         } else {
-            Log::warning('Campaña usa configuración legacy de WhatsApp (sin Source)', [
+            Log::warning('Campaña no tiene fuente de WhatsApp configurada', [
                 'lead_id' => $lead->id,
                 'campaign_id' => $campaign->id,
+                'option_field' => $optionField,
             ]);
 
             throw new ValidationException(
                 'Campaña no tiene fuente de WhatsApp configurada. ' .
-                    'Configure una Source de tipo WhatsApp para esta campaña.'
+                    'Configure una Source de tipo WhatsApp para esta campaña u opción.'
             );
         }
     }
 
-    protected function executeWebhookAction(Lead $lead): void
+    protected function executeWebhookAction(Lead $lead, string $optionField = ''): void
     {
+        // Resolve source to check status
+        $campaign = $lead->campaign;
+        $source = null;
+        
+        // Similar logic to resolve source (could be refactored to helper)
+        if ($optionField && preg_match('/option_(.*?)_action/', $optionField, $matches)) {
+            $optionKey = $matches[1];
+             $option = $campaign->getOption($optionKey);
+            if ($option && $option->source_id) {
+                 $source = $option->source;
+            } elseif ($option && $option->config && !empty($option->config['source_id'])) {
+                 $source = \App\Models\Integration\Source::find($option->config['source_id']);
+            } else {
+                $optionConfig = $campaign->getConfigForOption($optionKey);
+                if (!empty($optionConfig['source_id'])) {
+                    $source = \App\Models\Integration\Source::find($optionConfig['source_id']);
+                }
+            }
+        }
+        
+        if ($source && $source->status !== SourceStatus::ACTIVE) {
+             throw new ValidationException("La fuente de Webhook '{$source->name}' no está activa");
+        }
+
         Log::info('Ejecutando acción de exportación', [
             'lead_id' => $lead->id,
             'campaign_id' => $lead->campaign_id,
@@ -204,6 +279,22 @@ class LeadAutomationService
 
     protected function getMessageForOption($campaign, string $optionField): ?string
     {
+        // 1. Check CampaignOption relation
+        if (preg_match('/option_(.*?)_action/', $optionField, $matches)) {
+            $optionKey = $matches[1];
+            $option = $campaign->getOption($optionKey);
+            
+            if ($option && !empty($option->message)) {
+                return $option->message;
+            }
+            
+            // Logica legacy/array fallback
+            $config = $campaign->getConfigForOption($optionKey);
+            if (!empty($config['message'])) {
+                return $config['message'];
+            }
+        }
+
         $messageField = match ($optionField) {
             'option_2_action' => 'option_2_message',
             'option_i_action' => 'option_i_message',

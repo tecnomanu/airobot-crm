@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class SourceFactory extends Factory
 {
+    protected $model = \App\Models\Integration\Source::class;
+
     /**
      * Define the model's default state.
      *

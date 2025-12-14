@@ -30,14 +30,14 @@ interface SourceRepositoryInterface
     /**
      * Busca una fuente por ID
      */
-    public function findById(int $id): ?Source;
+    public function findById(string $id): ?Source;
 
     /**
      * Busca una fuente por ID o lanza excepción
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
-    public function findOrFail(int $id): Source;
+    public function findOrFail(string $id): Source;
 
     /**
      * Crea una nueva fuente
@@ -47,12 +47,12 @@ interface SourceRepositoryInterface
     /**
      * Actualiza una fuente existente
      */
-    public function update(int $id, array $data): Source;
+    public function update(string $id, array $data): Source;
 
     /**
      * Elimina una fuente
      */
-    public function delete(int $id): bool;
+    public function delete(string $id): bool;
 
     /**
      * Obtiene fuentes por tipo
@@ -82,7 +82,7 @@ interface SourceRepositoryInterface
     /**
      * Verifica si existe una fuente con el mismo nombre para un cliente
      */
-    public function existsByName(string $name, string|int|null $clientId = null, ?int $excludeId = null): bool;
+    public function existsByName(string $name, string|int|null $clientId = null, ?string $excludeId = null): bool;
 
     /**
      * Cuenta fuentes por tipo

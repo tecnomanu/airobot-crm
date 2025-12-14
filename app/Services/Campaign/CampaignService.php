@@ -250,6 +250,27 @@ class CampaignService
                 if (! $source) {
                     throw new ValidationException('Una de las fuentes seleccionadas no existe');
                 }
+                
+                // Validate status
+                if ($source->status !== SourceStatus::ACTIVE) {
+                     throw new ValidationException("La fuente '{$source->name}' no está activa");
+                }
+
+                // Validate type based on action if possible
+                if (isset($optionData['action'])) {
+                    $action = $optionData['action']; 
+                    // Handle enum
+                    if ($action instanceof \BackedEnum) {
+                        $action = $action->value;
+                    }
+                    
+                    if ($action === 'whatsapp' && !$source->type->isMessaging()) {
+                        throw new ValidationException("La fuente debe ser de tipo WhatsApp para la acción WhatsApp");
+                    }
+                    if ($action === 'webhook_crm' && $source->type !== SourceType::WEBHOOK) {
+                        throw new ValidationException("La fuente debe ser de tipo Webhook para la acción Webhook CRM");
+                    }
+                }
             }
 
             $campaign->options()->updateOrCreate(

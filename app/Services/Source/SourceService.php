@@ -49,7 +49,7 @@ class SourceService
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
-    public function getById(int $id): Source
+    public function getById(string $id): Source
     {
         return $this->sourceRepository->findOrFail($id);
     }
@@ -93,7 +93,7 @@ class SourceService
      *
      * @throws ValidationException
      */
-    public function update(int $id, array $data): Source
+    public function update(string $id, array $data): Source
     {
         $source = $this->sourceRepository->findOrFail($id);
 
@@ -139,7 +139,7 @@ class SourceService
     /**
      * Elimina una fuente
      */
-    public function delete(int $id): bool
+    public function delete(string $id): bool
     {
         $source = $this->sourceRepository->findOrFail($id);
 
@@ -162,7 +162,7 @@ class SourceService
      *
      * @throws ValidationException
      */
-    public function activate(int $id): Source
+    public function activate(string $id): Source
     {
         $source = $this->sourceRepository->findOrFail($id);
 
@@ -179,7 +179,7 @@ class SourceService
     /**
      * Desactiva una fuente
      */
-    public function deactivate(int $id): Source
+    public function deactivate(string $id): Source
     {
         return $this->updateStatus($id, SourceStatus::INACTIVE);
     }
@@ -187,7 +187,7 @@ class SourceService
     /**
      * Marca una fuente con error
      */
-    public function markAsError(int $id, ?string $errorMessage = null): Source
+    public function markAsError(string $id, ?string $errorMessage = null): Source
     {
         $source = $this->updateStatus($id, SourceStatus::ERROR);
 
@@ -258,7 +258,7 @@ class SourceService
      *
      * @throws ValidationException
      */
-    protected function validateUniqueName(string $name, string|int|null $clientId = null, ?int $excludeId = null): void
+    protected function validateUniqueName(string $name, string|int|null $clientId = null, ?string $excludeId = null): void
     {
         if ($this->sourceRepository->existsByName($name, $clientId, $excludeId)) {
             throw new ValidationException(
@@ -336,7 +336,7 @@ class SourceService
     /**
      * Actualiza el estado de una fuente
      */
-    protected function updateStatus(int $id, SourceStatus $status): Source
+    protected function updateStatus(string $id, SourceStatus $status): Source
     {
         return $this->sourceRepository->update($id, [
             'status' => $status->value,

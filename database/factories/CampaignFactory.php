@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class CampaignFactory extends Factory
 {
+    protected $model = \App\Models\Campaign\Campaign::class;
+
     /**
      * Define the model's default state (solo datos básicos de campaña)
      * Los modelos relacionados (CallAgent, WhatsappAgent, Options) se crean con sus propias factories o callbacks

@@ -19,6 +19,11 @@ class Lead extends Model
 {
     use HasFactory, HasUuids;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\LeadFactory::new();
+    }
+
     protected $fillable = [
         'client_id',
         'phone',

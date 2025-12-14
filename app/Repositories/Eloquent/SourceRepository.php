@@ -50,7 +50,7 @@ class SourceRepository implements SourceRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function findById(int $id): ?Source
+    public function findById(string $id): ?Source
     {
         return $this->model
             ->with(['client', 'creator'])
@@ -60,7 +60,7 @@ class SourceRepository implements SourceRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function findOrFail(int $id): Source
+    public function findOrFail(string $id): Source
     {
         return $this->model
             ->with(['client', 'creator'])
@@ -78,7 +78,7 @@ class SourceRepository implements SourceRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function update(int $id, array $data): Source
+    public function update(string $id, array $data): Source
     {
         $source = $this->findOrFail($id);
         $source->update($data);
@@ -89,7 +89,7 @@ class SourceRepository implements SourceRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function delete(int $id): bool
+    public function delete(string $id): bool
     {
         $source = $this->findOrFail($id);
 
@@ -163,7 +163,7 @@ class SourceRepository implements SourceRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function existsByName(string $name, string|int|null $clientId = null, ?int $excludeId = null): bool
+    public function existsByName(string $name, string|int|null $clientId = null, ?string $excludeId = null): bool
     {
         $query = $this->model->where('name', $name);
 

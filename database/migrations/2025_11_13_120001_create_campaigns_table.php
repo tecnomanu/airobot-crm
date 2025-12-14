@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('export_rule')->default('interested_only')
                 ->comment('Regla de exportación: interested_only, not_interested_only, both, none');
             $table->string('match_pattern')->nullable()->unique();
-            $table->string('campaign_slug')->nullable()->unique();
+            $table->string('slug')->nullable()->unique();
             $table->boolean('auto_process_enabled')->default(true);
             $table->string('country', 2)->default('AR')
                 ->comment('Código ISO2 del país objetivo de la campaña');
@@ -42,7 +42,7 @@ return new class extends Migration
             $table->index('status');
             $table->index('client_id');
             $table->index('strategy_type');
-            $table->index('campaign_slug');
+            $table->index('slug');
             $table->index('send_intention_interested_webhook');
             $table->index('send_intention_not_interested_webhook');
         });

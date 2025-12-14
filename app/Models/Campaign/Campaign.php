@@ -22,6 +22,11 @@ class Campaign extends Model
 {
     use HasFactory, HasUuids;
 
+    protected static function newFactory()
+    {
+        return \Database\Factories\CampaignFactory::new();
+    }
+
     protected $fillable = [
         'name',
         'client_id',

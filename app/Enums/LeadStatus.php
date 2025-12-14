@@ -7,6 +7,7 @@ enum LeadStatus: string
     case PENDING = 'pending';
     case IN_PROGRESS = 'in_progress';
     case CONTACTED = 'contacted';
+    case QUALIFIED = 'qualified';
     case CLOSED = 'closed';
     case INVALID = 'invalid';
 
@@ -16,6 +17,7 @@ enum LeadStatus: string
             self::PENDING => 'Pending',
             self::IN_PROGRESS => 'In Progress',
             self::CONTACTED => 'Contacted',
+            self::QUALIFIED => 'Qualified',
             self::CLOSED => 'Closed',
             self::INVALID => 'Invalid',
         };
@@ -30,6 +32,7 @@ enum LeadStatus: string
             self::PENDING => 'New lead, not yet processed or contacted',
             self::IN_PROGRESS => 'Lead has shown interest and is being actively worked on',
             self::CONTACTED => 'Agent has personally reached out to the lead',
+            self::QUALIFIED => 'Lead meets criteria for sales process',
             self::CLOSED => 'Conversation completed or lead not interested',
             self::INVALID => 'Invalid or spam lead',
         };
@@ -41,6 +44,7 @@ enum LeadStatus: string
             self::PENDING => 'blue',
             self::IN_PROGRESS => 'yellow',
             self::CONTACTED => 'purple',
+            self::QUALIFIED => 'cyan',
             self::CLOSED => 'green',
             self::INVALID => 'red',
         };
