@@ -1,5 +1,5 @@
 import GoogleIntegrationSelector from "@/Components/Campaigns/GoogleIntegrationSelector";
-import SourceCombobox from "@/Components/common/SourceCombobox";
+import SourceCombobox from "@/Components/Common/SourceCombobox";
 import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
 import { Button } from "@/Components/ui/button";
 import {

@@ -1,6 +1,6 @@
 import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
 import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
-import SourceCombobox from "@/Components/common/SourceCombobox";
+import SourceCombobox from "@/Components/Common/SourceCombobox";
 import { Button } from "@/Components/ui/button";
 import {
     Card,

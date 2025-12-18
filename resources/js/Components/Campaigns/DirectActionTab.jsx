@@ -1,5 +1,5 @@
 import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
-import SourceCombobox from "@/Components/common/SourceCombobox";
+import SourceCombobox from "@/Components/Common/SourceCombobox";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import {

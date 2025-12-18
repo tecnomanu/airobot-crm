@@ -1,5 +1,5 @@
-import NotificationPermissionBanner from "@/Components/common/NotificationPermissionBanner";
-import PageHeader from "@/Components/common/PageHeader";
+import NotificationPermissionBanner from "@/Components/Common/NotificationPermissionBanner";
+import PageHeader from "@/Components/Common/PageHeader";
 import { Avatar, AvatarFallback } from "@/Components/ui/avatar";
 import {
     DropdownMenu,
@@ -50,7 +50,11 @@ const navigation = [
     { name: "Retell Agents", href: route("call-agents.index"), icon: Bot },
     { name: "Call History", href: route("lead-calls.index"), icon: Phone },
     { name: "Calculator", href: route("calculator.index"), icon: Table },
-    { name: "Integrations", href: route("settings.integrations"), icon: Settings },
+    {
+        name: "Integrations",
+        href: route("settings.integrations"),
+        icon: Settings,
+    },
 ];
 
 function AppSidebar() {
@@ -99,7 +103,9 @@ function AppSidebar() {
                         <span className="text-sm font-bold">A</span>
                     </div>
                     {open && (
-                        <span className="text-base font-semibold text-gray-900">AiRobot</span>
+                        <span className="text-base font-semibold text-gray-900">
+                            AiRobot
+                        </span>
                     )}
                 </div>
             </SidebarHeader>
@@ -110,7 +116,10 @@ function AppSidebar() {
                             {navigation.map((item) => {
                                 const isActive = isActiveRoute(item.href);
                                 return (
-                                    <SidebarMenuItem key={item.name} className="relative">
+                                    <SidebarMenuItem
+                                        key={item.name}
+                                        className="relative"
+                                    >
                                         {/* Active indicator bar */}
                                         {isActive && (
                                             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-indigo-600 rounded-r-full" />
@@ -126,11 +135,17 @@ function AppSidebar() {
                                             )}
                                         >
                                             <Link href={item.href}>
-                                                <item.icon className={cn(
-                                                    "h-4 w-4",
-                                                    isActive ? "text-indigo-600" : "text-gray-400"
-                                                )} />
-                                                <span className="text-sm">{item.name}</span>
+                                                <item.icon
+                                                    className={cn(
+                                                        "h-4 w-4",
+                                                        isActive
+                                                            ? "text-indigo-600"
+                                                            : "text-gray-400"
+                                                    )}
+                                                />
+                                                <span className="text-sm">
+                                                    {item.name}
+                                                </span>
                                             </Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
@@ -162,7 +177,9 @@ function AppSidebar() {
                         </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuLabel className="text-xs">Mi Cuenta</DropdownMenuLabel>
+                        <DropdownMenuLabel className="text-xs">
+                            Mi Cuenta
+                        </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild className="text-sm">
                             <Link href={route("profile.edit")}>

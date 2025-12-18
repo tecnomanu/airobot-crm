@@ -1,5 +1,5 @@
 import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
-import SourceCombobox from "@/Components/common/SourceCombobox";
+import SourceCombobox from "@/Components/Common/SourceCombobox";
 import { Button } from "@/Components/ui/button";
 import {
     Card,

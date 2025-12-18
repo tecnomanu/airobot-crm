@@ -28,6 +28,7 @@ class Lead extends Model
         'client_id',
         'phone',
         'name',
+        'email',
         'city',
         'country',
         'option_selected',
@@ -189,4 +190,3 @@ class Lead extends Model
         return $query->whereHas('messages');
     }
 }
-
