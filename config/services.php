@@ -81,4 +81,9 @@ return [
         'use_keywords_first' => env('OPENAI_USE_KEYWORDS_FIRST', false), // Usar palabras clave antes de IA (puede causar falsos positivos)
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URL'),
+    ],
 ];
