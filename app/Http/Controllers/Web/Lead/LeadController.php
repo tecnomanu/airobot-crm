@@ -111,8 +111,55 @@ class LeadController extends Controller
                 ->withInput();
         }
     }
-    
-    // ...
+
+    /**
+     * Update lead
+     */
+    public function update(UpdateLeadRequest $request, string $id): RedirectResponse
+    {
+        try {
+            $this->leadService->updateLead($id, $request->validated());
+
+            return redirect()->back()
+                ->with('success', 'Lead actualizado exitosamente');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Retry automation for a specific lead
+     */
+    public function retryAutomation(string $id): RedirectResponse
+    {
+        try {
+            $this->leadService->retryAutomation($id);
+
+            return redirect()->back()
+                ->with('success', 'Automation retried successfully');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Retry automation for all failed leads
+     */
+    public function retryAutomationBatch(Request $request): RedirectResponse
+    {
+        try {
+            $filters = $request->input('filters', []);
+            $results = $this->leadService->retryAutomationBatch($filters);
+
+            return redirect()->back()
+                ->with('success', "Batch retry completed. Success: {$results['success']}, Failed: {$results['failed']}");
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
 
     /**
      * Quick action: Call lead
