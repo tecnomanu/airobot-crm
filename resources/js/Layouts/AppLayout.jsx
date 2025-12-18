@@ -50,6 +50,7 @@ const navigation = [
     { name: "Retell Agents", href: route("call-agents.index"), icon: Bot },
     { name: "Call History", href: route("lead-calls.index"), icon: Phone },
     { name: "Calculator", href: route("calculator.index"), icon: Table },
+    { name: "Integrations", href: route("settings.integrations"), icon: Settings },
 ];
 
 function AppSidebar() {
@@ -166,7 +167,7 @@ function AppSidebar() {
                         <DropdownMenuItem asChild className="text-sm">
                             <Link href={route("profile.edit")}>
                                 <Settings className="mr-2 h-3.5 w-3.5" />
-                                <span>Configuración</span>
+                                <span>Perfil</span>
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

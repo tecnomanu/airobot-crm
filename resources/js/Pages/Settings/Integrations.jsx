@@ -1,0 +1,74 @@
+import { Badge } from '@/Components/ui/badge';
+import { Button } from '@/Components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
+import AppLayout from '@/Layouts/AppLayout';
+import { Head, usePage } from '@inertiajs/react';
+import { SiGoogle, SiGooglesheets } from "react-icons/si";
+
+export default function Integrations() {
+    const { auth, flash } = usePage().props;
+    const googleIntegration = auth.user.google_integration; // Assuming we pass this from HandleInertiaRequests or Controller
+
+    return (
+        <AppLayout
+            user={auth.user}
+            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Integraciones</h2>}
+        >
+            <Head title="Integraciones" />
+
+            <div className="py-12">
+                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    <div className="grid gap-6">
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <SiGooglesheets className="w-8 h-8 text-green-600" />
+                                    <div>
+                                        <CardTitle>Google Sheets</CardTitle>
+                                        <CardDescription>
+                                            Conecta tu cuenta de Google para exportar leads automáticamente.
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">Estado:</span>
+                                        {googleIntegration ? (
+                                            <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">
+                                                Conectado
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="text-gray-500">
+                                                No conectado
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {googleIntegration && (
+                                        <p className="text-sm text-gray-500">
+                                            Conectado como: <span className="font-medium text-gray-700 dark:text-gray-300">{googleIntegration.email}</span>
+                                        </p>
+                                    )}
+                                </div>
+                                
+                                {googleIntegration ? (
+                                    <Button variant="outline" disabled>
+                                        Conectado
+                                    </Button>
+                                ) : (
+                                    <Button asChild>
+                                        <a href={route('auth.google')}>
+                                            <SiGoogle className="mr-2 h-4 w-4" />
+                                            Conectar Google
+                                        </a>
+                                    </Button>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        </AppLayout>
+    );
+}

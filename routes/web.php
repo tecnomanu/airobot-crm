@@ -9,6 +9,7 @@ use App\Http\Controllers\Web\Lead\LeadController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SourceController;
 use App\Http\Controllers\Web\WebhookConfigController;
+use App\Http\Controllers\Auth\GoogleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -27,6 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Settings
+    Route::inertia('/settings/integrations', 'Settings/Integrations')->name('settings.integrations');
 
     // Leads - Note: Using closure for index due to route resolution issue
     Route::prefix('leads')->name('leads.')->group(function () {
@@ -48,6 +52,7 @@ Route::middleware('auth')->group(function () {
     // Campaigns
     Route::prefix('campaigns')->name('campaigns.')->group(function () {
         Route::get('/', [CampaignController::class, 'index'])->name('index');
+        Route::get('/create', [CampaignController::class, 'create'])->name('create');
         Route::get('/{id}', [CampaignController::class, 'show'])->name('show');
         Route::post('/', [CampaignController::class, 'store'])->name('store');
         Route::put('/{id}', [CampaignController::class, 'update'])->name('update');
@@ -103,6 +108,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/create', [CalculatorController::class, 'create'])->name('create');
         Route::get('/{id}', [CalculatorController::class, 'show'])->name('show');
     });
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('auth/google', [GoogleController::class, 'redirect'])->name('auth.google');
+    Route::get('auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
 });
 
 require __DIR__ . '/auth.php';

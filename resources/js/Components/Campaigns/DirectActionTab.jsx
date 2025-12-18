@@ -1,36 +1,35 @@
-import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
 import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
 import SourceCombobox from "@/Components/common/SourceCombobox";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/Components/ui/badge";
+import { Button } from "@/Components/ui/button";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
+} from "@/Components/ui/card";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/Components/ui/dialog";
+import { Label } from "@/Components/ui/label";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/Components/ui/select";
+import { Textarea } from "@/Components/ui/textarea";
 import { router, useForm } from "@inertiajs/react";
 import { Info, MessageCircle, Phone, Plus, SkipForward, Zap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import CallAgentConfig from "./CallAgentConfig";
 
 const actionTypes = [
     { value: "skip", label: "Sales Ready", description: "Pasar directamente a ventas", icon: SkipForward },
@@ -46,6 +45,7 @@ export default function DirectActionTab({
     whatsappSources,
     webhookSources,
     clients,
+    errors,
 }) {
     const [createWhatsappDialog, setCreateWhatsappDialog] = useState(false);
 
@@ -189,16 +189,16 @@ export default function DirectActionTab({
                         <div className="space-y-2">
                             <Label>Plantilla (Opcional)</Label>
                             <Select
-                                value={data.direct_template_id || ""}
+                                value={data.direct_template_id || "no_template"}
                                 onValueChange={(value) =>
-                                    updateDirectConfig("direct_template_id", value || null)
+                                    updateDirectConfig("direct_template_id", value === "no_template" ? null : value)
                                 }
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Usar mensaje personalizado" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Usar mensaje personalizado</SelectItem>
+                                    <SelectItem value="no_template">Usar mensaje personalizado</SelectItem>
                                     {templates && templates.length > 0 && templates.map((template) => (
                                         <SelectItem key={template.id} value={template.id}>
                                             {template.name}
@@ -223,24 +223,15 @@ export default function DirectActionTab({
                             Configuración de Llamada IA
                         </CardTitle>
                         <CardDescription>
-                            El agente de llamadas debe configurarse en la pestaña "Agentes"
+                            Configura el agente de IA que realizará las llamadas
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                                <Info className="h-5 w-5 text-purple-600 mt-0.5" />
-                                <div>
-                                    <p className="text-sm text-purple-900 font-medium">
-                                        Agente configurado: {data.call_agent?.name || "Sin configurar"}
-                                    </p>
-                                    <p className="text-xs text-purple-700 mt-1">
-                                        Ve a la pestaña "Agentes" para configurar el proveedor de llamadas (Retell, VAPI, etc.)
-                                        y los parámetros del agente IA.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        <CallAgentConfig 
+                            data={data}
+                            setData={setData}
+                            errors={errors || {}}
+                        />
                     </CardContent>
                 </Card>
             )}
