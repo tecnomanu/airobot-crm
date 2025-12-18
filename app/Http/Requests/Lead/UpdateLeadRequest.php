@@ -52,11 +52,14 @@ class UpdateLeadRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'size:2'],
             'option_selected' => ['nullable', Rule::enum(LeadOptionSelected::class)],
-            'campaign_id' => ['sometimes', 'integer', 'exists:campaigns,id'],
+            'campaign_id' => ['sometimes', 'string', 'exists:campaigns,id'],
             'status' => ['sometimes', Rule::enum(LeadStatus::class)],
             'source' => ['nullable', Rule::enum(LeadSource::class)],
             'intention' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
+            'manual_classification' => ['nullable', 'string'],
+            'decision_notes' => ['nullable', 'string'],
+            'ai_agent_active' => ['sometimes', 'boolean'],
         ];
     }
 }

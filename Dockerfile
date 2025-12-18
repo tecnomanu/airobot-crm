@@ -29,7 +29,7 @@ RUN apk add --no-cache git unzip libzip-dev icu-dev oniguruma-dev \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 
 # -----------------------------

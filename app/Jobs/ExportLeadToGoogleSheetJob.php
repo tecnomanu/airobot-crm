@@ -29,10 +29,10 @@ class ExportLeadToGoogleSheetJob implements ShouldQueue
         $spreadsheetId = null;
         $sheetName = null;
 
-        if ($this->lead->intention === 'interested') {
+        if ($this->lead->intention === \App\Enums\LeadIntention::INTERESTED->value) {
             $spreadsheetId = $campaign->google_spreadsheet_id;
             $sheetName = $campaign->google_sheet_name;
-        } elseif ($this->lead->intention === 'not_interested') {
+        } elseif ($this->lead->intention === \App\Enums\LeadIntention::NOT_INTERESTED->value) {
             $spreadsheetId = $campaign->intention_not_interested_google_spreadsheet_id;
             $sheetName = $campaign->intention_not_interested_google_sheet_name;
         }

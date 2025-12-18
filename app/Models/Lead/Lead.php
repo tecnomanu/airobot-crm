@@ -74,6 +74,7 @@ class Lead extends Model
         'intention_webhook_sent' => 'boolean',
         'intention_webhook_sent_at' => 'datetime',
         'tags' => 'array',
+        'ai_agent_active' => 'boolean',
     ];
 
     public const RELATION_CAMPAIGN = 'campaign';

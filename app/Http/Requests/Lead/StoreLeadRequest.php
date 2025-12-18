@@ -46,7 +46,7 @@ class StoreLeadRequest extends FormRequest
         // Convert tab_placement to proper automation_status and intention_status
         if ($this->filled('tab_placement')) {
             $tabPlacement = $this->tab_placement;
-            
+
             match ($tabPlacement) {
                 'inbox' => $mergeData = array_merge($mergeData, [
                     'automation_status' => LeadAutomationStatus::PENDING->value,
