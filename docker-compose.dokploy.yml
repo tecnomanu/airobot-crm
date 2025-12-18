@@ -104,8 +104,5 @@ networks:
 
 volumes:
   airobot_storage_v1:
-    external: true
   airobot_redis_data_v1:
-    external: true
   airobot_postgres_data_v1:
-    external: true
