@@ -24,8 +24,21 @@ class ExportLeadToGoogleSheetJob implements ShouldQueue
     public function handle(GoogleSheetsService $sheetsService): void
     {
         $campaign = $this->lead->campaign;
-        
-        if (!$campaign || !$campaign->google_integration_id || !$campaign->google_spreadsheet_id) {
+
+        // Determinar qué spreadsheet ID usar
+        $spreadsheetId = null;
+        $sheetName = null;
+
+        if ($this->lead->intention === 'interested') {
+            $spreadsheetId = $campaign->google_spreadsheet_id;
+            $sheetName = $campaign->google_sheet_name;
+        } elseif ($this->lead->intention === 'not_interested') {
+            $spreadsheetId = $campaign->intention_not_interested_google_spreadsheet_id;
+            $sheetName = $campaign->intention_not_interested_google_sheet_name;
+        }
+
+        // Si no hay spreadsheet configurado para este caso, salir
+        if (!$campaign || !$campaign->google_integration_id || !$spreadsheetId) {
             return;
         }
 
@@ -50,12 +63,19 @@ class ExportLeadToGoogleSheetJob implements ShouldQueue
                 // Add more fields as needed
             ];
 
-            $sheetsService->appendRow($campaign->google_spreadsheet_id, $data);
-            
+            // TODO: Support sheet name selection in appendRow if the service supports it
+            // Currently appendRow takes spreadsheetId and optional range. 
+            // If sheetName is provided, we should probably prepend it to range like "Sheet1!A1"
+            $range = 'A1';
+            if ($sheetName) {
+                $range = "{$sheetName}!A1";
+            }
+
+            $sheetsService->appendRow($spreadsheetId, $data, $range);
+
             $this->lead->update(['exported_at' => now()]);
 
-            Log::info("Lead {$this->lead->id} exported to Google Sheet {$campaign->google_spreadsheet_id}");
-
+            Log::info("Lead {$this->lead->id} exported to Google Sheet {$spreadsheetId} (Intention: {$this->lead->intention})");
         } catch (\Exception $e) {
             Log::error("Failed to export lead {$this->lead->id} to Google Sheet: " . $e->getMessage());
             // Retry logic could be added here

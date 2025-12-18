@@ -4,7 +4,7 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 
 // Lista de idiomas soportados por Retell AI con códigos ISO
 const RETELL_LANGUAGES = [

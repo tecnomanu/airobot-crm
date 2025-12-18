@@ -5,21 +5,21 @@ import axios from "axios";
 import { Plus, Search, X, Calculator } from "lucide-react";
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { toast } from "sonner";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/Components/ui/data-table";
 import { getCalculatorColumns } from "./columns";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/Components/ui/dialog";
 import {
     Card,
     CardContent,
-} from "@/components/ui/card";
+} from "@/Components/ui/card";
 
 export default function CalculatorList({ calculators, filters = {} }) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);

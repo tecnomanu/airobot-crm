@@ -7,8 +7,8 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from "@/Components/ui/card";
+import { Badge } from "@/Components/ui/badge";
 
 export default function ClientShow({ client, overview }) {
     const stats = [

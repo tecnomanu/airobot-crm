@@ -1,6 +1,6 @@
 import NotificationPermissionBanner from "@/Components/common/NotificationPermissionBanner";
 import PageHeader from "@/Components/common/PageHeader";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/Components/ui/avatar";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -8,7 +8,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/Components/ui/dropdown-menu";
 import {
     Sidebar,
     SidebarContent,
@@ -22,8 +22,8 @@ import {
     SidebarProvider,
     SidebarTrigger,
     useSidebar,
-} from "@/components/ui/sidebar";
-import { Toaster } from "@/components/ui/sonner";
+} from "@/Components/ui/sidebar";
+import { Toaster } from "@/Components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { Link, usePage } from "@inertiajs/react";
 import {

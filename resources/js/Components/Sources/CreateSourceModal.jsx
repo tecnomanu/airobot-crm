@@ -1,15 +1,15 @@
 import { useEffect } from "react";
 import { useForm } from "@inertiajs/react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/Components/ui/button";
+import { Label } from "@/Components/ui/label";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 import {
     Dialog,
     DialogContent,
@@ -17,7 +17,7 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/Components/ui/dialog";
 import SourceFormWhatsApp from "./SourceFormWhatsApp";
 import SourceFormWebhook from "./SourceFormWebhook";
 

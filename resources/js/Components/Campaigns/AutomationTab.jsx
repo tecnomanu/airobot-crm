@@ -1,30 +1,30 @@
 import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
 import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
 import SourceCombobox from "@/Components/common/SourceCombobox";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/button";
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
+} from "@/Components/ui/card";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/Components/ui/dialog";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 import { router, useForm } from "@inertiajs/react";
 import { Plus } from "lucide-react";
 import { useState } from "react";

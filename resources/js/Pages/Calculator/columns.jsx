@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/button";
 import { Link } from "@inertiajs/react";
 import { format } from "date-fns";
 import { Calculator, Trash2 } from "lucide-react";

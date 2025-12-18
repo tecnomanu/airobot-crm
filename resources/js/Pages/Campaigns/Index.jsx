@@ -1,14 +1,14 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/Components/ui/button";
+import { DataTable } from "@/Components/ui/data-table";
+import { Input } from "@/Components/ui/input";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link, router } from "@inertiajs/react";
 import { Plus, Search, X } from "lucide-react";

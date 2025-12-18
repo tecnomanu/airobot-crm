@@ -1,13 +1,13 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+} from "@/Components/ui/select";
+import { Switch } from "@/Components/ui/switch";
 import { AlertCircle } from "lucide-react";
 
 export default function SourceFormWhatsApp({ data, setData, errors, clients }) {

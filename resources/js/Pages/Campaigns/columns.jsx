@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/Components/ui/badge";
+import { Button } from "@/Components/ui/button";
+import { Switch } from "@/Components/ui/switch";
 import { router } from "@inertiajs/react";
 import { Eye, Trash2, Zap, GitBranch } from "lucide-react";
 

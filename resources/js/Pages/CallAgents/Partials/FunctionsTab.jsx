@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/Components/ui/button";
+import { Label } from "@/Components/ui/label";
+import { Separator } from "@/Components/ui/separator";
+import { Switch } from "@/Components/ui/switch";
 import { Edit } from "lucide-react";
 
 export default function FunctionsTab({

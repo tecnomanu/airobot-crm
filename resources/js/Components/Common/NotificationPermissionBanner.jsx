@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/button";
 import { notifications } from "@/lib/notifications";
 import { Bell, X } from "lucide-react";
 import { useEffect, useState } from "react";

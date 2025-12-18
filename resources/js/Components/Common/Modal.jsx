@@ -4,7 +4,7 @@ import {
     DialogContent,
     DialogPortal,
     DialogOverlay,
-} from "@/components/ui/dialog";
+} from "@/Components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export default function Modal({

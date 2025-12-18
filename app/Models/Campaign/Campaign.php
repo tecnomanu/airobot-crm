@@ -45,6 +45,8 @@ class Campaign extends Model
         'google_integration_id',
         'google_spreadsheet_id',
         'google_sheet_name',
+        'intention_not_interested_google_spreadsheet_id',
+        'intention_not_interested_google_sheet_name',
         'created_by',
     ];
 

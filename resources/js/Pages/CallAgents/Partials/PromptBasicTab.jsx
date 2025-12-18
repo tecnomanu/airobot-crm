@@ -1,7 +1,7 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import LanguageSelect from "@/components/CallAgent/LanguageSelect";
-import WelcomeMessageSelect from "@/components/CallAgent/WelcomeMessageSelect";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
+import LanguageSelect from "@/Components/CallAgent/LanguageSelect";
+import WelcomeMessageSelect from "@/Components/CallAgent/WelcomeMessageSelect";
 
 export default function PromptBasicTab({ data, setData, errors }) {
     return (

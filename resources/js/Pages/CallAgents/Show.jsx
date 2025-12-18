@@ -1,15 +1,15 @@
-import CustomFunctionModal from "@/components/CallAgent/CustomFunctionModal";
+import CustomFunctionModal from "@/Components/CallAgent/CustomFunctionModal";
 import {
     Accordion,
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/Components/ui/accordion";
+import { Badge } from "@/Components/ui/badge";
+import { Button } from "@/Components/ui/button";
+import { Card, CardContent } from "@/Components/ui/card";
+import { Label } from "@/Components/ui/label";
+import { Textarea } from "@/Components/ui/textarea";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import {

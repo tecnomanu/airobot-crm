@@ -4,7 +4,7 @@ import {
     ContextMenuItem,
     ContextMenuSeparator,
     ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+} from "@/Components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import {
     ChevronDown,
