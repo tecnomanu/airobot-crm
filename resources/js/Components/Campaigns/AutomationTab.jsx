@@ -1,6 +1,5 @@
-import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
-import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
 import SourceCombobox from "@/Components/Common/SourceCombobox";
+import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
 import { Button } from "@/Components/ui/button";
 import {
     Card,
@@ -9,13 +8,6 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/Components/ui/dialog";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import {
@@ -25,10 +17,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/Components/ui/select";
-import { router, useForm } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 const optionConfig = {
     1: { title: "Opción 1", description: "Primera opción seleccionada" },
@@ -60,7 +51,7 @@ export default function AutomationTab({
     // Helper para actualizar una opción específica
     const updateOption = (optionKey, field, value) => {
         const updatedOptions = data.options.map((opt) => {
-            if (opt.option_key === optionKey) {
+            if (String(opt.option_key) === String(optionKey)) {
                 return { ...opt, [field]: value };
             }
             return opt;
@@ -71,7 +62,9 @@ export default function AutomationTab({
     // Helper para obtener una opción específica
     const getOption = (optionKey) => {
         return (
-            data.options.find((opt) => opt.option_key === optionKey) || {
+            data.options.find(
+                (opt) => String(opt.option_key) === String(optionKey)
+            ) || {
                 option_key: optionKey,
                 action: "skip",
                 source_id: null,
@@ -110,17 +103,23 @@ export default function AutomationTab({
             </div>
 
             {/* Dialog para crear fuente WhatsApp */}
-            <CreateWhatsAppSourceDialog
+            <CreateSourceModal
                 open={createWhatsappDialog}
                 onOpenChange={setCreateWhatsappDialog}
+                sourceType="whatsapp"
                 clients={clients}
+                redirectTo={window.location.pathname}
+                onSuccess={() => router.reload({ only: ["whatsappSources"] })}
             />
 
             {/* Dialog para crear fuente Webhook */}
-            <CreateWebhookSourceDialog
+            <CreateSourceModal
                 open={createWebhookDialog}
                 onOpenChange={setCreateWebhookDialog}
+                sourceType="webhook_crm"
                 clients={clients}
+                redirectTo={window.location.pathname}
+                onSuccess={() => router.reload({ only: ["webhookSources"] })}
             />
         </div>
     );
@@ -210,10 +209,10 @@ function OptionCard({
                                 <Label>Fuente WhatsApp</Label>
                                 <Button
                                     type="button"
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
                                     onClick={onCreateWhatsappSource}
-                                    className="h-7 text-xs"
+                                    className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                                 >
                                     <Plus className="mr-1 h-3 w-3" />
                                     Nueva Fuente
@@ -293,10 +292,10 @@ function OptionCard({
                             <Label>Fuente Webhook</Label>
                             <Button
                                 type="button"
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
                                 onClick={onCreateWebhookSource}
-                                className="h-7 text-xs"
+                                className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                             >
                                 <Plus className="mr-1 h-3 w-3" />
                                 Nueva Fuente
@@ -340,138 +339,5 @@ function OptionCard({
                 )}
             </CardContent>
         </Card>
-    );
-}
-
-// Dialog para crear fuente WhatsApp
-function CreateWhatsAppSourceDialog({ open, onOpenChange, clients }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        name: "",
-        type: "whatsapp",
-        client_id: "",
-        status: "active",
-        config: {
-            phone_number: "",
-            provider: "evolution_api",
-            api_url: "",
-            instance_name: "",
-            api_key: "",
-        },
-    });
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        post(route("sources.store"), {
-            onSuccess: () => {
-                toast.success("Fuente WhatsApp creada exitosamente");
-                onOpenChange(false);
-                reset();
-                router.reload({ only: ["whatsappSources"] });
-            },
-            onError: () => {
-                toast.error("Error al crear la fuente WhatsApp");
-            },
-        });
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Crear Fuente WhatsApp</DialogTitle>
-                    <DialogDescription>
-                        Configura una nueva fuente de WhatsApp para enviar
-                        mensajes automatizados.
-                    </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <SourceFormWhatsApp
-                        data={data}
-                        setData={setData}
-                        errors={errors}
-                        clients={clients}
-                    />
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                            disabled={processing}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? "Creando..." : "Crear Fuente"}
-                        </Button>
-                    </div>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// Dialog para crear fuente Webhook
-function CreateWebhookSourceDialog({ open, onOpenChange, clients }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        name: "",
-        type: "webhook_crm",
-        client_id: "",
-        status: "active",
-        config: {
-            url: "",
-            method: "POST",
-            headers: {},
-            payload_template: "",
-        },
-    });
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        post(route("sources.store"), {
-            onSuccess: () => {
-                toast.success("Fuente Webhook creada exitosamente");
-                onOpenChange(false);
-                reset();
-                router.reload({ only: ["webhookSources"] });
-            },
-            onError: () => {
-                toast.error("Error al crear la fuente Webhook");
-            },
-        });
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Crear Fuente Webhook</DialogTitle>
-                    <DialogDescription>
-                        Configura una nueva fuente webhook para enviar datos a
-                        sistemas externos (CRM, etc.).
-                    </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <SourceFormWebhook
-                        data={data}
-                        setData={setData}
-                        errors={errors}
-                        clients={clients}
-                    />
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => onOpenChange(false)}
-                            disabled={processing}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? "Creando..." : "Crear Fuente"}
-                        </Button>
-                    </div>
-                </form>
-            </DialogContent>
-        </Dialog>
     );
 }

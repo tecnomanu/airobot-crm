@@ -33,7 +33,7 @@ export default function IntentionWebhookTab({
     const [createWebhookModalOpen, setCreateWebhookModalOpen] = useState(false);
     // Filtrar solo fuentes de tipo webhook
     const availableWebhooks = webhookSources.filter(
-        (source) => source.type === "webhook"
+        (source) => source.type === "webhook" || source.type === "webhook_crm"
     );
 
     // Local state for UI selection - Interested

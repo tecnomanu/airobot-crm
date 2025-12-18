@@ -108,12 +108,7 @@ export default function SourceCombobox({
                                             source.config?.phone_number || ""
                                         } ${source.config?.url || ""}`}
                                         onSelect={() => {
-                                            const newValue =
-                                                value?.toString() ===
-                                                source.id.toString()
-                                                    ? null
-                                                    : source.id.toString();
-                                            onValueChange(newValue);
+                                            onValueChange(source.id.toString());
                                             setOpen(false);
                                         }}
                                     >
