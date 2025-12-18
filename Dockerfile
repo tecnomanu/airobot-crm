@@ -3,21 +3,34 @@
 # -----------------------------
 FROM node:20-alpine AS assets
 WORKDIR /app
+
 RUN corepack enable
+
+# Copiamos manifests primero para cache
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
+# Copiamos el resto del código y build
 COPY . .
 RUN pnpm run build
 
 
 # -----------------------------
-# 2) Composer deps
+# 2) Composer deps (con ext-pcntl para Horizon)
 # -----------------------------
-FROM composer:2 AS vendor
+FROM php:8.4-cli-alpine AS vendor
 WORKDIR /app
+
+# Dependencias y extensiones necesarias para validar requirements en composer
+RUN apk add --no-cache git unzip libzip-dev icu-dev oniguruma-dev \
+    && docker-php-ext-install pcntl intl zip mbstring
+
+# Copiamos composer desde la imagen oficial
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
 
 # -----------------------------
 # 3) Runtime (php-fpm)
