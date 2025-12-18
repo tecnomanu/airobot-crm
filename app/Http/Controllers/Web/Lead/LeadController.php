@@ -143,4 +143,19 @@ class LeadController extends Controller
         return redirect()->back()
             ->with('info', 'Función de WhatsApp en desarrollo');
     }
+    /**
+     * Delete lead
+     */
+    public function destroy(string $id): RedirectResponse
+    {
+        try {
+            $this->leadService->deleteLead($id);
+
+            return redirect()->route('leads.index')
+                ->with('success', 'Lead eliminado exitosamente');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
 }
