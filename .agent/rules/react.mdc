@@ -1,0 +1,31 @@
+---
+globs: "resources/js/**/*.jsx, resources/js/**/*.js, resources/js/**/*.tsx"
+alwaysApply: false
+description: "Reglas Frontend: React, Inertia, Shadcn UI"
+---
+
+# Reglas Frontend (React + Inertia)
+
+## 🎨 UI & Componentes
+
+- **Stack**: React 18, Inertia.js, Tailwind CSS, Shadcn/ui.
+- **Jerarquía**:
+  1. `Components/common/`: Componentes complejos reutilizables (Ej: `StatusBadge`). USAR PRIMERO.
+  2. `Components/ui/`: Base shadcn (NO EDITAR). Instalar con `pnpm dlx shadcn@latest add ...`.
+  3. `Components/[module]/`: Específicos de dominio.
+- **Iconos**: **Lucide React** exclusivamente. 🚫 PROHIBIDO usar Emojis en UI.
+- **Estilo**: Tailwind utility-first. Diseño Mobile-first.
+
+## 🛠️ Desarrollo React
+
+- **Límites**: Componentes < 200 líneas. Máx 10 props. Dividir si crece.
+- **Inertia**:
+  - Usar `Link` para navegación interna.
+  - Usar `useForm` de Inertia para formularios (manejo automático de errores).
+- **Hooks**: Extraer lógica de negocio y data fetching a Custom Hooks (`useMyLogic`).
+
+## 🚫 Anti-patrones
+
+- No mezclar lógica de negocio en componentes UI de presentación.
+- No usar estilos inline ni CSS modules (solo Tailwind).
+- No modificar componentes en `ui/` directamente (componer o extender).

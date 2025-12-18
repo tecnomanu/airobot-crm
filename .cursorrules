@@ -1,0 +1,107 @@
+# Project Rules
+
+This project follows a strict set of rules for development. Please adhere to them based on the context of the files you are working on.
+
+## Global Rules
+**Applies to**: All files (`**/*`)
+
+### Code Standards
+- **Quality**: Maintain high standards. Single responsibility per component. DRY (Don't Repeat Yourself).
+- **Format**: Consistent formatting. Descriptive names. Small, focused functions. Meaningful comments for complex logic only. No debug code in commits.
+- **Process**: Understand context first. Design before code. Incremental development. Self-review. Refactor without changing behavior.
+- **Error Handling**: Proper error handling and logging. Security and performance awareness.
+- **Version Control**: Small, focused commits. Clear messages. Use branches. PRs for review.
+
+### File Management
+- **Check Existence**: Verify if file exists before creating.
+- **Merge, Don't Overwrite**: If file exists, merge content (preserve comments, imports, licenses) unless explicitly instructed to overwrite or if file is auto-generated.
+- **Communication**: Explain changes when modifying existing files.
+
+### Git Commit Guidelines
+- **Format**: `type(scope): emoji description`
+  - Types: `feat` (✨), `fix` (🐛), `docs` (📝), `refactor` (♻️), `test` (✅), `chore` (🔧).
+- **Author Identity**:
+  - AI Commits: `git commit --author="Globey AI <globy.ai@assistant.local>" ...`
+- **Workflow**:
+  - Never commit automatically without user confirmation.
+  - Wait for "ready" or "perfect" from user.
+  - If user gives new task, do not commit previous work unless asked.
+  - Use Pull Requests (never direct push to main/staging).
+  - Branch naming: `feature/name`, `fix/issue`, `refactor/name`.
+
+### Quality Assurance
+- **Principles**: Continuous verification. Error prevention.
+- **Testing**: Run tests after changes (`php artisan test`, `npm run test`). Do not consider task done until tests pass.
+- **TDD**: Consider TDD (Fail -> Pass -> Refactor).
+- **Definition of Done**: Tests pass, code reviewed, ready for deploy.
+
+---
+
+## Frontend Rules (React + Inertia)
+**Applies to**: `resources/js/**/*.jsx`, `resources/js/**/*.js`, `resources/js/**/*.tsx`, `resources/js/**/*.ts`
+
+### Architecture & Components
+- **Stack**: React 18, Inertia.js (Laravel bridge), Tailwind CSS, shadcn/ui.
+- **Structure**:
+  - `Components/ui/`: Base shadcn/ui components (DO NOT MODIFY). Install with `pnpm dlx shadcn@latest add ...`.
+  - `Components/common/`: Reusable complex components (e.g., `DataTable`, `StatusBadge`).
+  - `Components/[module]/`: Domain-specific components.
+- **SOLID**: Single Responsibility. Composition over inheritance. Dependency Inversion (custom hooks).
+- **Inertia**:
+  - Pages in `Pages/`. Receive props from Laravel.
+  - Use `Link` or `router` for navigation.
+  - Use `useForm` for forms.
+- **Styling**: Tailwind utility classes. `cn()` for class merging. Mobile-first.
+- **Limits**: Max 200 lines/component. Max 10 props. Split if too large.
+- **Hooks**: Use custom hooks for data fetching (`useExamples`) or logic (`useStatusInfo`).
+
+### UI & Iconography
+- **No Emojis**: NEVER use emojis in code/UI. Use **Lucide React** icons.
+- **StatusBadge**: Use `@/Components/common/StatusBadge` for statuses.
+- **Icons**: Import from `lucide-react` (e.g., `Eye`, `Edit`, `Trash`).
+- **Hierarchy**: Check `common/` -> `ui/` -> Create custom.
+- **Colors**: Use predefined Tailwind classes in StatusBadge (green, yellow, red, blue, gray).
+
+---
+
+## Laravel Rules
+**Applies to**: `app/**/*.php`, `routes/**/*.php`, `tests/**/*.php`, `config/**/*.php`, `database/**/*.php`
+
+### Architecture (Laravel 12)
+- **Pattern**: MVC + Repository + Service.
+- **Layers**:
+  - **Controllers**: Handle HTTP, thin, delegate to Services. Use FormRequests.
+  - **Services**: Business logic, coordinate Repositories. Depend on Interfaces.
+  - **Repositories**: Data access (Eloquent), CRUD. Used by Services.
+  - **Models**: Relations, casts. No business logic.
+  - **FormRequests**: Validation and data preparation (`prepareForValidation`).
+  - **Resources**: JSON formatting.
+- **SOLID**: Strict adherence.
+- **Binding**: Register Repositories in `RepositoryServiceProvider`.
+
+### Naming Conventions
+- **Classes**: PascalCase (e.g., `UserController`).
+- **Methods/Vars**: camelCase (e.g., `store`, `userName`).
+- **Constants**: SCREAMING_SNAKE_CASE.
+- **Database**: snake_case, plural tables (`users`), `singular_id` FKs.
+- **Routes**: kebab-case URLs, snake_case names (`user_settings.index`).
+- **Views**: kebab-case directories.
+
+### Implementation Details
+- **Email Notifications**:
+  - **Locale**: Handled automatically by `BaseCustomerNotification`. Do NOT set manually.
+  - Override `getCustomerLocale` or `getFormDataLocale`.
+- **Form Requests**: Use for complex validation or data transformation. Keep Controllers clean.
+- **Infrastructure**: Laravel 12 + Inertia. `app/Models`, `app/Repositories`, `app/Services`.
+- **API**: `/v1` prefix, Sanctum (`customer-api` guard).
+- **Repositories**: Define relation constants (`BASIC_RELATIONS`). Services delegate to Repositories.
+- **Routes**: Use new functional syntax (`get('/url', ...)`). `routes/api.php` vs `routes/web.php`.
+- **Testing**: Pest PHP preferred. Feature tests for flows. Unit tests for logic. Coverage > 80%.
+
+### Translations
+- **update ALL languages**: If you add/change a key in `es`, add it to `en`, etc.
+- **Structure**: `lang/{locale}/file.php`. Same keys everywhere.
+- **Dynamic**: Use `__('file.key', ['param' => $val])`.
+
+### Version
+- **Laravel 12**: Use latest features (functional routing, bootstrap/app.php providers).

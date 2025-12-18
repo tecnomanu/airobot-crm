@@ -1,0 +1,40 @@
+---
+globs: "app/**/*.php, tests/**/*.php, config/**/*.php, routes/**/*.php"
+alwaysApply: false
+description: "Reglas Backend: Laravel 12, Arquitectura y Patrones"
+---
+
+# Reglas Laravel 12 & Backend
+
+## 🏗️ Arquitectura y Patrones
+
+- **Stack**: Laravel 12. Estructura MVC estricta + Repository Pattern.
+- **Capas**:
+  - **Controllers**: Muy delgados. Solo HTTP (Request -> Service -> Response). Validación vía FormRequests.
+  - **Services**: Lógica de negocio. Coordinan Repositories. Dependen de Interfaces.
+  - **Repositories**: Acceso a datos (Eloquent). Definen constantes de relaciones (`BASIC_RELATIONS`).
+  - **Models**: Solo definición de esquema, relaciones y casts. Sin lógica de negocio.
+- **Prohibido**: Usar Eloquent directo en Controllers o Services (usar Repositories).
+
+## 🧩 Implementación
+
+- **Service Providers**: 
+  - Usar `RepositoryServiceProvider` para bindear interfaces a implementaciones.
+  - Registro de providers en `bootstrap/app.php` (Laravel 12 style).
+- **Naming Conventions**:
+  - Clases: `PascalCase` (Ej: `UserService`).
+  - Métodos/Variables: `camelCase`.
+  - DB/Config: `snake_case`.
+  - Constantes: `SCREAMING_SNAKE_CASE`.
+- **Rutas**: Sintaxis funcional (`get('/url', ...)`). Separar `api.php` (externo) de `web.php` (interno/Inertia).
+
+## 🌍 Internacionalización & Emails
+
+- **Locale Automático**: `BaseCustomerNotification` maneja el idioma. **NUNCA** setear locale manualmente.
+- **Traducciones**: Actualizar SIEMPRE todos los idiomas (`es`, `en`, etc.) al agregar claves.
+
+## ✅ Testing (Pest PHP)
+
+- **Prioridad**: TDD. Escribir test -> fallar -> implementar -> pasar -> refactorizar.
+- **Coverage**: Objetivo > 80%.
+- **Comandos**: `php artisan test`.

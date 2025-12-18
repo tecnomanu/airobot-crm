@@ -75,6 +75,25 @@ class CampaignController extends Controller
         ]);
     }
 
+    public function create(): Response
+    {
+        $clients = $this->clientService->getActiveClients();
+
+        // Obtener todas las fuentes activas
+        $allActiveSources = $this->sourceService->getAll(['active_only' => true]);
+
+        // Filtrar por tipo
+        $whatsappSources = $allActiveSources->filter(fn($s) => $s->type->isWhatsApp());
+        $webhookSources = $allActiveSources->filter(fn($s) => $s->type->isWebhook());
+
+        return Inertia::render('Campaigns/Create', [
+            'clients' => $clients,
+            'whatsapp_sources' => $whatsappSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
+            'webhook_sources' => $webhookSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
+            'templates' => [],
+        ]);
+    }
+
     public function store(StoreCampaignRequest $request): RedirectResponse
     {
         try {

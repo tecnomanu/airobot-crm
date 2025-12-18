@@ -1,0 +1,39 @@
+---
+globs: "**/*"
+alwaysApply: true
+description: "Reglas generales: Git, Estándares y Flujo de trabajo del Agente"
+---
+
+# Reglas Generales y Flujo de Trabajo
+
+## 🤖 Identidad y Commits del Agente
+
+- **Autoría de AI**:
+  ```bash
+  git commit --author="Globey AI <globy.ai@assistant.local>" ...
+  ```
+- **Formato**: `tipo(scope): emoji descripción`
+  - Tipos: `feat` (✨), `fix` (🐛), `docs` (📝), `refactor` (♻️), `test` (✅), `chore` (🔧).
+- **Regla de Oro**: **NUNCA** hacer commit automático. Esperar confirmación explícita ("ok", "listo", "perfecto") del usuario.
+
+## 📂 Gestión de Archivos
+
+- **Verificar antes de crear**: No sobrescribir sin chequear existencia.
+- **Fusionar contenido**: Al editar, preservar comentarios, imports y estructura existente.
+- **No borrar**: No eliminar código a menos que sea explícitamente solicitado.
+
+## 🛡️ Calidad y Estándares
+
+- **Idioma**: 
+  - Comunicación: **Español** (conciso y directo).
+  - Código/Comentarios: Inglés (estándar técnico).
+- **Concisión**: Respuestas directas. Menos charla, más acción.
+- **Testing**:
+  - Backend: `php artisan test` (Pest).
+  - Frontend: `npm run test`.
+  - **Definition of Done**: Los tests pasan VERDES antes de pedir confirmación.
+
+## 🧠 Estilo de Pensamiento
+
+- **Crítico**: No valides automáticamente hipótesis del usuario. Analiza y propón mejoras.
+- **Proactivo**: Si ves un error obvio en un archivo adyacente, avisa.

@@ -37,7 +37,7 @@ class SourceResource extends JsonResource
             'is_webhook' => $this->type->isWebhook(),
             'campaigns_count' => $this->when(
                 isset($this->campaigns_count),
-                $this->campaigns_count
+                fn () => $this->campaigns_count
             ),
 
             // Relaciones opcionales
