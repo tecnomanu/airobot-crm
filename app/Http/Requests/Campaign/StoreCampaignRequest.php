@@ -26,6 +26,11 @@ class StoreCampaignRequest extends FormRequest
             'status' => ['nullable', Rule::enum(CampaignStatus::class)],
             'strategy_type' => ['nullable', Rule::enum(CampaignStrategy::class)],
 
+            // Google Sheets Integration
+            'google_integration_id' => ['nullable', 'string', 'exists:google_integrations,id'],
+            'google_spreadsheet_id' => ['nullable', 'string'],
+            'google_sheet_name' => ['nullable', 'string'],
+
             // Direct campaign configuration
             'trigger_action' => ['nullable', Rule::enum(CampaignActionType::class)],
             'source_id' => ['nullable', 'string', 'uuid', 'exists:sources,id'],

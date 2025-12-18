@@ -42,6 +42,9 @@ class Campaign extends Model
         'intention_not_interested_webhook_id',
         'send_intention_interested_webhook',
         'send_intention_not_interested_webhook',
+        'google_integration_id',
+        'google_spreadsheet_id',
+        'google_sheet_name',
         'created_by',
     ];
 

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Database\Eloquent\Model;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,5 +22,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+        Model::shouldBeStrict(! $this->app->isProduction());
+        
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\LeadUpdated::class,
+            \App\Listeners\ExportLeadToGoogleSheet::class
+        );
     }
 }

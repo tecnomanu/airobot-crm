@@ -31,6 +31,11 @@ class UpdateCampaignRequest extends FormRequest
             'status' => ['sometimes', Rule::enum(CampaignStatus::class)],
             'auto_process_enabled' => ['nullable', 'boolean'],
 
+            // Google Sheets Integration
+            'google_integration_id' => ['nullable', 'string', 'exists:google_integrations,id'],
+            'google_spreadsheet_id' => ['nullable', 'string'],
+            'google_sheet_name' => ['nullable', 'string'],
+
             // Webhooks de intención
             'intention_interested_webhook_id' => ['nullable', 'integer', 'exists:sources,id'],
             'intention_not_interested_webhook_id' => ['nullable', 'integer', 'exists:sources,id'],
