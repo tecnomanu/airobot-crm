@@ -39,7 +39,7 @@ FROM php:8.4-fpm-alpine AS runtime
 
 # Paquetes y extensiones típicas Laravel + Horizon
 RUN apk add --no-cache \
-    bash curl icu-dev oniguruma-dev libzip-dev zip unzip git \
+    bash curl icu-dev oniguruma-dev libzip-dev zip unzip git postgresql-dev \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring intl zip pcntl opcache
 
 # Redis extension (pecl)
