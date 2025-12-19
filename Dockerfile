@@ -91,10 +91,10 @@ COPY --from=assets /var/www/public/build ./public/build
 
 # Set permissions and create storage link
 RUN mkdir -p /var/www/storage/logs /var/www/bootstrap/cache && \
-    chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache && \
+    chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-    # Install PHP dependencies with optimized autoloader
-    RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+# Install PHP dependencies with optimized autoloader
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 EXPOSE 80
 CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
