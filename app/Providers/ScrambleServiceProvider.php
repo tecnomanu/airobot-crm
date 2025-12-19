@@ -22,6 +22,11 @@ class ScrambleServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Only configure Scramble if it's installed (dev environment)
+        if (!class_exists(\Dedoc\Scramble\Scramble::class)) {
+            return;
+        }
+
         // Configurar qué rutas documentar
         Scramble::routes(function (Route $route) {
             // Documentar todas las rutas que empiecen con api/

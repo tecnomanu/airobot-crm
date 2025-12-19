@@ -37,6 +37,10 @@ storage/framework/testing/*
 storage/framework/views/*
 storage/logs/*
 
+# Bootstrap cache (will be regenerated in container)
+bootstrap/cache/*
+!bootstrap/cache/.gitignore
+
 # Docker files (not needed inside container)
 docker-compose.yml
 docker-compose.*.yml
