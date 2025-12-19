@@ -91,6 +91,7 @@ RUN composer install --no-dev --optimize-autoloader --prefer-dist --no-scripts -
 
 # Copy application code
 COPY . .
+COPY .env .env
 
 # Copy built assets from assets stage
 COPY --from=assets /var/www/public/build ./public/build
