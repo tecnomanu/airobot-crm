@@ -49,7 +49,8 @@ services:
       - airobot_postgres_data_v1:/var/lib/postgresql/data
     networks:
       airobot-internal:
-        aliases: airobot-postgres
+        aliases:
+          - airobot-postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-airobot} -d ${DB_DATABASE:-airobot}"]
       interval: 5s
