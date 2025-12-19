@@ -83,31 +83,18 @@ RUN pnpm run build
 FROM base AS production
 WORKDIR /var/www
 
-# Copy composer files first for better caching
-COPY composer.json composer.lock ./
-
-# Install PHP dependencies (no scripts to avoid artisan errors)
-RUN composer install --no-dev --optimize-autoloader --prefer-dist --no-scripts --no-progress
-
-# Copy application code
+# Copy application code (Dokploy will inject .env at runtime)
 COPY . .
-COPY .env .env
 
 # Copy built assets from assets stage
 COPY --from=assets /var/www/public/build ./public/build
 
-# Set permissions
+# Set permissions and create storage link
 RUN mkdir -p /var/www/storage/logs /var/www/bootstrap/cache && \
     chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache && \
-    chmod -R ug+rwX /var/www/storage /var/www/bootstrap/cache
 
-# Generate optimized autoloader and cache (only if artisan is available)
-RUN composer dump-autoload -o
-
-# Laravel optimizations (these might fail if .env is not present, so we make them optional)
-RUN php artisan config:cache || true && \
-    php artisan route:cache || true && \
-    php artisan view:cache || true
+    # Install PHP dependencies with optimized autoloader
+    RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 EXPOSE 80
 CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
