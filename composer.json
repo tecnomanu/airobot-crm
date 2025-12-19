@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "dedoc/scramble": "^0.13.3",
         "google/apiclient": "^2.18",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^12.0",
@@ -22,7 +23,6 @@
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
-        "dedoc/scramble": "^0.13.3",
         "fakerphp/faker": "^1.23",
         "laravel/breeze": "^2.3",
         "laravel/pail": "^1.2.2",
@@ -30,8 +30,7 @@
         "laravel/sail": "^1.41",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
-        "phpunit/phpunit": "^11.5.3",
-        "qossmic/deptrac": "^2.0"
+        "phpunit/phpunit": "^11.5.3"
     },
     "autoload": {
         "psr-4": {
@@ -79,8 +78,7 @@
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
-        ],
-        "deptrac": "vendor/bin/deptrac analyse --config-file=deptrac.yaml"
+        ]
     },
     "extra": {
         "laravel": {
