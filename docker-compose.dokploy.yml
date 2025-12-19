@@ -1,69 +1,28 @@
 version: "3.8"
 
 services:
-  web:
-    image: nginx:alpine
+  api:
+    image: airobot-crm:latest
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+      target: production
     restart: unless-stopped
-    depends_on:
-      - php
+    working_dir: /var/www
+    volumes:
+      - airobot_storage_v1:/var/www/storage
     expose:
       - "80"
-    volumes:
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./public:/var/www/public:ro
     networks:
-      airobot-internal:
-        aliases:
-          - airobot-web
-
-  php:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: airobot-laravel:prod
-    restart: unless-stopped
-    volumes:
-      - airobot_storage_v1:/var/www/storage
-    networks:
-      airobot-internal:
-        aliases:
-          - airobot-php
+      - airobot-internal
     depends_on:
       - redis
       - postgres
-
-  horizon:
-    image: airobot-laravel:prod
-    restart: unless-stopped
-    command: ["php", "/var/www/artisan", "horizon"]
-    volumes:
-      - airobot_storage_v1:/var/www/storage
-    networks:
-      airobot-internal:
-        aliases:
-          - airobot-horizon
-    depends_on:
-      - redis
-      - postgres
-      - php
-
-  reverb:
-    image: airobot-laravel:prod
-    restart: unless-stopped
-    command: ["php", "/var/www/artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
-    expose:
-      - "8080"
-    volumes:
-      - airobot_storage_v1:/var/www/storage
-    networks:
-      airobot-internal:
-        aliases:
-          - airobot-reverb
-          - reverb
-    depends_on:
-      - redis
-      - postgres
-      - php
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - REVERB_HOST=0.0.0.0
+      - REVERB_PORT=8080
 
   redis:
     image: redis:7-alpine
@@ -71,9 +30,7 @@ services:
     volumes:
       - airobot_redis_data_v1:/data
     networks:
-      airobot-internal:
-        aliases:
-          - airobot-redis
+      - airobot-internal
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -81,20 +38,18 @@ services:
       retries: 10
 
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-airobot}
+      POSTGRES_USER: ${DB_USERNAME:-airobot}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
       - airobot_postgres_data_v1:/var/lib/postgresql/data
     networks:
-      airobot-internal:
-        aliases:
-          - airobot-postgres
+      - airobot-internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-airobot} -d ${DB_DATABASE:-airobot}"]
       interval: 5s
       timeout: 3s
       retries: 10
