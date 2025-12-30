@@ -51,7 +51,7 @@ COPY ./docker-compose/supervisord/supervisord.ini /etc/supervisor.d/supervisord.
 COPY ./docker-compose/crontab /etc/crontabs/root
 
 # Copy and configure entrypoint script
-COPY ./docker-compose/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY ./docker-compose/entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 WORKDIR /var/www

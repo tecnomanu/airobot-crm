@@ -1,12 +1,13 @@
 # Development files
-.env
 .env.*
-!.env.example
+!.env
+public/hot
 
 # Node modules and build artifacts
 node_modules/
 npm-debug.log
 yarn-error.log
+vendor
 
 # IDE and editor files
 .idea/
@@ -14,6 +15,9 @@ yarn-error.log
 *.swp
 *.swo
 *~
+
+# Build artifacts
+*.log
 
 # Git
 .git/
@@ -36,12 +40,16 @@ storage/framework/sessions/*
 storage/framework/testing/*
 storage/framework/views/*
 storage/logs/*
+!storage/framework/.gitignore
 
 # Bootstrap cache (will be regenerated in container)
 bootstrap/cache/*
-!bootstrap/cache/.gitignore
 
 # Docker files (not needed inside container)
 docker-compose.yml
 docker-compose.*.yml
 .dockerignore
+
+# Other
+.DS_Store
+Thumbs.db
