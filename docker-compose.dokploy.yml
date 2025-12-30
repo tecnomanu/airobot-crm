@@ -9,6 +9,8 @@ services:
       target: production
     restart: unless-stopped
     working_dir: /var/www
+    env_file:
+      - .env
     volumes:
       - airobot_storage_v1:/var/www/storage
     expose:

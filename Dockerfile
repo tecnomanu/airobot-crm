@@ -50,6 +50,10 @@ COPY ./docker-compose/nginx/conf.d/app.conf /etc/nginx/http.d/default.conf
 COPY ./docker-compose/supervisord/supervisord.ini /etc/supervisor.d/supervisord.ini
 COPY ./docker-compose/crontab /etc/crontabs/root
 
+# Copy and configure entrypoint script
+COPY ./docker-compose/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 WORKDIR /var/www
 EXPOSE 80
 
@@ -97,4 +101,4 @@ RUN mkdir -p /var/www/storage/logs /var/www/bootstrap/cache && \
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 EXPOSE 80
-CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
+CMD ["/usr/local/bin/entrypoint.sh"]

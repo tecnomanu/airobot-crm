@@ -44,5 +44,5 @@ bootstrap/cache/*
 # Docker files (not needed inside container)
 docker-compose.yml
 docker-compose.*.yml
-Dockerfile
 .dockerignore
+
