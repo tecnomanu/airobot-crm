@@ -64,6 +64,13 @@ EXPOSE 80
 FROM node:22-alpine AS assets
 WORKDIR /var/www
 
+# Build arguments - these MUST be passed during docker build
+ARG VITE_APP_NAME
+ARG VITE_REVERB_APP_KEY
+ARG VITE_REVERB_HOST
+ARG VITE_REVERB_PORT
+ARG VITE_REVERB_SCHEME
+
 RUN corepack enable
 
 # Install dependencies
@@ -77,6 +84,13 @@ COPY postcss.config.js ./
 COPY jsconfig.json ./
 COPY resources/ ./resources/
 COPY public/ ./public/
+
+# Create .env with VITE variables for build (Vite embeds these at build time)
+RUN echo "VITE_APP_NAME=${VITE_APP_NAME}" > .env && \
+    echo "VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}" >> .env && \
+    echo "VITE_REVERB_HOST=${VITE_REVERB_HOST}" >> .env && \
+    echo "VITE_REVERB_PORT=${VITE_REVERB_PORT}" >> .env && \
+    echo "VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}" >> .env
 
 RUN pnpm run build
 
