@@ -7,12 +7,6 @@ services:
       context: ./
       dockerfile: ./Dockerfile
       target: production
-      args:
-        VITE_APP_NAME: "${VITE_APP_NAME}"
-        VITE_REVERB_APP_KEY: "${VITE_REVERB_APP_KEY}"
-        VITE_REVERB_HOST: "${VITE_REVERB_HOST}"
-        VITE_REVERB_PORT: "${VITE_REVERB_PORT}"
-        VITE_REVERB_SCHEME: "${VITE_REVERB_SCHEME}"
     env_file:
       - .env
     restart: unless-stopped

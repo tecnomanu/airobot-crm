@@ -1,7 +1,6 @@
 # Development files
-.env
 .env.*
-!.env.example
+!.env
 public/hot
 
 # Node modules and build artifacts
