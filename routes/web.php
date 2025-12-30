@@ -102,6 +102,25 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'destroy'])->name('destroy');
     });
 
+    // AI Agent Templates
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('agent-templates', \App\Http\Controllers\Web\AI\AgentTemplateController::class);
+        Route::post('agent-templates/{agentTemplate}/duplicate', [\App\Http\Controllers\Web\AI\AgentTemplateController::class, 'duplicate'])
+            ->name('agent-templates.duplicate');
+    });
+
+    // Campaign Agents (AI)
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('campaign-agents', \App\Http\Controllers\Web\AI\CampaignAgentController::class);
+        Route::post('campaign-agents/{campaignAgent}/generate', [\App\Http\Controllers\Web\AI\CampaignAgentController::class, 'generate'])
+            ->name('campaign-agents.generate');
+        Route::post('campaign-agents/{campaignAgent}/sync', [\App\Http\Controllers\Web\AI\CampaignAgentController::class, 'sync'])
+            ->name('campaign-agents.sync');
+        Route::post('campaign-agents/preview', [\App\Http\Controllers\Web\AI\CampaignAgentController::class, 'preview'])
+            ->name('campaign-agents.preview');
+    });
+
+
     // Calculator
     Route::prefix('calculator')->name('calculator.')->group(function () {
         Route::get('/', [CalculatorController::class, 'index'])->name('index');

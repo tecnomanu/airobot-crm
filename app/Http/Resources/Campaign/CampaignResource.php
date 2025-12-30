@@ -90,6 +90,22 @@ class CampaignResource extends JsonResource
                 });
             }),
 
+            // Intention Actions (nueva estructura)
+            'intention_actions' => $this->whenLoaded('intentionActions', function () {
+                return CampaignIntentionActionResource::collection($this->intentionActions);
+            }),
+
+            // Compatibilidad con frontend legacy (mapeo de intentionActions a campos antiguos)
+            'intention_interested_webhook_id' => $this->getInterestedAction()?->webhook_id,
+            'intention_not_interested_webhook_id' => $this->getNotInterestedAction()?->webhook_id,
+            'send_intention_interested_webhook' => $this->shouldSendInterestedWebhook(),
+            'send_intention_not_interested_webhook' => $this->shouldSendNotInterestedWebhook(),
+            'google_integration_id' => $this->getInterestedAction()?->google_integration_id,
+            'google_spreadsheet_id' => $this->getInterestedAction()?->google_spreadsheet_id ?? '',
+            'google_sheet_name' => $this->getInterestedAction()?->google_sheet_name ?? '',
+            'intention_not_interested_google_spreadsheet_id' => $this->getNotInterestedAction()?->google_spreadsheet_id ?? '',
+            'intention_not_interested_google_sheet_name' => $this->getNotInterestedAction()?->google_sheet_name ?? '',
+
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
 

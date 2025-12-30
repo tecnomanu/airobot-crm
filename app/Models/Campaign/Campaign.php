@@ -36,28 +36,15 @@ class Campaign extends Model
         'auto_process_enabled',
         'country',
         'strategy_type',
-        'configuration',
         'export_rule',
-        'intention_interested_webhook_id',
-        'intention_not_interested_webhook_id',
-        'send_intention_interested_webhook',
-        'send_intention_not_interested_webhook',
-        'google_integration_id',
-        'google_spreadsheet_id',
-        'google_sheet_name',
-        'intention_not_interested_google_spreadsheet_id',
-        'intention_not_interested_google_sheet_name',
         'created_by',
     ];
 
     protected $casts = [
         'status' => CampaignStatus::class,
         'strategy_type' => CampaignStrategy::class,
-        'configuration' => 'array',
         'export_rule' => ExportRule::class,
         'auto_process_enabled' => 'boolean',
-        'send_intention_interested_webhook' => 'boolean',
-        'send_intention_not_interested_webhook' => 'boolean',
     ];
 
     // =========================================================================
@@ -109,23 +96,99 @@ class Campaign extends Model
         return $this->hasMany(CampaignOption::class);
     }
 
-    public function intentionInterestedWebhook(): BelongsTo
+    public function intentionActions(): HasMany
     {
-        return $this->belongsTo(Source::class, 'intention_interested_webhook_id');
+        return $this->hasMany(CampaignIntentionAction::class);
     }
 
-    public function intentionNotInterestedWebhook(): BelongsTo
+    public function agent(): HasOne
     {
-        return $this->belongsTo(Source::class, 'intention_not_interested_webhook_id');
+        return $this->hasOne(\App\Models\AI\CampaignAgent::class);
     }
 
+
     // =========================================================================
-    // LEGACY SUPPORT - CampaignOption relation (for dynamic campaigns)
+    // LEGACY SUPPORT - CampaignOption relation
     // =========================================================================
 
+    /**
+     * Get option by key
+     */
     public function getOption(string $optionKey): ?CampaignOption
     {
         return $this->options()->where('option_key', $optionKey)->first();
+    }
+
+    /**
+     * Get option for direct campaigns (always option_key='0')
+     */
+    public function getDirectOption(): ?CampaignOption
+    {
+        return $this->getOption('0');
+    }
+
+    /**
+     * Get all enabled options
+     */
+    public function getEnabledOptions()
+    {
+        return $this->options()->where('enabled', true)->get();
+    }
+
+    // =========================================================================
+    // INTENTION ACTION HELPERS
+    // =========================================================================
+
+    /**
+     * Get intention action for interested leads
+     */
+    public function getInterestedAction(): ?CampaignIntentionAction
+    {
+        return $this->intentionActions()->where('intention_type', 'interested')->first();
+    }
+
+    /**
+     * Get intention action for not interested leads
+     */
+    public function getNotInterestedAction(): ?CampaignIntentionAction
+    {
+        return $this->intentionActions()->where('intention_type', 'not_interested')->first();
+    }
+
+    /**
+     * Check if campaign should send interested webhook
+     */
+    public function shouldSendInterestedWebhook(): bool
+    {
+        $action = $this->getInterestedAction();
+        return $action && $action->isWebhook() && $action->enabled;
+    }
+
+    /**
+     * Check if campaign should send not interested webhook
+     */
+    public function shouldSendNotInterestedWebhook(): bool
+    {
+        $action = $this->getNotInterestedAction();
+        return $action && $action->isWebhook() && $action->enabled;
+    }
+
+    /**
+     * Check if campaign should export interested to spreadsheet
+     */
+    public function shouldExportInterestedToSpreadsheet(): bool
+    {
+        $action = $this->getInterestedAction();
+        return $action && $action->isSpreadsheet() && $action->enabled;
+    }
+
+    /**
+     * Check if campaign should export not interested to spreadsheet
+     */
+    public function shouldExportNotInterestedToSpreadsheet(): bool
+    {
+        $action = $this->getNotInterestedAction();
+        return $action && $action->isSpreadsheet() && $action->enabled;
     }
 
     // =========================================================================
@@ -154,6 +217,17 @@ class Campaign extends Model
         return $agent && $agent->isRetell();
     }
 
+    public function hasAIAgent(): bool
+    {
+        return $this->agent()->where('enabled', true)->exists();
+    }
+
+    public function getEnabledAIAgent(): ?\App\Models\AI\CampaignAgent
+    {
+        return $this->agent()->where('enabled', true)->first();
+    }
+
+
     // =========================================================================
     // STRATEGY TYPE HELPERS
     // =========================================================================
@@ -177,32 +251,34 @@ class Campaign extends Model
     }
 
     // =========================================================================
-    // CONFIGURATION ACCESSORS - DIRECT STRATEGY
-    // Direct config: { trigger_action, agent_id, template_id, source_id, message, delay_seconds }
+    // CONFIGURATION ACCESSORS - Using CampaignOption
     // =========================================================================
 
     /**
-     * Get the trigger action for direct campaigns (call, whatsapp, webhook, etc.)
+     * Get the trigger action for direct campaigns
+     * For direct campaigns, we use option_key='0'
      */
     public function getTriggerAction(): ?string
     {
-        return $this->configuration['trigger_action'] ?? null;
+        if (!$this->isDirect()) {
+            return null;
+        }
+
+        $option = $this->getDirectOption();
+        return $option?->action?->value ?? null;
     }
 
     /**
-     * Get the agent ID for direct campaigns (call agent)
-     */
-    public function getAgentId(): ?string
-    {
-        return $this->configuration['agent_id'] ?? null;
-    }
-
-    /**
-     * Get the source ID for direct campaigns (WhatsApp source)
+     * Get the source ID for direct campaigns
      */
     public function getSourceId(): ?string
     {
-        return $this->configuration['source_id'] ?? null;
+        if (!$this->isDirect()) {
+            return null;
+        }
+
+        $option = $this->getDirectOption();
+        return $option?->source_id;
     }
 
     /**
@@ -210,7 +286,12 @@ class Campaign extends Model
      */
     public function getTemplateId(): ?string
     {
-        return $this->configuration['template_id'] ?? null;
+        if (!$this->isDirect()) {
+            return null;
+        }
+
+        $option = $this->getDirectOption();
+        return $option?->template_id;
     }
 
     /**
@@ -218,15 +299,25 @@ class Campaign extends Model
      */
     public function getMessage(): ?string
     {
-        return $this->configuration['message'] ?? null;
+        if (!$this->isDirect()) {
+            return null;
+        }
+
+        $option = $this->getDirectOption();
+        return $option?->message;
     }
 
     /**
-     * Get the delay in seconds before triggering action (default 0)
+     * Get the delay in seconds before triggering action
      */
     public function getDelaySeconds(): int
     {
-        return (int) ($this->configuration['delay_seconds'] ?? 0);
+        if (!$this->isDirect()) {
+            return 0;
+        }
+
+        $option = $this->getDirectOption();
+        return $option?->delay ?? 0;
     }
 
     /**
@@ -235,41 +326,16 @@ class Campaign extends Model
     public function hasDirectConfig(): bool
     {
         return $this->isDirect()
-            && ! empty($this->configuration)
-            && ! empty($this->getTriggerAction());
-    }
-
-    // =========================================================================
-    // CONFIGURATION ACCESSORS - DYNAMIC STRATEGY
-    // Dynamic config: { fallback_action, mapping: { "1": { action, agent_id }, ... } }
-    // =========================================================================
-
-    /**
-     * Get the mapping of options to actions
-     * @return array<string, array{action: string, agent_id?: string, template_id?: string, source_id?: string, message?: string}>
-     */
-    public function getOptionMapping(): array
-    {
-        return $this->configuration['mapping'] ?? [];
+            && $this->getDirectOption() !== null
+            && $this->getDirectOption()->enabled;
     }
 
     /**
-     * Get the fallback action when option is not found in mapping
+     * Get configuration for a specific option from options table
      */
-    public function getFallbackAction(): ?string
+    public function getConfigForOption(string $optionKey): ?CampaignOption
     {
-        return $this->configuration['fallback_action'] ?? null;
-    }
-
-    /**
-     * Get configuration for a specific option from mapping
-     * @return array{action: string, agent_id?: string, template_id?: string, source_id?: string, message?: string}|null
-     */
-    public function getConfigForOption(string $optionKey): ?array
-    {
-        $mapping = $this->getOptionMapping();
-
-        return $mapping[$optionKey] ?? null;
+        return $this->getOption($optionKey);
     }
 
     /**
@@ -277,29 +343,8 @@ class Campaign extends Model
      */
     public function getActionForOption(string $optionKey): ?string
     {
-        $config = $this->getConfigForOption($optionKey);
-
-        return $config['action'] ?? $this->getFallbackAction();
-    }
-
-    /**
-     * Get the agent ID for a specific option
-     */
-    public function getAgentForOption(string $optionKey): ?string
-    {
-        $config = $this->getConfigForOption($optionKey);
-
-        return $config['agent_id'] ?? null;
-    }
-
-    /**
-     * Get the template ID for a specific option
-     */
-    public function getTemplateForOption(string $optionKey): ?string
-    {
-        $config = $this->getConfigForOption($optionKey);
-
-        return $config['template_id'] ?? null;
+        $option = $this->getOption($optionKey);
+        return $option?->action?->value ?? null;
     }
 
     /**
@@ -307,9 +352,17 @@ class Campaign extends Model
      */
     public function getSourceForOption(string $optionKey): ?string
     {
-        $config = $this->getConfigForOption($optionKey);
+        $option = $this->getOption($optionKey);
+        return $option?->source_id;
+    }
 
-        return $config['source_id'] ?? null;
+    /**
+     * Get the template ID for a specific option
+     */
+    public function getTemplateForOption(string $optionKey): ?string
+    {
+        $option = $this->getOption($optionKey);
+        return $option?->template_id;
     }
 
     /**
@@ -317,17 +370,16 @@ class Campaign extends Model
      */
     public function getMessageForOption(string $optionKey): ?string
     {
-        $config = $this->getConfigForOption($optionKey);
-
-        return $config['message'] ?? null;
+        $option = $this->getOption($optionKey);
+        return $option?->message;
     }
 
     /**
-     * Check if option exists in mapping
+     * Check if option exists
      */
     public function hasOptionInMapping(string $optionKey): bool
     {
-        return isset($this->getOptionMapping()[$optionKey]);
+        return $this->options()->where('option_key', $optionKey)->exists();
     }
 
     /**
@@ -336,13 +388,8 @@ class Campaign extends Model
     public function hasDynamicConfig(): bool
     {
         return $this->isDynamic()
-            && ! empty($this->configuration)
-            && ! empty($this->getOptionMapping());
+            && $this->options()->where('enabled', true)->exists();
     }
-
-    // =========================================================================
-    // UNIFIED CONFIGURATION HELPERS
-    // =========================================================================
 
     /**
      * Check if campaign has valid configuration for its strategy type
@@ -358,13 +405,5 @@ class Campaign extends Model
         }
 
         return false;
-    }
-
-    /**
-     * Get full configuration array
-     */
-    public function getConfiguration(): array
-    {
-        return $this->configuration ?? [];
     }
 }

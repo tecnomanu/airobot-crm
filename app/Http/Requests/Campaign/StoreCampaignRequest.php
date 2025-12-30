@@ -107,18 +107,13 @@ class StoreCampaignRequest extends FormRequest
             ]);
         }
 
-        // For direct campaigns, prepare configuration and ensure no options are created
+        // Para campañas directas, renombrar campos a formato esperado por el backend
         if ($strategyType === 'direct') {
-            $configuration = [
-                'trigger_action' => $this->input('trigger_action', 'skip'),
-                'source_id' => $this->input('source_id'),
-                'message' => $this->input('message'),
-                'delay_seconds' => 0,
-            ];
-
             $this->merge([
-                'options' => [],
-                'configuration' => $configuration,
+                'direct_action' => $this->input('trigger_action', 'skip'),
+                'direct_source_id' => $this->input('source_id'),
+                'direct_message' => $this->input('message'),
+                'direct_delay' => 0,
             ]);
         }
     }

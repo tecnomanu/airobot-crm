@@ -41,6 +41,8 @@ class CampaignService
             'options.source',
             'options.template',
             'whatsappTemplates',
+            'intentionActions.webhook',
+            'intentionActions.googleIntegration',
         ]);
     }
 
@@ -69,10 +71,6 @@ class CampaignService
                 'slug' => $slug,
                 'strategy_type' => $data['strategy_type'] ?? 'dynamic',
                 'auto_process_enabled' => $data['auto_process_enabled'] ?? true,
-                'intention_interested_webhook_id' => $data['intention_interested_webhook_id'] ?? null,
-                'intention_not_interested_webhook_id' => $data['intention_not_interested_webhook_id'] ?? null,
-                'send_intention_interested_webhook' => $data['send_intention_interested_webhook'] ?? false,
-                'send_intention_not_interested_webhook' => $data['send_intention_not_interested_webhook'] ?? false,
                 'created_by' => $data['created_by'] ?? null,
             ]);
 
@@ -86,9 +84,27 @@ class CampaignService
                 $this->createOrUpdateWhatsappAgent($campaign, $data['whatsapp_agent']);
             }
 
-            // Crear opciones solo para campañas dinámicas (por defecto: 1, 2, i, t)
+            // Crear intention actions
+            $this->syncIntentionActions($campaign, $data);
+
+            // Crear opciones
             $strategyType = $data['strategy_type'] ?? 'dynamic';
-            if ($strategyType === 'dynamic') {
+            if ($strategyType === 'direct') {
+                // Para campañas directas, crear una sola opción con key='0'
+                if (isset($data['direct_action'])) {
+                    $directOption = [
+                        'option_key' => '0',
+                        'action' => $data['direct_action'],
+                        'source_id' => $data['direct_source_id'] ?? null,
+                        'template_id' => $data['direct_template_id'] ?? null,
+                        'message' => $data['direct_message'] ?? null,
+                        'delay' => $data['direct_delay'] ?? 5,
+                        'enabled' => true,
+                    ];
+                    $this->syncOptions($campaign, [$directOption]);
+                }
+            } else {
+                // Para campañas dinámicas (por defecto: 1, 2, i, t)
                 $options = $data['options'] ?? $this->getDefaultOptions();
                 $this->syncOptions($campaign, $options);
             }
@@ -98,6 +114,8 @@ class CampaignService
                 'whatsappAgent.source',
                 'options.source',
                 'options.template',
+                'intentionActions.webhook',
+                'intentionActions.googleIntegration',
             ]);
         });
     }
@@ -121,10 +139,6 @@ class CampaignService
                 'description',
                 'status',
                 'auto_process_enabled',
-                'intention_interested_webhook_id',
-                'intention_not_interested_webhook_id',
-                'send_intention_interested_webhook',
-                'send_intention_not_interested_webhook',
             ]));
 
             // Si se proporciona slug, normalizarlo
@@ -147,9 +161,29 @@ class CampaignService
                 $this->createOrUpdateWhatsappAgent($campaign, $data['whatsapp_agent']);
             }
 
+            // Actualizar intention actions
+            $this->syncIntentionActions($campaign, $data);
+
             // Actualizar opciones
-            if (isset($data['options'])) {
-                $this->syncOptions($campaign, $data['options']);
+            if ($campaign->isDirect()) {
+                // Para campañas directas, actualizar opción con key='0'
+                if (isset($data['direct_action'])) {
+                    $directOption = [
+                        'option_key' => '0',
+                        'action' => $data['direct_action'],
+                        'source_id' => $data['direct_source_id'] ?? null,
+                        'template_id' => $data['direct_template_id'] ?? null,
+                        'message' => $data['direct_message'] ?? null,
+                        'delay' => $data['direct_delay'] ?? 5,
+                        'enabled' => true,
+                    ];
+                    $this->syncOptions($campaign, [$directOption]);
+                }
+            } else {
+                // Para campañas dinámicas
+                if (isset($data['options'])) {
+                    $this->syncOptions($campaign, $data['options']);
+                }
             }
 
             return $campaign->fresh([
@@ -157,6 +191,8 @@ class CampaignService
                 'whatsappAgent.source',
                 'options.source',
                 'options.template',
+                'intentionActions.webhook',
+                'intentionActions.googleIntegration',
             ]);
         });
     }
@@ -238,6 +274,59 @@ class CampaignService
     }
 
     /**
+     * Sincronizar acciones de intención (interested/not_interested)
+     */
+    protected function syncIntentionActions(Campaign $campaign, array $data): void
+    {
+        // Acción para interesados
+        $interestedData = [
+            'intention_type' => 'interested',
+            'action_type' => 'none',
+            'enabled' => false,
+        ];
+
+        if (isset($data['intention_interested_webhook_id']) && !empty($data['intention_interested_webhook_id'])) {
+            $interestedData['action_type'] = 'webhook';
+            $interestedData['webhook_id'] = $data['intention_interested_webhook_id'];
+            $interestedData['enabled'] = $data['send_intention_interested_webhook'] ?? false;
+        } elseif (isset($data['google_spreadsheet_id']) && !empty($data['google_spreadsheet_id'])) {
+            $interestedData['action_type'] = 'spreadsheet';
+            $interestedData['google_integration_id'] = $data['google_integration_id'] ?? null;
+            $interestedData['google_spreadsheet_id'] = $data['google_spreadsheet_id'];
+            $interestedData['google_sheet_name'] = $data['google_sheet_name'] ?? null;
+            $interestedData['enabled'] = true;
+        }
+
+        $campaign->intentionActions()->updateOrCreate(
+            ['campaign_id' => $campaign->id, 'intention_type' => 'interested'],
+            $interestedData
+        );
+
+        // Acción para no interesados
+        $notInterestedData = [
+            'intention_type' => 'not_interested',
+            'action_type' => 'none',
+            'enabled' => false,
+        ];
+
+        if (isset($data['intention_not_interested_webhook_id']) && !empty($data['intention_not_interested_webhook_id'])) {
+            $notInterestedData['action_type'] = 'webhook';
+            $notInterestedData['webhook_id'] = $data['intention_not_interested_webhook_id'];
+            $notInterestedData['enabled'] = $data['send_intention_not_interested_webhook'] ?? false;
+        } elseif (isset($data['intention_not_interested_google_spreadsheet_id']) && !empty($data['intention_not_interested_google_spreadsheet_id'])) {
+            $notInterestedData['action_type'] = 'spreadsheet';
+            $notInterestedData['google_spreadsheet_id'] = $data['intention_not_interested_google_spreadsheet_id'];
+            $notInterestedData['google_sheet_name'] = $data['intention_not_interested_google_sheet_name'] ?? null;
+            $notInterestedData['enabled'] = true;
+        }
+
+        $campaign->intentionActions()->updateOrCreate(
+            ['campaign_id' => $campaign->id, 'intention_type' => 'not_interested'],
+            $notInterestedData
+        );
+    }
+
+    /**
      * Sincronizar opciones de la campaña
      * Las opciones por defecto son: 1, 2, i, t
      */
@@ -250,20 +339,20 @@ class CampaignService
                 if (! $source) {
                     throw new ValidationException('Una de las fuentes seleccionadas no existe');
                 }
-                
+
                 // Validate status
                 if ($source->status !== SourceStatus::ACTIVE) {
-                     throw new ValidationException("La fuente '{$source->name}' no está activa");
+                    throw new ValidationException("La fuente '{$source->name}' no está activa");
                 }
 
                 // Validate type based on action if possible
                 if (isset($optionData['action'])) {
-                    $action = $optionData['action']; 
+                    $action = $optionData['action'];
                     // Handle enum
                     if ($action instanceof \BackedEnum) {
                         $action = $action->value;
                     }
-                    
+
                     if ($action === 'whatsapp' && !$source->type->isMessaging()) {
                         throw new ValidationException("La fuente debe ser de tipo WhatsApp para la acción WhatsApp");
                     }

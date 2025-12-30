@@ -63,3 +63,4 @@ volumes:
   airobot_storage_v1:
   airobot_redis_data_v1:
   airobot_postgres_data_v1:
+  

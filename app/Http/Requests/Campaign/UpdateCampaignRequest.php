@@ -31,7 +31,7 @@ class UpdateCampaignRequest extends FormRequest
             'status' => ['sometimes', Rule::enum(CampaignStatus::class)],
             'auto_process_enabled' => ['nullable', 'boolean'],
 
-            // Google Sheets Integration
+            // Google Sheets Integration (para intention actions)
             'google_integration_id' => ['nullable', 'string', 'exists:google_integrations,id'],
             'google_spreadsheet_id' => ['nullable', 'string'],
             'google_sheet_name' => ['nullable', 'string'],
@@ -41,6 +41,13 @@ class UpdateCampaignRequest extends FormRequest
             'intention_not_interested_webhook_id' => ['nullable', 'integer', 'exists:sources,id'],
             'send_intention_interested_webhook' => ['nullable', 'boolean'],
             'send_intention_not_interested_webhook' => ['nullable', 'boolean'],
+
+            // Direct campaign fields
+            'direct_action' => ['nullable', Rule::enum(CampaignActionType::class)],
+            'direct_source_id' => ['nullable', 'string', 'uuid', 'exists:sources,id'],
+            'direct_template_id' => ['nullable', 'string', 'uuid', 'exists:campaign_whatsapp_templates,id'],
+            'direct_message' => ['nullable', 'string'],
+            'direct_delay' => ['nullable', 'integer', 'min:0'],
 
             // Agente de llamadas
             'call_agent' => ['nullable', 'array'],
@@ -56,9 +63,9 @@ class UpdateCampaignRequest extends FormRequest
             'whatsapp_agent.config' => ['nullable', 'array'],
             'whatsapp_agent.enabled' => ['nullable', 'boolean'],
 
-            // Opciones de la campaña
+            // Opciones de la campaña (ahora incluye '0' para directas)
             'options' => ['nullable', 'array'],
-            'options.*.option_key' => ['required', 'string', 'in:1,2,i,t'],
+            'options.*.option_key' => ['required', 'string', 'in:0,1,2,i,t'],
             'options.*.action' => ['required', Rule::enum(CampaignActionType::class)],
             'options.*.source_id' => ['nullable', 'integer', 'exists:sources,id'],
             'options.*.template_id' => ['nullable', 'string', 'uuid', 'exists:campaign_whatsapp_templates,id'],
