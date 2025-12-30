@@ -26,6 +26,4 @@ const reverbConfig = {
     cluster: 'mt1', // Requerido por Pusher pero ignorado por Reverb
 };
 
-console.log('🔧 Reverb Config:', reverbConfig);
-
 window.Echo = new Echo(reverbConfig);
