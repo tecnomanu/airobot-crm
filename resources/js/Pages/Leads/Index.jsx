@@ -1,7 +1,9 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
+import { CSVImporterModal } from "@/Components/Common/CSVImporter";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { DataTable } from "@/Components/ui/data-table";
+import DataTableFilters from "@/Components/ui/data-table-filters";
 import {
     Dialog,
     DialogContent,
@@ -20,21 +22,12 @@ import {
 import AppLayout from "@/Layouts/AppLayout";
 import {
     hasNotificationPermission,
+    notifyLeadDeleted,
     notifyLeadUpdated,
     notifyNewLead,
-    notifyLeadDeleted,
 } from "@/lib/notifications";
 import { Head, router, useForm } from "@inertiajs/react";
-import {
-    Plus,
-    Search,
-    Filter,
-    Download,
-    Clock,
-    Inbox,
-    CheckCircle,
-    FileUp,
-} from "lucide-react";
+import { CheckCircle, Clock, FileUp, Inbox, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getLeadColumns } from "./columns";
@@ -48,7 +41,7 @@ export default function LeadsIndex({
     tabCounts,
 }) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState(filters.search || "");
+    const [isImportCSVOpen, setIsImportCSVOpen] = useState(false);
     const [deleteDialog, setDeleteDialog] = useState({
         open: false,
         id: null,
@@ -69,23 +62,23 @@ export default function LeadsIndex({
 
     // Tab placement options for the form (determines automation_status + intention_status)
     const tabPlacementOptions = [
-        { 
-            value: "inbox", 
-            label: "Inbox", 
+        {
+            value: "inbox",
+            label: "Inbox",
             description: "New lead pending processing",
-            badge: "bg-blue-100 text-blue-700"
+            badge: "bg-blue-100 text-blue-700",
         },
-        { 
-            value: "active", 
-            label: "Active Pipeline", 
+        {
+            value: "active",
+            label: "Active Pipeline",
             description: "Lead being actively worked (automation in progress)",
-            badge: "bg-yellow-100 text-yellow-700"
+            badge: "bg-yellow-100 text-yellow-700",
         },
-        { 
-            value: "sales_ready", 
-            label: "Sales Ready", 
+        {
+            value: "sales_ready",
+            label: "Sales Ready",
             description: "Ready for sales call (automation completed)",
-            badge: "bg-green-100 text-green-700"
+            badge: "bg-green-100 text-green-700",
         },
     ];
 
@@ -99,7 +92,9 @@ export default function LeadsIndex({
     ];
 
     // Get selected campaign to check if it's IVR type
-    const selectedCampaign = campaigns.find(c => c.id.toString() === data.campaign_id);
+    const selectedCampaign = campaigns.find(
+        (c) => c.id.toString() === data.campaign_id
+    );
 
     // Tab configuration matching the UI mockups
     const tabs = [
@@ -136,18 +131,37 @@ export default function LeadsIndex({
         );
     };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(
-            route("leads.index"),
-            { ...filters, tab: activeTab, search: searchTerm },
-            { preserveState: true }
+    const handleImportCSV = (importedData) => {
+        router.post(
+            route("leads.import-csv"),
+            { leads: importedData },
+            {
+                onSuccess: (page) => {
+                    setIsImportCSVOpen(false);
+                    // Check for flashing messages from controller
+                    if (page.props.flash?.success) {
+                        toast.success(page.props.flash.success);
+                    }
+                    if (page.props.flash?.warning) {
+                        toast.warning(page.props.flash.warning, {
+                            duration: 5000,
+                        });
+                    }
+                },
+                onError: (errors) => {
+                    console.error("Import Errors:", errors);
+                    toast.error("Error al importar leads", {
+                        description:
+                            errors.error || "Ocurrió un error inesperado.",
+                    });
+                },
+            }
         );
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
         // Transform data before submit - "none" should be null for option_selected
         const submitData = {
             phone: data.phone,
@@ -156,29 +170,52 @@ export default function LeadsIndex({
             country: data.country,
             campaign_id: data.campaign_id,
             tab_placement: data.tab_placement,
-            option_selected: data.option_selected === "none" ? null : data.option_selected,
+            option_selected:
+                data.option_selected === "none" ? null : data.option_selected,
             source: data.source,
             notes: data.notes,
         };
-        
+
         console.log("Submitting data:", submitData);
-        
+
         router.post(route("leads.store"), submitData, {
             preserveScroll: true,
-            onSuccess: () => {
+            onSuccess: (page) => {
                 setIsCreateModalOpen(false);
                 reset();
-                toast.success("Lead creado exitosamente");
+                if (page.props.flash?.success) {
+                    toast.success(page.props.flash.success);
+                } else {
+                    toast.success("Lead creado exitosamente");
+                }
             },
             onError: (errors) => {
-                console.error("Validation Errors:", JSON.stringify(errors, null, 2));
-                // Show all errors
-                const errorMessages = Object.entries(errors)
-                    .map(([field, msg]) => `${field}: ${msg}`)
-                    .join("\n");
-                toast.error("Error de validación", {
-                    description: errorMessages || "Error desconocido",
-                });
+                console.error("Validation Errors:", errors);
+
+                // Check if there are validation errors
+                if (errors && Object.keys(errors).length > 0) {
+                    // Show validation errors
+                    const errorMessages = Object.entries(errors)
+                        .map(([field, msg]) => `${field}: ${msg}`)
+                        .join("\n");
+                    toast.error("Error de validación", {
+                        description:
+                            errorMessages ||
+                            "Por favor verifica los campos del formulario.",
+                    });
+                } else {
+                    // Generic error (like 302 redirect or internal error)
+                    toast.error("Error interno", {
+                        description:
+                            "Ocurrió un error al crear el lead. Por favor intenta nuevamente.",
+                    });
+                }
+                // Modal stays open so user can fix errors
+            },
+            onFinish: () => {
+                // This runs after onSuccess/onError
+                // We can use this to detect if something went wrong
+                console.log("Request finished");
             },
         });
     };
@@ -214,36 +251,48 @@ export default function LeadsIndex({
     };
 
     const handleCall = (lead) => {
-        router.post(route("leads.call-action", lead.id), {}, {
-            onSuccess: () => {
-                toast.success("Llamada iniciada");
-            },
-            onError: () => {
-                toast.error("Error al iniciar la llamada");
-            },
-        });
+        router.post(
+            route("leads.call-action", lead.id),
+            {},
+            {
+                onSuccess: () => {
+                    toast.success("Llamada iniciada");
+                },
+                onError: () => {
+                    toast.error("Error al iniciar la llamada");
+                },
+            }
+        );
     };
 
     const handleWhatsApp = (lead) => {
-        router.post(route("leads.whatsapp-action", lead.id), {}, {
+        router.post(
+            route("leads.whatsapp-action", lead.id),
+            {},
+            {
                 onSuccess: () => {
-                toast.success("WhatsApp enviado");
+                    toast.success("WhatsApp enviado");
                 },
                 onError: () => {
-                toast.error("Error al enviar WhatsApp");
-            },
-        });
+                    toast.error("Error al enviar WhatsApp");
+                },
+            }
+        );
     };
 
     const handleRetryAutomation = (lead) => {
-        router.post(route("leads.retry-automation", lead.id), {}, {
+        router.post(
+            route("leads.retry-automation", lead.id),
+            {},
+            {
                 onSuccess: () => {
-                toast.success("Campaña re-ejecutada correctamente");
+                    toast.success("Campaña re-ejecutada correctamente");
                 },
                 onError: () => {
-                toast.error("Error al re-ejecutar la campaña");
-            },
-        });
+                    toast.error("Error al re-ejecutar la campaña");
+                },
+            }
+        );
     };
 
     // Double click to open lead detail
@@ -331,6 +380,27 @@ export default function LeadsIndex({
             header={{
                 title: "Leads Manager",
                 subtitle: "Gestión unificada de leads",
+                actions: (
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-sm h-8"
+                            onClick={() => setIsImportCSVOpen(true)}
+                        >
+                            <FileUp className="h-4 w-4 mr-2" />
+                            Importar CSV
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="text-sm h-8 bg-indigo-600 hover:bg-indigo-700"
+                            onClick={() => setIsCreateModalOpen(true)}
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Nuevo Lead
+                        </Button>
+                    </div>
+                ),
             }}
         >
             <Head title="Leads Manager" />
@@ -339,7 +409,6 @@ export default function LeadsIndex({
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 {/* Header Section with padding */}
                 <div className="p-6 space-y-4">
-                    {/* Row 1: Tabs */}
                     <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
                         {tabs.map((tab) => (
                             <button
@@ -352,80 +421,77 @@ export default function LeadsIndex({
                                 }`}
                             >
                                 <tab.icon className="h-4 w-4" />
-                                <span>{tab.label}</span>
-                                {tab.count > 0 && (
-                                    <span
-                                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                            activeTab === tab.value
-                                                ? "bg-gray-200 text-gray-700"
-                                                : "bg-gray-100 text-gray-600"
-                                        }`}
-                                    >
-                                        {tab.count}
-                                    </span>
-                                )}
+                                {tab.label}
+                                <Badge
+                                    variant="secondary"
+                                    className="ml-1 h-5 min-w-5 px-1"
+                                >
+                                    {tabCounts[tab.value] || 0}
+                                </Badge>
                             </button>
                         ))}
                     </div>
-
-                    {/* Row 2: Action Buttons */}
-                    <div className="flex items-center gap-3">
-                            <Button
-                                variant="outline"
-                            size="sm"
-                            className="text-sm h-9"
-                        >
-                            <FileUp className="h-4 w-4 mr-2" />
-                            Import CSV
-                        </Button>
-                        <Button
-                            size="sm"
-                            className="text-sm h-9 bg-indigo-600 hover:bg-indigo-700"
-                            onClick={() => setIsCreateModalOpen(true)}
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Lead
-                            </Button>
-                        </div>
-
-                    {/* Row 3: Search Bar */}
-                    <div className="flex items-center gap-3">
-                        <form
-                            onSubmit={handleSearch}
-                            className="flex-1 max-w-md relative"
-                        >
-                            <input
-                                type="text"
-                                placeholder="Search leads..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-4 pr-10 py-2.5 text-sm bg-indigo-50 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 placeholder-gray-500"
-                            />
-                            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        </form>
-
-                        <button className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-                            <Filter className="h-4 w-4" />
-                        </button>
-                        <button className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
-                            <Download className="h-4 w-4" />
-                        </button>
-                    </div>
-
-                    {/* Hint for double-click */}
-                    <p className="text-xs text-gray-400">
-                        Tip: Doble click en una fila para ver detalles del lead
-                    </p>
                 </div>
 
-                {/* Data Table with padding */}
+                {/* Leads Data Table */}
                 <div className="px-6 pb-6">
-                <DataTable
+                    <DataTable
                         columns={columns}
-                    data={leads.data}
-                        filterColumn="name"
-                        onRowDoubleClick={handleRowDoubleClick}
-                />
+                        data={leads.data}
+                        pagination={leads}
+                        actions={
+                            <DataTableFilters
+                                searchPlaceholder="Buscar por teléfono o nombre..."
+                                filters={[
+                                    {
+                                        key: "campaign_id",
+                                        label: "Campaña",
+                                        options: campaigns.map((c) => ({
+                                            label: c.name,
+                                            value: c.id.toString(),
+                                        })),
+                                    },
+                                    {
+                                        key: "client_id",
+                                        label: "Cliente",
+                                        options: clients.map((c) => ({
+                                            label: c.name,
+                                            value: c.id.toString(),
+                                        })),
+                                    },
+                                ]}
+                                values={{
+                                    search: filters.search || "",
+                                    campaign_id: filters.campaign_id || "all",
+                                    client_id: filters.client_id || "all",
+                                }}
+                                onChange={(values) => {
+                                    router.get(
+                                        route("leads.index"),
+                                        {
+                                            ...route().params,
+                                            ...values,
+                                            tab: activeTab,
+                                        },
+                                        {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                        }
+                                    );
+                                }}
+                                onClear={() => {
+                                    router.get(
+                                        route("leads.index"),
+                                        { tab: activeTab },
+                                        {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                        }
+                                    );
+                                }}
+                            />
+                        }
+                    />
                 </div>
             </div>
 
@@ -434,155 +500,187 @@ export default function LeadsIndex({
                 open={isCreateModalOpen}
                 onOpenChange={setIsCreateModalOpen}
             >
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
-                        <DialogTitle className="text-base">Add Manual Lead</DialogTitle>
+                        <DialogTitle>Add Manual Lead</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {/* Row 1: Name & Phone */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <Label htmlFor="name" className="text-xs">Name</Label>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Name</Label>
                                 <Input
                                     id="name"
-                                    type="text"
                                     value={data.name}
-                                    onChange={(e) => setData("name", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("name", e.target.value)
+                                    }
                                     placeholder="John Doe"
-                                    className="h-8 text-sm"
                                 />
+                                {errors.name && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.name}
+                                    </p>
+                                )}
                             </div>
-
-                            <div className="space-y-1">
-                                <Label htmlFor="phone" className="text-xs">Phone *</Label>
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Phone *</Label>
                                 <Input
                                     id="phone"
-                                    type="text"
                                     value={data.phone}
-                                    onChange={(e) => setData("phone", e.target.value)}
-                                    placeholder="+34600111222"
-                                    className="h-8 text-sm"
+                                    onChange={(e) =>
+                                        setData("phone", e.target.value)
+                                    }
+                                    placeholder="+1234567890"
                                 />
                                 {errors.phone && (
-                                    <p className="text-[10px] text-red-500">{errors.phone}</p>
+                                    <p className="text-sm text-red-500">
+                                        {errors.phone}
+                                    </p>
                                 )}
                             </div>
                         </div>
 
-                        {/* Row 2: City & Country */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <Label htmlFor="city" className="text-xs">City</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="city">City</Label>
                                 <Input
                                     id="city"
-                                    type="text"
                                     value={data.city}
-                                    onChange={(e) => setData("city", e.target.value)}
-                                    placeholder="Madrid"
-                                    className="h-8 text-sm"
+                                    onChange={(e) =>
+                                        setData("city", e.target.value)
+                                    }
+                                    placeholder="New York"
                                 />
                             </div>
-
-                            <div className="space-y-1">
-                                <Label htmlFor="country" className="text-xs">Country (2 chars)</Label>
+                            <div className="space-y-2">
+                                <Label htmlFor="country">
+                                    Country (2 chars)
+                                </Label>
                                 <Input
                                     id="country"
-                                    type="text"
-                                    maxLength={2}
                                     value={data.country}
-                                    onChange={(e) => setData("country", e.target.value.toUpperCase())}
-                                    placeholder="ES"
-                                    className="h-8 text-sm uppercase"
+                                    onChange={(e) =>
+                                        setData("country", e.target.value)
+                                    }
+                                    placeholder="US"
+                                    maxLength={2}
                                 />
                             </div>
                         </div>
 
-                        {/* Row 3: Campaign (Required) */}
-                        <div className="space-y-1">
-                            <Label htmlFor="campaign_id" className="text-xs">Campaign *</Label>
+                        <div className="space-y-2">
+                            <Label htmlFor="campaign_id">Campaign *</Label>
                             <Select
-                                value={data.campaign_id}
-                                onValueChange={(value) => setData("campaign_id", value)}
+                                value={
+                                    data.campaign_id
+                                        ? data.campaign_id.toString()
+                                        : ""
+                                }
+                                onValueChange={(val) => {
+                                    // Ensure we don't set NaN
+                                    if (val) {
+                                        setData("campaign_id", val);
+                                    }
+                                }}
                             >
-                                <SelectTrigger className="h-8 text-sm">
-                                    <SelectValue placeholder="Select a campaign" />
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select campaign" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {campaigns.map((c) => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            {c.name} {c.is_dynamic && "(IVR)"}
+                                    {campaigns.map((campaign) => (
+                                        <SelectItem
+                                            key={campaign.id}
+                                            value={campaign.id.toString()}
+                                        >
+                                            {campaign.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                             {errors.campaign_id && (
-                                <p className="text-[10px] text-red-500">{errors.campaign_id}</p>
-                            )}
-                        </div>
-
-                        {/* Row 4: Tab Placement */}
-                        <div className="space-y-2">
-                            <Label className="text-xs font-medium">Place in Tab *</Label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {tabPlacementOptions.map((tab) => (
-                                    <button
-                                        key={tab.value}
-                                        type="button"
-                                        onClick={() => setData("tab_placement", tab.value)}
-                                        className={`p-3 rounded-lg border-2 text-left transition-all ${
-                                            data.tab_placement === tab.value
-                                                ? "border-indigo-500 bg-indigo-50"
-                                                : "border-gray-200 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        <Badge className={`${tab.badge} text-[10px] mb-1`}>
-                                            {tab.label}
-                                        </Badge>
-                                        <p className="text-[10px] text-gray-500 mt-1">
-                                            {tab.description}
-                                        </p>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Row 5: Option Selected (for IVR) */}
-                        <div className="space-y-1">
-                            <Label htmlFor="option_selected" className="text-xs">
-                                Option Selected {selectedCampaign?.is_dynamic && <Badge variant="outline" className="text-[9px] ml-1">IVR Campaign</Badge>}
-                            </Label>
-                            <Select
-                                value={data.option_selected}
-                                onValueChange={(value) => setData("option_selected", value)}
-                            >
-                                <SelectTrigger className="h-8 text-sm">
-                                    <SelectValue placeholder="Sin opción" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {optionValues.map((o) => (
-                                        <SelectItem key={o.value || "none"} value={o.value}>
-                                            {o.label}
-                                    </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {selectedCampaign?.is_dynamic && (
-                                <p className="text-[10px] text-blue-600">
-                                    Esta campaña es IVR - la opción determinará la acción a ejecutar
+                                <p className="text-sm text-red-500">
+                                    {errors.campaign_id}
                                 </p>
                             )}
                         </div>
 
-                        {/* Row 6: Notes */}
-                        <div className="space-y-1">
-                            <Label htmlFor="notes" className="text-xs">Notes</Label>
+                        <div className="space-y-2">
+                            <Label>Place in Tab *</Label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {tabPlacementOptions.map((option) => (
+                                    <div
+                                        key={option.value}
+                                        className={`
+                                        cursor-pointer rounded-lg border p-3 transition-all hover:border-primary
+                                        ${
+                                            data.tab_placement === option.value
+                                                ? "border-2 border-primary bg-primary/5"
+                                                : "border-gray-200"
+                                        }
+                                    `}
+                                        onClick={() =>
+                                            setData(
+                                                "tab_placement",
+                                                option.value
+                                            )
+                                        }
+                                    >
+                                        <div className="mb-1 flex items-center justify-between">
+                                            <Badge
+                                                variant="outline"
+                                                className={`text-[10px] uppercase ${option.badge}`}
+                                            >
+                                                {option.label}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            {option.description}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Show Option Selector only if campaign is IVR */}
+                        {selectedCampaign?.type === "ivr" && (
+                            <div className="space-y-2">
+                                <Label htmlFor="option_selected">
+                                    Option Selected
+                                </Label>
+                                <Select
+                                    value={data.option_selected}
+                                    onValueChange={(val) =>
+                                        setData("option_selected", val)
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select option" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {optionValues.map((opt) => (
+                                            <SelectItem
+                                                key={opt.value}
+                                                value={opt.value}
+                                            >
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="notes">Notes</Label>
                             <textarea
                                 id="notes"
-                                value={data.notes}
-                                onChange={(e) => setData("notes", e.target.value)}
+                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="Additional notes about this lead..."
-                                rows={2}
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                                value={data.notes}
+                                onChange={(e) =>
+                                    setData("notes", e.target.value)
+                                }
                             />
                         </div>
 
@@ -620,6 +718,26 @@ export default function LeadsIndex({
                 confirmText="Delete"
                 cancelText="Cancel"
                 variant="destructive"
+            />
+            <CSVImporterModal
+                open={isImportCSVOpen}
+                onClose={() => setIsImportCSVOpen(false)}
+                onComplete={handleImportCSV}
+                fields={[
+                    {
+                        key: "phone",
+                        label: "Teléfono",
+                        required: true,
+                        type: "phone",
+                    },
+                    { key: "name", label: "Nombre", required: true },
+                    { key: "city", label: "Ciudad", required: false },
+                    { key: "country", label: "País", required: false },
+                    { key: "campaign_id", label: "ID Campaña", required: true },
+                    { key: "notes", label: "Notas", required: false },
+                ]}
+                entityName="Leads"
+                title="Importar Leads"
             />
         </AppLayout>
     );

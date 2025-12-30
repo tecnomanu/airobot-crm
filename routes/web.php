@@ -35,11 +35,12 @@ Route::middleware('auth')->group(function () {
     // Leads - Note: Using closure for index due to route resolution issue
     Route::prefix('leads')->name('leads.')->group(function () {
         Route::get('/', function (\Illuminate\Http\Request $request) {
-            return app(\App\Http\Controllers\Web\Lead\LeadController::class)->index($request);
+            return app(LeadController::class)->index($request);
         })->name('index');
         Route::get('/{id}', function (\Illuminate\Http\Request $request, string $id) {
-            return app(\App\Http\Controllers\Web\Lead\LeadController::class)->show($id);
+            return app(LeadController::class)->show($id);
         })->name('show');
+        Route::post('/import-csv', [LeadController::class, 'importCSV'])->name('import-csv');
         Route::post('/', [LeadController::class, 'store'])->name('store');
         Route::put('/{id}', [LeadController::class, 'update'])->name('update');
         Route::delete('/{id}', [LeadController::class, 'destroy'])->name('destroy');
@@ -57,17 +58,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [CampaignController::class, 'store'])->name('store');
         Route::put('/{id}', [CampaignController::class, 'update'])->name('update');
         Route::delete('/{id}', [CampaignController::class, 'destroy'])->name('destroy');
-        Route::patch('/{id}/toggle-status', [CampaignController::class, 'toggleStatus'])->name('toggle-status');
+        Route::patch('/{campaign}/toggle-status', [CampaignController::class, 'toggleStatus'])->name('toggle-status');
     });
 
     // Clients
-    Route::prefix('clients')->name('clients.')->group(function () {
-        Route::get('/', [ClientController::class, 'index'])->name('index');
-        Route::get('/{id}', [ClientController::class, 'show'])->name('show');
-        Route::post('/', [ClientController::class, 'store'])->name('store');
-        Route::put('/{id}', [ClientController::class, 'update'])->name('update');
-        Route::delete('/{id}', [ClientController::class, 'destroy'])->name('destroy');
-    });
+    Route::resource('clients', ClientController::class);
 
     // Lead Calls (Call History)
     Route::prefix('lead-calls')->name('lead-calls.')->group(function () {

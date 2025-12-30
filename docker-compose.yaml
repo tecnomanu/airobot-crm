@@ -19,14 +19,30 @@ services:
             IGNITION_LOCAL_SITES_PATH: "${PWD}"
         volumes:
             - ".:/var/www/html"
+            - sail-node-modules:/var/www/html/node_modules
         networks:
             - sail
         depends_on:
             - redis
             - reverb
-        command: >
-            sh -c "php artisan serve --host=0.0.0.0 --port=80 &
-                   php artisan horizon"
+        entrypoint: >
+            bash -c "
+                cd /var/www/html &&
+                chown -R sail:sail /var/www/html/node_modules &&
+                gosu sail bash -c '
+                if [ ! -f node_modules/.installed ]; then
+                    echo Cleaning previous node_modules content... &&
+                    rm -rf node_modules/.* node_modules/* 2>/dev/null || true &&
+                    echo Removing pnpm-lock.yaml... &&
+                    rm -f pnpm-lock.yaml &&
+                    echo Installing npm dependencies... &&
+                    pnpm install &&
+                    touch node_modules/.installed;
+                fi &&
+                php artisan serve --host=0.0.0.0 --port=80 &
+                pnpm dev -- --host 0.0.0.0
+                '
+            "
 
     reverb:
         build:
@@ -47,6 +63,7 @@ services:
         depends_on:
             - redis
         command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    
     redis:
         image: "redis:alpine"
         ports:
@@ -67,4 +84,6 @@ networks:
         driver: bridge
 volumes:
     sail-redis:
+        driver: local
+    sail-node-modules:
         driver: local

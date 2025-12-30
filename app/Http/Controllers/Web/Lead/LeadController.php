@@ -97,13 +97,16 @@ class LeadController extends Controller
     public function store(StoreLeadRequest $request): RedirectResponse
     {
         try {
+            $data = $request->validated();
+            unset($data['tab_placement']);
+
             $this->leadService->createLead(
-                array_merge($request->validated(), [
+                array_merge($data, [
                     'created_by' => Auth::id(),
                 ])
             );
 
-            return redirect()->route('leads.index')
+            return redirect()->back()
                 ->with('success', 'Lead creado exitosamente');
         } catch (\Exception $e) {
             return redirect()->back()
@@ -203,6 +206,55 @@ class LeadController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Import leads from CSV
+     */
+    public function importCSV(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'leads' => 'required|array',
+            'leads.*.phone' => 'required|string',
+            'leads.*.campaign_id' => 'required|exists:campaigns,id',
+        ]);
+
+        try {
+            $leads = $request->input('leads');
+            $successCount = 0;
+            $errors = [];
+
+            foreach ($leads as $index => $leadData) {
+                try {
+                    // Add creator
+                    $leadData['created_by'] = Auth::id();
+
+                    $this->leadService->createLead($leadData);
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $errors[] = "Fila " . ($index + 1) . ": " . $e->getMessage();
+                }
+            }
+
+            if (count($errors) > 0) {
+                // Return success with warning if some failed
+                // Or if all failed, return error
+                if ($successCount > 0) {
+                    return redirect()->back()
+                        ->with('success', "$successCount leads importados exitosamente")
+                        ->with('warning', count($errors) . " leads fallaron. Ver logs para detalles.");
+                } else {
+                    return redirect()->back()
+                        ->with('error', "Falló la importación: " . implode(', ', array_slice($errors, 0, 3)));
+                }
+            }
+
+            return redirect()->back()
+                ->with('success', "$successCount leads importados exitosamente");
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error general al importar: ' . $e->getMessage());
         }
     }
 }

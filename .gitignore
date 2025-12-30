@@ -25,4 +25,4 @@ Thumbs.db
 docs/
 
 # Excluded projects
-resources/omnileads-crm/
+.pnpm-store

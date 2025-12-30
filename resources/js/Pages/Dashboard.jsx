@@ -17,7 +17,10 @@ import {
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link } from "@inertiajs/react";
 import {
+    Activity,
     ArrowUpRight,
+    CheckCircle,
+    Clock,
     DollarSign,
     Megaphone,
     Phone,
@@ -69,8 +72,24 @@ export default function Dashboard({
             closed: "bg-green-100 text-green-800 hover:bg-green-100",
             invalid: "bg-red-100 text-red-800 hover:bg-red-100",
             active: "bg-green-100 text-green-800 hover:bg-green-100",
+            inbox: "bg-blue-100 text-blue-800 hover:bg-blue-100",
+            sales_ready: "bg-green-100 text-green-800 hover:bg-green-100",
         };
         return colors[status] || "bg-gray-100 text-gray-800 hover:bg-gray-100";
+    };
+
+    const getStatusLabel = (status) => {
+        const labels = {
+            pending: "Pendiente",
+            in_progress: "En Progreso",
+            contacted: "Contactado",
+            closed: "Cerrado",
+            invalid: "Inválido",
+            active: "Activo",
+            inbox: "Inbox",
+            sales_ready: "Listo para Venta",
+        };
+        return labels[status] || status;
     };
 
     return (
@@ -83,7 +102,6 @@ export default function Dashboard({
             <Head title="Dashboard" />
 
             <div className="space-y-6">
-
                 {/* Stats Grid */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     {stats.map((stat) => (
@@ -112,25 +130,24 @@ export default function Dashboard({
                     ))}
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-7">
-                    {/* Recent Leads */}
-                    <Card className="col-span-4">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>Leads Recientes</CardTitle>
-                                    <CardDescription>
-                                        Últimos leads ingresados al sistema
-                                    </CardDescription>
-                                </div>
-                                <Link
-                                    href={route("leads.index")}
-                                    className="flex items-center text-sm font-medium text-primary hover:underline"
-                                >
-                                    Ver todos
-                                    <ArrowUpRight className="ml-1 h-4 w-4" />
-                                </Link>
+                {/* Leads Section */}
+                <div className="space-y-6">
+                    {/* Recent Leads - Full Width */}
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <div>
+                                <CardTitle>Leads Recientes</CardTitle>
+                                <CardDescription>
+                                    Últimos leads ingresados al sistema
+                                </CardDescription>
                             </div>
+                            <Link
+                                href={route("leads.index")}
+                                className="flex items-center text-sm font-medium text-primary hover:underline"
+                            >
+                                Ver todos
+                                <ArrowUpRight className="ml-1 h-4 w-4" />
+                            </Link>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -164,7 +181,10 @@ export default function Dashboard({
                                                             lead.status
                                                         )}
                                                     >
-                                                        {lead.status_label}
+                                                        {lead.status_label ||
+                                                            getStatusLabel(
+                                                                lead.status
+                                                            )}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
@@ -191,42 +211,88 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
 
-                    {/* Leads by Status */}
-                    <Card className="col-span-3">
-                        <CardHeader>
-                            <CardTitle>Leads por Estado</CardTitle>
-                            <CardDescription>
-                                Distribución actual de leads
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {leadsByStatus && leadsByStatus.length > 0 ? (
-                                leadsByStatus.map((item) => (
-                                    <div
-                                        key={item.status}
-                                        className="flex items-center justify-between"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Badge
-                                                className={getStatusColor(
-                                                    item.status
-                                                )}
-                                            >
-                                                {item.label}
-                                            </Badge>
-                                        </div>
-                                        <span className="text-2xl font-bold">
-                                            {item.count}
-                                        </span>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-center text-muted-foreground">
-                                    No hay datos disponibles
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {/* Leads by Status - 3 Stat Blocks */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4">
+                            Leads por Estado
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Estados principales del pipeline
+                        </p>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            {(() => {
+                                // Filtrar solo los 3 estados principales
+                                const mainStates = [
+                                    "in_progress",
+                                    "sales_ready",
+                                    "pending",
+                                ];
+                                const filteredStates =
+                                    leadsByStatus?.filter((item) =>
+                                        mainStates.includes(item.status)
+                                    ) || [];
+
+                                // Definir configuración de cada estado
+                                const stateConfig = {
+                                    in_progress: {
+                                        icon: Activity,
+                                        label: "En Proceso",
+                                        color: "text-blue-600",
+                                        bgColor: "bg-blue-50",
+                                    },
+                                    sales_ready: {
+                                        icon: CheckCircle,
+                                        label: "Listo para Venta",
+                                        color: "text-green-600",
+                                        bgColor: "bg-green-50",
+                                    },
+                                    pending: {
+                                        icon: Clock,
+                                        label: "Pendiente",
+                                        color: "text-amber-600",
+                                        bgColor: "bg-amber-50",
+                                    },
+                                };
+
+                                return mainStates.map((status) => {
+                                    const item = filteredStates.find(
+                                        (s) => s.status === status
+                                    );
+                                    const config = stateConfig[status];
+                                    const count = item?.count || 0;
+                                    const Icon = config.icon;
+
+                                    return (
+                                        <Card key={status}>
+                                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                                <CardTitle className="text-sm font-medium">
+                                                    {config.label}
+                                                </CardTitle>
+                                                <div
+                                                    className={`p-2 rounded-lg ${config.bgColor}`}
+                                                >
+                                                    <Icon
+                                                        className={`h-4 w-4 ${config.color}`}
+                                                    />
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="text-2xl font-bold">
+                                                    {count}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {count === 1
+                                                        ? "lead"
+                                                        : "leads"}{" "}
+                                                    en este estado
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                });
+                            })()}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Active Clients */}

@@ -1,4 +1,19 @@
-import * as React from "react";
+import { Button } from "@/Components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/Components/ui/dropdown-menu";
+import { Input } from "@/Components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/Components/ui/table";
 import {
     flexRender,
     getCoreRowModel,
@@ -8,22 +23,7 @@ import {
     useReactTable,
 } from "@tanstack/react-table";
 import { ChevronDown } from "lucide-react";
-import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from "@/Components/ui/dropdown-menu";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/Components/ui/table";
+import * as React from "react";
 
 export function DataTable({
     columns,
@@ -32,6 +32,7 @@ export function DataTable({
     onRowClick,
     onRowDoubleClick,
     rowClassName,
+    actions,
 }) {
     const [sorting, setSorting] = React.useState([]);
     const [columnFilters, setColumnFilters] = React.useState([]);
@@ -60,17 +61,27 @@ export function DataTable({
     return (
         <div className="w-full space-y-4">
             <div className="flex items-center justify-between">
-                {filterColumn && (
-                    <Input
-                        placeholder={`Filtrar por ${filterColumn}...`}
-                        value={
-                            (table.getColumn(filterColumn)?.getFilterValue() ?? "") || ""
-                        }
-                        onChange={(event) =>
-                            table.getColumn(filterColumn)?.setFilterValue(event.target.value)
-                        }
-                        className="max-w-sm"
-                    />
+                {actions ? (
+                    <div className="flex-1 mr-4">{actions}</div>
+                ) : (
+                    filterColumn && (
+                        <Input
+                            placeholder={`Filtrar por ${filterColumn}...`}
+                            value={
+                                (table
+                                    .getColumn(filterColumn)
+                                    ?.getFilterValue() ??
+                                    "") ||
+                                ""
+                            }
+                            onChange={(event) =>
+                                table
+                                    .getColumn(filterColumn)
+                                    ?.setFilterValue(event.target.value)
+                            }
+                            className="max-w-sm"
+                        />
+                    )
                 )}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -110,7 +121,8 @@ export function DataTable({
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
-                                                      header.column.columnDef.header,
+                                                      header.column.columnDef
+                                                          .header,
                                                       header.getContext()
                                                   )}
                                         </TableHead>
@@ -124,13 +136,25 @@ export function DataTable({
                             table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
-                                    data-state={row.getIsSelected() && "selected"}
+                                    data-state={
+                                        row.getIsSelected() && "selected"
+                                    }
                                     onClick={() => onRowClick?.(row.original)}
-                                    onDoubleClick={() => onRowDoubleClick?.(row.original)}
+                                    onDoubleClick={() =>
+                                        onRowDoubleClick?.(row.original)
+                                    }
                                     className={`
-                                        ${onRowClick || onRowDoubleClick ? "cursor-pointer" : ""}
+                                        ${
+                                            onRowClick || onRowDoubleClick
+                                                ? "cursor-pointer"
+                                                : ""
+                                        }
                                         hover:bg-gray-50 transition-colors
-                                        ${typeof rowClassName === 'function' ? rowClassName(row.original) : rowClassName || ''}
+                                        ${
+                                            typeof rowClassName === "function"
+                                                ? rowClassName(row.original)
+                                                : rowClassName || ""
+                                        }
                                     `}
                                 >
                                     {row.getVisibleCells().map((cell) => (
@@ -159,7 +183,8 @@ export function DataTable({
             <div className="flex items-center justify-end space-x-2">
                 <div className="text-muted-foreground flex-1 text-sm">
                     {table.getFilteredSelectedRowModel().rows.length} de{" "}
-                    {table.getFilteredRowModel().rows.length} fila(s) seleccionadas.
+                    {table.getFilteredRowModel().rows.length} fila(s)
+                    seleccionadas.
                 </div>
                 <div className="space-x-2">
                     <Button

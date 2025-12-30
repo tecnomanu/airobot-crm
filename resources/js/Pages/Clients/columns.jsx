@@ -1,16 +1,26 @@
-import { ArrowUpDown, Eye, Trash2 } from "lucide-react";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Checkbox } from "@/Components/ui/checkbox";
-import { Badge } from "@/Components/ui/badge";
 import { router } from "@inertiajs/react";
+import { ArrowUpDown, Edit, Eye, Trash2 } from "lucide-react";
 
-export const getClientColumns = (handleDelete) => [
+const getStatusLabel = (status) => {
+    const labels = {
+        active: "Activo",
+        inactive: "Inactivo",
+    };
+    return labels[status] || status;
+};
+
+export const getClientColumns = (handleDelete, handleEdit) => [
     {
         id: "select",
         header: ({ table }) => (
             <Checkbox
                 checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                onCheckedChange={(value) =>
+                    table.toggleAllPageRowsSelected(!!value)
+                }
                 aria-label="Seleccionar todo"
             />
         ),
@@ -30,14 +40,18 @@ export const getClientColumns = (handleDelete) => [
             return (
                 <Button
                     variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === "asc")
+                    }
                 >
                     Nombre
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
         },
-        cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+        cell: ({ row }) => (
+            <div className="font-medium">{row.getValue("name")}</div>
+        ),
     },
     {
         accessorKey: "company",
@@ -64,8 +78,10 @@ export const getClientColumns = (handleDelete) => [
                 inactive: "bg-red-100 text-red-800 hover:bg-red-100",
             };
             return (
-                <Badge className={colors[status] || "bg-gray-100 text-gray-800"}>
-                    {row.original.status_label}
+                <Badge
+                    className={colors[status] || "bg-gray-100 text-gray-800"}
+                >
+                    {row.original.status_label || getStatusLabel(status)}
                 </Badge>
             );
         },
@@ -80,9 +96,18 @@ export const getClientColumns = (handleDelete) => [
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => router.visit(route("clients.show", client.id))}
+                        onClick={() =>
+                            router.visit(route("clients.show", client.id))
+                        }
                     >
                         <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(client)}
+                    >
+                        <Edit className="h-4 w-4 text-blue-500" />
                     </Button>
                     <Button
                         variant="ghost"
@@ -96,4 +121,3 @@ export const getClientColumns = (handleDelete) => [
         },
     },
 ];
-

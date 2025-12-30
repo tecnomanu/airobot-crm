@@ -152,4 +152,15 @@ class SourceController extends Controller
             ->route('sources.index')
             ->with('success', 'Fuente eliminada exitosamente');
     }
+
+    public function toggleStatus(Source $source, Request $request)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:active,inactive',
+        ]);
+
+        $source->update(['status' => $validated['status']]);
+
+        return redirect()->back()->with('success', 'Estado actualizado correctamente.');
+    }
 }

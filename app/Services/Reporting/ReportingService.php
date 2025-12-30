@@ -205,6 +205,7 @@ class ReportingService
     public function getActiveClients(): Collection
     {
         return Client::where('status', ClientStatus::ACTIVE)
+            ->withCount('campaigns')
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'company', 'status']);
     }

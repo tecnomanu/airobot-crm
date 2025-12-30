@@ -1,19 +1,13 @@
-import { Button } from "@/Components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { DataTable } from "@/Components/ui/data-table";
-import { Input } from "@/Components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/Components/ui/select";
+import DataTableFilters from "@/Components/ui/data-table-filters";
 import AppLayout from "@/Layouts/AppLayout";
-import { hasNotificationPermission, notifyCallCompleted } from "@/lib/notifications";
+import {
+    hasNotificationPermission,
+    notifyCallCompleted,
+} from "@/lib/notifications";
 import { Head, router } from "@inertiajs/react";
-import { Clock, DollarSign, Phone, Search, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Clock, DollarSign, Phone } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { getCallHistoryColumns } from "./columns";
 
@@ -24,8 +18,6 @@ export default function CallHistoryIndex({
     filters = {},
     totals = { calls: 0, duration: 0, cost: 0 },
 }) {
-    const [searchTerm, setSearchTerm] = useState(filters.search || "");
-
     const handleFilterChange = (name, value) => {
         router.get(
             route("lead-calls.index"),
@@ -34,17 +26,7 @@ export default function CallHistoryIndex({
         );
     };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(
-            route("lead-calls.index"),
-            { ...filters, search: searchTerm },
-            { preserveState: true }
-        );
-    };
-
     const handleClearFilters = () => {
-        setSearchTerm("");
         router.get(route("lead-calls.index"), {}, { preserveState: true });
     };
 
@@ -70,9 +52,9 @@ export default function CallHistoryIndex({
     ];
 
     useEffect(() => {
-        const channel = window.Echo.channel('lead-calls');
+        const channel = window.Echo.channel("lead-calls");
 
-        channel.listen('.call.created', (event) => {
+        channel.listen(".call.created", (event) => {
             const { call } = event;
 
             const isFirstPage = !filters.page || filters.page === 1;
@@ -82,21 +64,23 @@ export default function CallHistoryIndex({
                 router.reload({
                     preserveState: true,
                     preserveScroll: true,
-                    only: ['calls', 'totals'],
+                    only: ["calls", "totals"],
                     onSuccess: () => {
                         const statusLabels = {
-                            completed: 'Completada',
-                            no_answer: 'Sin respuesta',
-                            hung_up: 'Colgó',
-                            failed: 'Fallida',
-                            busy: 'Ocupado',
-                            voicemail: 'Buzón',
+                            completed: "Completada",
+                            no_answer: "Sin respuesta",
+                            hung_up: "Colgó",
+                            failed: "Fallida",
+                            busy: "Ocupado",
+                            voicemail: "Buzón",
                         };
-                        
+
                         toast.info(
-                            `Nueva llamada: ${call.phone} - ${statusLabels[call.status] || call.status}`
+                            `Nueva llamada: ${call.phone} - ${
+                                statusLabels[call.status] || call.status
+                            }`
                         );
-                    }
+                    },
                 });
             }
 
@@ -106,7 +90,7 @@ export default function CallHistoryIndex({
         });
 
         return () => {
-            channel.stopListening('.call.created');
+            channel.stopListening(".call.created");
         };
     }, [calls.data, filters]);
 
@@ -136,7 +120,9 @@ export default function CallHistoryIndex({
                                         {stat.value}
                                     </p>
                                 </div>
-                                <div className={`p-2.5 rounded-lg ${stat.color}`}>
+                                <div
+                                    className={`p-2.5 rounded-lg ${stat.color}`}
+                                >
                                     <stat.icon className="h-5 w-5" />
                                 </div>
                             </div>
@@ -145,119 +131,73 @@ export default function CallHistoryIndex({
                 </div>
 
                 {/* Main Card Container */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    {/* Header Section with padding */}
-                    <div className="p-6 space-y-4">
-                        {/* Filters Row */}
-                        <div className="flex flex-wrap items-center gap-3">
-                            <form
-                                onSubmit={handleSearch}
-                                className="flex-1 max-w-md relative"
-                            >
-                                <Input
-                                    placeholder="Buscar teléfono..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-4 pr-10 py-2.5 bg-indigo-50 border-0 rounded-lg"
-                                />
-                                <Button
-                                    type="submit"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                >
-                                    <Search className="h-4 w-4 text-gray-400" />
-                                </Button>
-                            </form>
-
-                            <Select
-                                value={filters.client_id || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange(
-                                        "client_id",
-                                        value === "all" ? "" : value
-                                    )
-                                }
-                            >
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Todos los clientes" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        Todos los clientes
-                                    </SelectItem>
-                                    {clients.map((c) => (
-                                        <SelectItem key={c.id} value={c.id.toString()}>
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <Select
-                                value={filters.campaign_id || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange(
-                                        "campaign_id",
-                                        value === "all" ? "" : value
-                                    )
-                                }
-                            >
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Todas las campañas" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        Todas las campañas
-                                    </SelectItem>
-                                    {campaigns.map((c) => (
-                                        <SelectItem key={c.id} value={c.id.toString()}>
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-
-                            <Select
-                                value={filters.status || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange(
-                                        "status",
-                                        value === "all" ? "" : value
-                                    )
-                                }
-                            >
-                                <SelectTrigger className="w-[160px]">
-                                    <SelectValue placeholder="Todos los estados" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos</SelectItem>
-                                    <SelectItem value="completed">Completada</SelectItem>
-                                    <SelectItem value="no_answer">Sin Respuesta</SelectItem>
-                                    <SelectItem value="hung_up">Colgó</SelectItem>
-                                    <SelectItem value="failed">Fallida</SelectItem>
-                                    <SelectItem value="busy">Ocupado</SelectItem>
-                                    <SelectItem value="voicemail">Buzón de Voz</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            <Button
-                                variant="outline"
-                                onClick={handleClearFilters}
-                                size="sm"
-                            >
-                                <X className="mr-2 h-4 w-4" />
-                                Limpiar
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Table with padding */}
-                    <div className="px-6 pb-6">
+                <div className="bg-white rounded-xl shadow-sm">
+                    {/* Table with Actions (Filters) */}
+                    <div className="p-6">
                         <DataTable
                             columns={getCallHistoryColumns()}
                             data={calls?.data || []}
-                            filterColumn="phone"
+                            actions={
+                                <DataTableFilters
+                                    filters={[
+                                        {
+                                            type: "search",
+                                            name: "search",
+                                            placeholder: "Buscar teléfono...",
+                                        },
+                                        {
+                                            type: "select",
+                                            name: "client_id",
+                                            placeholder: "Todos los clientes",
+                                            allLabel: "Todos los clientes",
+                                            options: clients,
+                                        },
+                                        {
+                                            type: "select",
+                                            name: "campaign_id",
+                                            placeholder: "Todas las campañas",
+                                            allLabel: "Todas las campañas",
+                                            options: campaigns,
+                                        },
+                                        {
+                                            type: "select",
+                                            name: "status",
+                                            placeholder: "Todos los estados",
+                                            allLabel: "Todos",
+                                            className: "w-[180px]",
+                                            options: [
+                                                {
+                                                    value: "completed",
+                                                    label: "Completada",
+                                                },
+                                                {
+                                                    value: "no_answer",
+                                                    label: "Sin Respuesta",
+                                                },
+                                                {
+                                                    value: "hung_up",
+                                                    label: "Colgó",
+                                                },
+                                                {
+                                                    value: "failed",
+                                                    label: "Fallida",
+                                                },
+                                                {
+                                                    value: "busy",
+                                                    label: "Ocupado",
+                                                },
+                                                {
+                                                    value: "voicemail",
+                                                    label: "Buzón de Voz",
+                                                },
+                                            ],
+                                        },
+                                    ]}
+                                    values={filters}
+                                    onChange={handleFilterChange}
+                                    onClear={handleClearFilters}
+                                />
+                            }
                         />
                     </div>
                 </div>

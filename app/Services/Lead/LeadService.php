@@ -145,6 +145,9 @@ class LeadService
                 throw new \InvalidArgumentException('Campaña no encontrada');
             }
 
+            // Ensure client_id is set from campaign
+            $data['client_id'] = $campaign->client_id;
+
             // Buscar si ya existe un lead con el mismo teléfono y campaña
             $existingLead = $this->leadRepository->findByPhoneAndCampaign(
                 $data['phone'],

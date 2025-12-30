@@ -23,6 +23,7 @@ export default function SourceCombobox({
     placeholder = "Seleccionar fuente...",
     emptyMessage = "No se encontraron fuentes",
     className,
+    disabled = false,
 }) {
     const [open, setOpen] = useState(false);
 
@@ -55,6 +56,8 @@ export default function SourceCombobox({
         (source) => source.id.toString() === value?.toString()
     );
 
+    const isDisabled = disabled || sources.length === 0;
+
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
@@ -62,7 +65,13 @@ export default function SourceCombobox({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={cn("w-full justify-between", className)}
+                    className={cn(
+                        "w-full justify-between",
+                        !selectedSource && "text-muted-foreground",
+                        isDisabled && "opacity-50 cursor-not-allowed",
+                        className
+                    )}
+                    disabled={isDisabled}
                 >
                     {selectedSource ? (
                         <span className="truncate">
@@ -76,8 +85,10 @@ export default function SourceCombobox({
                             )}
                         </span>
                     ) : (
-                        <span className="text-muted-foreground">
-                            {placeholder}
+                        <span>
+                            {sources.length === 0
+                                ? "No hay fuentes disponibles"
+                                : placeholder}
                         </span>
                     )}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -102,11 +113,7 @@ export default function SourceCombobox({
                                 {group.sources.map((source) => (
                                     <CommandItem
                                         key={source.id}
-                                        value={`${source.name} ${
-                                            source.client?.name || ""
-                                        } ${
-                                            source.config?.phone_number || ""
-                                        } ${source.config?.url || ""}`}
+                                        value={`${source.name}-${source.id}`}
                                         onSelect={() => {
                                             onValueChange(source.id.toString());
                                             setOpen(false);

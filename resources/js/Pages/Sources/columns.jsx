@@ -1,16 +1,22 @@
-import { ArrowUpDown, Eye, Pencil, Trash2 } from "lucide-react";
+import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Checkbox } from "@/Components/ui/checkbox";
-import { Badge } from "@/Components/ui/badge";
-import { router } from "@inertiajs/react";
+import { Switch } from "@/Components/ui/switch";
+import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 
-export const getSourceColumns = (handleEdit, handleDelete) => [
+export const getSourceColumns = (
+    handleEdit,
+    handleDelete,
+    handleToggleStatus
+) => [
     {
         id: "select",
         header: ({ table }) => (
             <Checkbox
                 checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                onCheckedChange={(value) =>
+                    table.toggleAllPageRowsSelected(!!value)
+                }
                 aria-label="Seleccionar todo"
             />
         ),
@@ -30,14 +36,18 @@ export const getSourceColumns = (handleEdit, handleDelete) => [
             return (
                 <Button
                     variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    onClick={() =>
+                        column.toggleSorting(column.getIsSorted() === "asc")
+                    }
                 >
                     Nombre
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             );
         },
-        cell: ({ row }) => <div className="font-medium">{row.getValue("name")}</div>,
+        cell: ({ row }) => (
+            <div className="font-medium">{row.getValue("name")}</div>
+        ),
     },
     {
         accessorKey: "type",
@@ -48,15 +58,22 @@ export const getSourceColumns = (handleEdit, handleDelete) => [
                 whatsapp: "bg-green-100 text-green-800 hover:bg-green-100",
                 webhook: "bg-blue-100 text-blue-800 hover:bg-blue-100",
                 meta_whatsapp: "bg-green-100 text-green-800 hover:bg-green-100",
-                facebook_lead_ads: "bg-indigo-100 text-indigo-800 hover:bg-indigo-100",
+                facebook_lead_ads:
+                    "bg-indigo-100 text-indigo-800 hover:bg-indigo-100",
                 google_ads: "bg-orange-100 text-orange-800 hover:bg-orange-100",
             };
             return (
                 <div className="flex flex-col gap-1">
-                    <Badge className={typeColors[type] || "bg-gray-100 text-gray-800"}>
+                    <Badge
+                        className={
+                            typeColors[type] || "bg-gray-100 text-gray-800"
+                        }
+                    >
                         {row.original.type_base}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">{row.original.provider}</span>
+                    <span className="text-xs text-muted-foreground">
+                        {row.original.provider}
+                    </span>
                 </div>
             );
         },
@@ -67,7 +84,7 @@ export const getSourceColumns = (handleEdit, handleDelete) => [
         cell: ({ row }) => {
             const source = row.original;
             const config = source.config || {};
-            
+
             // Mostrar detalle según el tipo
             let detail = "-";
             if (source.type === "whatsapp") {
@@ -77,7 +94,7 @@ export const getSourceColumns = (handleEdit, handleDelete) => [
             } else if (source.type === "meta_whatsapp") {
                 detail = config.phone_number_id || "-";
             }
-            
+
             return <div className="max-w-xs truncate">{detail}</div>;
         },
         enableSorting: false,
@@ -91,10 +108,15 @@ export const getSourceColumns = (handleEdit, handleDelete) => [
                 active: "bg-green-100 text-green-800 hover:bg-green-100",
                 inactive: "bg-gray-100 text-gray-800 hover:bg-gray-100",
                 error: "bg-red-100 text-red-800 hover:bg-red-100",
-                pending_setup: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
+                pending_setup:
+                    "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
             };
             return (
-                <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>
+                <Badge
+                    className={
+                        statusColors[status] || "bg-gray-100 text-gray-800"
+                    }
+                >
                     {row.original.status_label}
                 </Badge>
             );
@@ -111,12 +133,33 @@ export const getSourceColumns = (handleEdit, handleDelete) => [
         header: "Campañas",
         cell: ({ row }) => {
             const count = row.original.campaigns_count || 0;
+            return <Badge variant="outline">{count}</Badge>;
+        },
+    },
+    {
+        id: "toggle",
+        header: "Activo",
+        cell: ({ row }) => {
+            const source = row.original;
+            const isActive = source.status === "active";
             return (
-                <Badge variant="outline">
-                    {count}
-                </Badge>
+                <div className="flex items-center gap-2">
+                    <Switch
+                        checked={isActive}
+                        onCheckedChange={() => handleToggleStatus(source)}
+                        className="data-[state=checked]:bg-green-600 h-5 w-9"
+                    />
+                    <span
+                        className={`text-xs font-medium ${
+                            isActive ? "text-green-600" : "text-gray-500"
+                        }`}
+                    >
+                        {isActive ? "Activo" : "Inactivo"}
+                    </span>
+                </div>
             );
         },
+        enableSorting: false,
     },
     {
         id: "actions",
@@ -146,4 +189,3 @@ export const getSourceColumns = (handleEdit, handleDelete) => [
         },
     },
 ];
-

@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
-import AppLayout from "@/Layouts/AppLayout";
-import { Head, router, useForm } from "@inertiajs/react";
-import { Plus, Search, X } from "lucide-react";
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
-import { toast } from "sonner";
-import { DataTable } from "@/Components/ui/data-table";
-import { getSourceColumns } from "./columns";
+import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
+import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
 import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
+import { DataTable } from "@/Components/ui/data-table";
+import DataTableFilters from "@/Components/ui/data-table-filters";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/Components/ui/dialog";
 import { Label } from "@/Components/ui/label";
 import {
     Select,
@@ -16,26 +20,32 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/Components/ui/select";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from "@/Components/ui/dialog";
-import {
-    Card,
-    CardContent,
-} from "@/Components/ui/card";
-import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
-import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
+import AppLayout from "@/Layouts/AppLayout";
+import { Head, router, useForm } from "@inertiajs/react";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { getSourceColumns } from "./columns";
 
-export default function SourcesIndex({ sources, clients, filters, presetType = null }) {
+export default function SourcesIndex({
+    sources,
+    clients,
+    filters,
+    presetType = null,
+}) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSource, setEditingSource] = useState(null);
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
-    const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null, name: "" });
+    const [deleteDialog, setDeleteDialog] = useState({
+        open: false,
+        id: null,
+        name: "",
+    });
+    const [toggleDialog, setToggleDialog] = useState({
+        open: false,
+        source: null,
+        newStatus: null,
+    });
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: "",
@@ -110,7 +120,33 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
+        // Validate for duplicates
+        const isDuplicate = sources.data?.some((source) => {
+            if (editingSource && source.id === editingSource.id) return false; // Skip self when editing
+
+            if (data.type === "whatsapp" && source.type === "whatsapp") {
+                const existingPhone = source.config?.phone_number;
+                const newPhone = data.config?.phone_number;
+                return existingPhone && newPhone && existingPhone === newPhone;
+            }
+
+            if (data.type === "webhook" && source.type === "webhook") {
+                const existingUrl = source.config?.url;
+                const newUrl = data.config?.url;
+                return existingUrl && newUrl && existingUrl === newUrl;
+            }
+
+            return false;
+        });
+
+        if (isDuplicate) {
+            toast.error(
+                "Ya existe una fuente con este valor. No se pueden crear duplicados."
+            );
+            return;
+        }
+
         if (editingSource) {
             put(route("sources.update", editingSource.id), {
                 onSuccess: () => {
@@ -154,6 +190,46 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
         setDeleteDialog({ open: false, id: null, name: "" });
     };
 
+    // ... (existing form hook) ...
+
+    // ... (existing useEffects) ...
+
+    // ... (existing filter handlers) ...
+
+    // ... (existing modal handlers) ...
+
+    // ... (existing delete handlers) ...
+
+    const handleToggleStatus = (source) => {
+        const newStatus = source.status === "active" ? "inactive" : "active";
+        setToggleDialog({
+            open: true,
+            source: source,
+            newStatus: newStatus,
+        });
+    };
+
+    const confirmToggleStatus = () => {
+        router.put(
+            route("sources.toggle-status", toggleDialog.source.id),
+            { status: toggleDialog.newStatus },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    const action =
+                        toggleDialog.newStatus === "active"
+                            ? "activada"
+                            : "desactivada";
+                    toast.success(`Fuente ${action} exitosamente`);
+                },
+                onError: () => {
+                    toast.error("Error al cambiar el estado de la fuente");
+                },
+            }
+        );
+        setToggleDialog({ open: false, source: null, newStatus: null });
+    };
+
     const getDialogTitle = () => {
         if (editingSource) return "Editar Fuente";
         if (presetType === "whatsapp") return "Crear Fuente de WhatsApp";
@@ -162,10 +238,11 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
     };
 
     const getDialogDescription = () => {
-        if (editingSource) return "Modifica los datos de esta fuente existente.";
-        if (presetType === "whatsapp") 
+        if (editingSource)
+            return "Modifica los datos de esta fuente existente.";
+        if (presetType === "whatsapp")
             return "Configura una nueva fuente de WhatsApp para enviar mensajes a tus leads.";
-        if (presetType === "webhook") 
+        if (presetType === "webhook")
             return "Configura una nueva fuente de webhook para integrar con sistemas externos.";
         return "Completa los datos para crear una nueva fuente reutilizable.";
     };
@@ -189,78 +266,90 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
         >
             <Head title="Fuentes" />
 
-            <div className="space-y-6">
-
-                {/* Filters */}
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="grid gap-4 md:grid-cols-4">
-                            <form onSubmit={handleSearch} className="flex gap-2">
-                                <Input
-                                    placeholder="Buscar fuente..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                                <Button type="submit" size="icon" variant="outline">
-                                    <Search className="h-4 w-4" />
-                                </Button>
-                            </form>
-
-                            <Select
-                                value={filters.type || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange("type", value === "all" ? "" : value)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Todos los tipos" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos los tipos</SelectItem>
-                                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                                    <SelectItem value="webhook">Webhook</SelectItem>
-                                    <SelectItem value="meta_whatsapp">WhatsApp Business</SelectItem>
-                                    <SelectItem value="facebook_lead_ads">Facebook Lead Ads</SelectItem>
-                                    <SelectItem value="google_ads">Google Ads</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            <Select
-                                value={filters.status || "all"}
-                                onValueChange={(value) =>
-                                    handleFilterChange("status", value === "all" ? "" : value)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Todos los estados" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos los estados</SelectItem>
-                                    <SelectItem value="active">Activo</SelectItem>
-                                    <SelectItem value="inactive">Inactivo</SelectItem>
-                                    <SelectItem value="error">Error</SelectItem>
-                                    <SelectItem value="pending_setup">Pendiente configuración</SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            <Button
-                                variant="outline"
-                                onClick={handleClearFilters}
-                                className="w-full"
-                            >
-                                <X className="mr-2 h-4 w-4" />
-                                Limpiar
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Table */}
-                <DataTable
-                    columns={getSourceColumns(handleEdit, handleDelete)}
-                    data={sources.data || sources}
-                    filterColumn="name"
-                />
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="p-6">
+                    {/* Table with Actions (Filters) */}
+                    <DataTable
+                        columns={getSourceColumns(
+                            handleEdit,
+                            handleDelete,
+                            handleToggleStatus
+                        )}
+                        data={sources.data || sources}
+                        actions={
+                            <DataTableFilters
+                                filters={[
+                                    {
+                                        name: "search",
+                                        type: "search",
+                                        placeholder: "Buscar fuente...",
+                                    },
+                                    {
+                                        name: "type",
+                                        type: "select",
+                                        placeholder: "Todos los tipos",
+                                        options: [
+                                            {
+                                                value: "whatsapp",
+                                                label: "WhatsApp",
+                                            },
+                                            {
+                                                value: "webhook",
+                                                label: "Webhook",
+                                            },
+                                            {
+                                                value: "meta_whatsapp",
+                                                label: "WhatsApp Business",
+                                            },
+                                            {
+                                                value: "facebook_lead_ads",
+                                                label: "Facebook Lead Ads",
+                                            },
+                                            {
+                                                value: "google_ads",
+                                                label: "Google Ads",
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        name: "status",
+                                        type: "select",
+                                        placeholder: "Todos los estados",
+                                        options: [
+                                            {
+                                                value: "active",
+                                                label: "Activo",
+                                            },
+                                            {
+                                                value: "inactive",
+                                                label: "Inactivo",
+                                            },
+                                            { value: "error", label: "Error" },
+                                            {
+                                                value: "pending_setup",
+                                                label: "Pendiente configuración",
+                                            },
+                                        ],
+                                    },
+                                ]}
+                                values={{
+                                    search: searchTerm,
+                                    type: filters.type,
+                                    status: filters.status,
+                                }}
+                                onChange={(name, value) => {
+                                    if (name === "search") {
+                                        setSearchTerm(value);
+                                    } else {
+                                        handleFilterChange(name, value);
+                                    }
+                                }}
+                                onSearch={handleSearch}
+                                onClear={handleClearFilters}
+                            />
+                        }
+                    />
+                </div>
             </div>
 
             {/* Create/Edit Source Modal */}
@@ -268,7 +357,9 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{getDialogTitle()}</DialogTitle>
-                        <DialogDescription>{getDialogDescription()}</DialogDescription>
+                        <DialogDescription>
+                            {getDialogDescription()}
+                        </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -276,24 +367,35 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
                         {!presetType && (
                             <div className="space-y-2">
                                 <Label htmlFor="type">
-                                    Tipo de Fuente <span className="text-red-500">*</span>
+                                    Tipo de Fuente{" "}
+                                    <span className="text-red-500">*</span>
                                 </Label>
                                 <Select
                                     value={data.type}
-                                    onValueChange={(value) => setData("type", value)}
+                                    onValueChange={(value) =>
+                                        setData("type", value)
+                                    }
                                     disabled={!!editingSource}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Seleccionar tipo" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="whatsapp">WhatsApp (Evolution API)</SelectItem>
-                                        <SelectItem value="webhook">Webhook HTTP</SelectItem>
-                                        <SelectItem value="meta_whatsapp">WhatsApp Business (Meta)</SelectItem>
+                                        <SelectItem value="whatsapp">
+                                            WhatsApp (Evolution API)
+                                        </SelectItem>
+                                        <SelectItem value="webhook">
+                                            Webhook HTTP
+                                        </SelectItem>
+                                        <SelectItem value="meta_whatsapp">
+                                            WhatsApp Business (Meta)
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {errors.type && (
-                                    <p className="text-sm text-red-500">{errors.type}</p>
+                                    <p className="text-sm text-red-500">
+                                        {errors.type}
+                                    </p>
                                 )}
                             </div>
                         )}
@@ -320,22 +422,29 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
                         {/* Mensaje si no hay tipo seleccionado */}
                         {!data.type && (
                             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                                <p className="font-medium">Selecciona un tipo de fuente</p>
+                                <p className="font-medium">
+                                    Selecciona un tipo de fuente
+                                </p>
                                 <p className="text-xs mt-1">
-                                    Primero selecciona el tipo de fuente que deseas configurar.
+                                    Primero selecciona el tipo de fuente que
+                                    deseas configurar.
                                 </p>
                             </div>
                         )}
 
                         {/* Tipos no implementados */}
-                        {data.type && !["whatsapp", "webhook"].includes(data.type) && (
-                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                                <p className="font-medium">Configuración en desarrollo</p>
-                                <p className="text-xs mt-1">
-                                    La configuración para este tipo de fuente estará disponible próximamente.
-                                </p>
-                            </div>
-                        )}
+                        {data.type &&
+                            !["whatsapp", "webhook"].includes(data.type) && (
+                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                                    <p className="font-medium">
+                                        Configuración en desarrollo
+                                    </p>
+                                    <p className="text-xs mt-1">
+                                        La configuración para este tipo de
+                                        fuente estará disponible próximamente.
+                                    </p>
+                                </div>
+                            )}
 
                         <DialogFooter className="gap-2">
                             <Button
@@ -345,11 +454,17 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
                             >
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={processing || !data.type}>
-                                {processing 
-                                    ? (editingSource ? "Actualizando..." : "Creando...") 
-                                    : (editingSource ? "Actualizar Fuente" : "Crear Fuente")
-                                }
+                            <Button
+                                type="submit"
+                                disabled={processing || !data.type}
+                            >
+                                {processing
+                                    ? editingSource
+                                        ? "Actualizando..."
+                                        : "Creando..."
+                                    : editingSource
+                                    ? "Actualizar Fuente"
+                                    : "Crear Fuente"}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -368,6 +483,29 @@ export default function SourcesIndex({ sources, clients, filters, presetType = n
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="destructive"
+            />
+
+            {/* Confirm Toggle Status Dialog */}
+            <ConfirmDialog
+                open={toggleDialog.open}
+                onOpenChange={(open) =>
+                    setToggleDialog({ ...toggleDialog, open })
+                }
+                onConfirm={confirmToggleStatus}
+                title={
+                    toggleDialog.newStatus === "active"
+                        ? "¿Activar fuente?"
+                        : "¿Pausar fuente?"
+                }
+                description={
+                    toggleDialog.newStatus === "active"
+                        ? `¿Estás seguro de activar la fuente "${toggleDialog.source?.name}"? Estará disponible para su uso en campañas.`
+                        : `¿Estás seguro de pausar la fuente "${toggleDialog.source?.name}"? No se podrá utilizar en nuevas campañas hasta que se reactive.`
+                }
+                confirmText={
+                    toggleDialog.newStatus === "active" ? "Activar" : "Pausar"
+                }
+                cancelText="Cancelar"
             />
         </AppLayout>
     );

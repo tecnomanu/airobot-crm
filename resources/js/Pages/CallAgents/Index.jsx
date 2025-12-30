@@ -1,6 +1,7 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { Button } from "@/Components/ui/button";
 import { DataTable } from "@/Components/ui/data-table";
+import DataTableFilters from "@/Components/ui/data-table-filters";
 import {
     Dialog,
     DialogContent,
@@ -11,7 +12,7 @@ import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, router, useForm } from "@inertiajs/react";
-import { AlertCircle, Plus, Search, X, Bot } from "lucide-react";
+import { AlertCircle, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getCallAgentColumns } from "./columns";
@@ -43,10 +44,10 @@ export default function CallAgentsIndex({
         llm_temperature: 0.7,
     });
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        // Local filtering handled by DataTable
-    };
+    // Client-side filtering
+    const filteredAgents = agents.filter((agent) =>
+        agent.agent_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -166,11 +167,12 @@ export default function CallAgentsIndex({
                                                 </code>
                                             </li>
                                             <li>
-                                                Obtén tu API key desde el dashboard de
-                                                Retell AI
+                                                Obtén tu API key desde el
+                                                dashboard de Retell AI
                                             </li>
                                             <li>
-                                                Reinicia el servidor de desarrollo
+                                                Reinicia el servidor de
+                                                desarrollo
                                             </li>
                                         </ol>
                                     </div>
@@ -183,82 +185,37 @@ export default function CallAgentsIndex({
                 {/* Main Card Container */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                     {/* Header Section with padding */}
-                    <div className="p-6 space-y-4">
-                        {/* Filters Row */}
-                        <div className="flex flex-wrap items-center gap-3">
-                            <form
-                                onSubmit={handleSearch}
-                                className="flex-1 max-w-md relative"
-                            >
-                                <Input
-                                    placeholder="Buscar agente..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-4 pr-10 py-2.5 bg-indigo-50 border-0 rounded-lg"
+                    <div className="p-6">
+                        <DataTable
+                            columns={getCallAgentColumns(handleDelete)}
+                            data={filteredAgents}
+                            actions={
+                                <DataTableFilters
+                                    searchPlaceholder="Buscar agente..."
+                                    values={{ search: searchTerm }}
+                                    onChange={(values) => {
+                                        if (values.search !== undefined) {
+                                            setSearchTerm(values.search);
+                                        }
+                                    }}
+                                    onClear={() => setSearchTerm("")}
                                 />
-                                <Button
-                                    type="submit"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                >
-                                    <Search className="h-4 w-4 text-gray-400" />
-                                </Button>
-                            </form>
-
-                            {searchTerm && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setSearchTerm("")}
-                                    size="sm"
-                                >
-                                    <X className="mr-2 h-4 w-4" />
-                                    Limpiar
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Table or Empty State */}
-                    <div className="px-6 pb-6">
-                        {agents.length > 0 ? (
-                            <DataTable
-                                columns={getCallAgentColumns(handleDelete)}
-                                data={agents}
-                                filterColumn="agent_name"
-                            />
-                        ) : (
-                            <div className="text-center py-12 border rounded-lg bg-gray-50">
-                                <Bot className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                                <p className="text-gray-500 font-medium">
-                                    {error
-                                        ? "No se pudieron cargar los agentes"
-                                        : "No hay agentes configurados"}
-                                </p>
-                                <p className="text-sm text-gray-400 mt-1">
-                                    {!error && "Crea tu primer agente para comenzar"}
-                                </p>
-                                {!error && (
-                                    <Button
-                                        onClick={() => setIsCreateModalOpen(true)}
-                                        className="mt-4 bg-indigo-600 hover:bg-indigo-700"
-                                        size="sm"
-                                    >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Crear Primer Agente
-                                    </Button>
-                                )}
-                            </div>
-                        )}
+                            }
+                        />
                     </div>
                 </div>
             </div>
 
             {/* Create Agent Modal */}
-            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+            <Dialog
+                open={isCreateModalOpen}
+                onOpenChange={setIsCreateModalOpen}
+            >
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-lg">Crear Nuevo Agente</DialogTitle>
+                        <DialogTitle className="text-lg">
+                            Crear Nuevo Agente
+                        </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="grid grid-cols-2 gap-4">
@@ -269,7 +226,9 @@ export default function CallAgentsIndex({
                                 <Input
                                     id="agent_name"
                                     value={data.agent_name}
-                                    onChange={(e) => setData("agent_name", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("agent_name", e.target.value)
+                                    }
                                     placeholder="Ej: Agente de Ventas"
                                     className="h-9"
                                 />
@@ -287,7 +246,9 @@ export default function CallAgentsIndex({
                                 <Input
                                     id="voice_id"
                                     value={data.voice_id}
-                                    onChange={(e) => setData("voice_id", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("voice_id", e.target.value)
+                                    }
                                     placeholder="Ej: 11labs-Adrian"
                                     className="h-9"
                                 />
@@ -307,7 +268,9 @@ export default function CallAgentsIndex({
                                 <Input
                                     id="language"
                                     value={data.language}
-                                    onChange={(e) => setData("language", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("language", e.target.value)
+                                    }
                                     placeholder="es-ES"
                                     className="h-9"
                                 />
@@ -325,7 +288,9 @@ export default function CallAgentsIndex({
                                 <Input
                                     id="llm_model"
                                     value={data.llm_model}
-                                    onChange={(e) => setData("llm_model", e.target.value)}
+                                    onChange={(e) =>
+                                        setData("llm_model", e.target.value)
+                                    }
                                     placeholder="gpt-4.1"
                                     className="h-9"
                                 />
@@ -339,7 +304,9 @@ export default function CallAgentsIndex({
                             <textarea
                                 id="first_message"
                                 value={data.first_message}
-                                onChange={(e) => setData("first_message", e.target.value)}
+                                onChange={(e) =>
+                                    setData("first_message", e.target.value)
+                                }
                                 rows={2}
                                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                                 placeholder="Mensaje inicial que dirá el agente..."
@@ -354,7 +321,9 @@ export default function CallAgentsIndex({
                                 id="webhook_url"
                                 type="url"
                                 value={data.webhook_url}
-                                onChange={(e) => setData("webhook_url", e.target.value)}
+                                onChange={(e) =>
+                                    setData("webhook_url", e.target.value)
+                                }
                                 placeholder="https://tu-webhook.com/endpoint"
                                 className="h-9"
                             />
@@ -363,10 +332,13 @@ export default function CallAgentsIndex({
                         <div className="rounded-lg bg-blue-50 p-3 text-xs text-blue-800 flex items-start gap-2">
                             <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                             <div>
-                                <p className="font-medium">Información importante</p>
+                                <p className="font-medium">
+                                    Información importante
+                                </p>
                                 <p className="mt-0.5 text-blue-700">
-                                    El agente se creará directamente en Retell AI.
-                                    Asegúrate de tener configurada la variable RETELL_API_KEY.
+                                    El agente se creará directamente en Retell
+                                    AI. Asegúrate de tener configurada la
+                                    variable RETELL_API_KEY.
                                 </p>
                             </div>
                         </div>
@@ -396,7 +368,9 @@ export default function CallAgentsIndex({
             {/* Confirm Delete Dialog */}
             <ConfirmDialog
                 open={deleteDialog.open}
-                onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+                onOpenChange={(open) =>
+                    setDeleteDialog({ ...deleteDialog, open })
+                }
                 onConfirm={confirmDelete}
                 title="¿Eliminar agente?"
                 description={`¿Estás seguro de eliminar "${deleteDialog.name}"? Esta acción no se puede deshacer y el agente se eliminará de Retell AI.`}

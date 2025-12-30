@@ -1,6 +1,7 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { Button } from "@/Components/ui/button";
 import { DataTable } from "@/Components/ui/data-table";
+import DataTableFilters from "@/Components/ui/data-table-filters";
 import {
     Dialog,
     DialogContent,
@@ -18,13 +19,14 @@ import {
 } from "@/Components/ui/select";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, router, useForm } from "@inertiajs/react";
-import { Plus, Search, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getClientColumns } from "./columns";
 
 export default function ClientsIndex({ clients, filters }) {
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingClient, setEditingClient] = useState(null);
     const [searchTerm, setSearchTerm] = useState(filters.search || "");
     const [deleteDialog, setDeleteDialog] = useState({
         open: false,
@@ -32,7 +34,7 @@ export default function ClientsIndex({ clients, filters }) {
         name: "",
     });
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, put, processing, errors, reset } = useForm({
         name: "",
         email: "",
         phone: "",
@@ -63,18 +65,62 @@ export default function ClientsIndex({ clients, filters }) {
         router.get(route("clients.index"), {}, { preserveState: true });
     };
 
+    const handleCreate = () => {
+        reset();
+        setEditingClient(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (client) => {
+        setData({
+            name: client.name || "",
+            email: client.email || "",
+            phone: client.phone || "",
+            company: client.company || "",
+            status: client.status || "active",
+            notes: client.notes || "",
+        });
+        setEditingClient(client);
+        setIsModalOpen(true);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route("clients.store"), {
-            onSuccess: () => {
-                setIsCreateModalOpen(false);
-                reset();
-                toast.success("Cliente creado exitosamente");
-            },
-            onError: () => {
-                toast.error("Error al crear el cliente");
-            },
-        });
+
+        if (editingClient) {
+            // Update existing client
+            put(route("clients.update", editingClient.id), {
+                onSuccess: () => {
+                    setIsModalOpen(false);
+                    reset();
+                    setEditingClient(null);
+                    toast.success("Client actualizado exitosamente");
+                },
+                onError: () => {
+                    toast.error("Error al actualizar el cliente");
+                },
+            });
+        } else {
+            // Create new client
+            post(route("clients.store"), {
+                onSuccess: () => {
+                    setIsModalOpen(false);
+                    reset();
+                    toast.success("Cliente creado exitosamente");
+                },
+                onError: () => {
+                    toast.error("Error al crear el cliente");
+                },
+            });
+        }
+    };
+
+    const handleModalClose = (open) => {
+        setIsModalOpen(open);
+        if (!open) {
+            reset();
+            setEditingClient(null);
+        }
     };
 
     const handleDelete = (client) => {
@@ -106,7 +152,7 @@ export default function ClientsIndex({ clients, filters }) {
                     <Button
                         size="sm"
                         className="h-8 text-xs px-2"
-                        onClick={() => setIsCreateModalOpen(true)}
+                        onClick={handleCreate}
                     >
                         <Plus className="h-3.5 w-3.5 mr-1.5" />
                         Nuevo Cliente
@@ -119,85 +165,69 @@ export default function ClientsIndex({ clients, filters }) {
             {/* Main Card Container */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 {/* Header Section with padding */}
-                <div className="p-6 space-y-4">
-                    {/* Filters Row */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <form
-                            onSubmit={handleSearch}
-                            className="flex-1 max-w-md relative"
-                        >
-                            <Input
-                                placeholder="Buscar cliente..."
-                                value={searchTerm}
-                                onChange={(e) =>
-                                    setSearchTerm(e.target.value)
-                                }
-                                className="pl-4 pr-10 py-2.5 bg-indigo-50 border-0 rounded-lg"
-                            />
-                            <Button
-                                type="submit"
-                                size="icon"
-                                variant="ghost"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                            >
-                                <Search className="h-4 w-4 text-gray-400" />
-                            </Button>
-                        </form>
-
-                        <Select
-                            value={filters.status || "all"}
-                            onValueChange={(value) =>
-                                handleFilterChange(
-                                    "status",
-                                    value === "all" ? "" : value
-                                )
-                            }
-                        >
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Todos los estados" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    Todos los estados
-                                </SelectItem>
-                                <SelectItem value="active">
-                                    Activo
-                                </SelectItem>
-                                <SelectItem value="inactive">
-                                    Inactivo
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <Button
-                            variant="outline"
-                            onClick={handleClearFilters}
-                            size="sm"
-                        >
-                            <X className="mr-2 h-4 w-4" />
-                            Limpiar
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Table with padding */}
-                <div className="px-6 pb-6">
+                <div className="p-6">
                     <DataTable
-                        columns={getClientColumns(handleDelete)}
+                        columns={getClientColumns(handleDelete, handleEdit)}
                         data={clients.data}
-                        filterColumn="name"
+                        pagination={clients}
+                        actions={
+                            <DataTableFilters
+                                searchPlaceholder="Buscar cliente..."
+                                filters={[
+                                    {
+                                        key: "status",
+                                        label: "Estado",
+                                        options: [
+                                            {
+                                                value: "active",
+                                                label: "Activo",
+                                            },
+                                            {
+                                                value: "inactive",
+                                                label: "Inactivo",
+                                            },
+                                        ],
+                                    },
+                                ]}
+                                values={{
+                                    search: filters.search || "",
+                                    status: filters.status || "all",
+                                }}
+                                onChange={(values) => {
+                                    router.get(
+                                        route("clients.index"),
+                                        { ...route().params, ...values },
+                                        {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                        }
+                                    );
+                                }}
+                                onClear={() => {
+                                    router.get(
+                                        route("clients.index"),
+                                        {},
+                                        {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                        }
+                                    );
+                                }}
+                            />
+                        }
                     />
                 </div>
             </div>
 
-            {/* Create Client Modal */}
-            <Dialog
-                open={isCreateModalOpen}
-                onOpenChange={setIsCreateModalOpen}
-            >
+            {/* Client Modal */}
+            <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Crear Nuevo Cliente</DialogTitle>
+                        <DialogTitle>
+                            {editingClient
+                                ? "Editar Cliente"
+                                : "Crear Nuevo Cliente"}
+                        </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
@@ -293,12 +323,18 @@ export default function ClientsIndex({ clients, filters }) {
                             <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => setIsCreateModalOpen(false)}
+                                onClick={() => handleModalClose(false)}
                             >
                                 Cancelar
                             </Button>
                             <Button type="submit" disabled={processing}>
-                                {processing ? "Creando..." : "Crear Cliente"}
+                                {processing
+                                    ? editingClient
+                                        ? "Actualizando..."
+                                        : "Creando..."
+                                    : editingClient
+                                    ? "Actualizar Cliente"
+                                    : "Crear Cliente"}
                             </Button>
                         </div>
                     </form>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Message;
 
 use App\Enums\MessageDirection;
 use App\Http\Controllers\Controller;
+use App\Models\Client\Client;
 use App\Models\Lead\Lead;
 use App\Models\Lead\LeadMessage;
 use App\Services\Lead\LeadMessageService;
@@ -26,12 +27,34 @@ class MessagesController extends Controller
     {
         $selectedLeadId = $request->input('lead_id');
         $search = $request->input('search');
+        $box = $request->input('box', 'all'); // inbox, active, sales_ready, all
+        $clientId = $request->input('client_id');
 
         // Get leads that have messages, grouped by lead
-        $leadsWithMessages = Lead::whereHas('messages')
-            ->with(['messages' => function ($query) {
-                $query->latest()->limit(1);
-            }, 'campaign.client'])
+        $leadsQuery = Lead::whereHas('messages');
+
+        // Apply Client Filter
+        if ($clientId) {
+            $leadsQuery->forClient($clientId);
+        }
+
+        // Apply Box (Status) Filter
+        switch ($box) {
+            case 'inbox':
+                $leadsQuery->inbox();
+                break;
+            case 'active':
+                $leadsQuery->activePipeline();
+                break;
+            case 'sales_ready':
+                $leadsQuery->salesReady();
+                break;
+                // 'all' does nothing
+        }
+
+        $leadsWithMessages = $leadsQuery->with(['messages' => function ($query) {
+            $query->latest()->limit(1);
+        }, 'campaign.client'])
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -46,6 +69,9 @@ class MessagesController extends Controller
                     ->limit(1)
             )
             ->paginate(50);
+
+        // Get Clients for filter
+        $clients = Client::orderBy('name')->get(['id', 'name']);
 
         // Transform leads for the conversation list
         $conversations = $leadsWithMessages->through(function ($lead) {
@@ -83,7 +109,7 @@ class MessagesController extends Controller
 
         if ($selectedLeadId) {
             $selectedLead = Lead::with(['campaign.client'])->find($selectedLeadId);
-            
+
             if ($selectedLead) {
                 $selectedConversation = [
                     'id' => $selectedLead->id,
@@ -130,9 +156,12 @@ class MessagesController extends Controller
             'conversations' => $conversations,
             'selectedConversation' => $selectedConversation,
             'messages' => $messages,
+            'clients' => $clients,
             'filters' => [
                 'search' => $search,
                 'lead_id' => $selectedLeadId,
+                'box' => $box,
+                'client_id' => $clientId,
             ],
         ]);
     }
@@ -202,7 +231,7 @@ class MessagesController extends Controller
     public function toggleAiAgent(string $leadId): JsonResponse
     {
         $lead = Lead::findOrFail($leadId);
-        
+
         // Toggle AI status (if field doesn't exist, default behavior)
         $currentStatus = $lead->ai_agent_active ?? true;
         $lead->ai_agent_active = !$currentStatus;
@@ -255,7 +284,3 @@ class MessagesController extends Controller
         return $intentionMap[$intention] ?? ucfirst($intention);
     }
 }
-
-
-
-

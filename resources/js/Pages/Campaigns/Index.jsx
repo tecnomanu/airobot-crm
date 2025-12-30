@@ -1,23 +1,15 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { Button } from "@/Components/ui/button";
 import { DataTable } from "@/Components/ui/data-table";
-import { Input } from "@/Components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/Components/ui/select";
+import DataTableFilters from "@/Components/ui/data-table-filters";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link, router } from "@inertiajs/react";
-import { Plus, Search, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getCampaignColumns } from "./columns";
 
 export default function CampaignsIndex({ campaigns, clients, filters }) {
-    const [searchTerm, setSearchTerm] = useState(filters.search || "");
     const [deleteDialog, setDeleteDialog] = useState({
         open: false,
         id: null,
@@ -29,8 +21,6 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
         newStatus: null,
     });
 
-
-
     const handleFilterChange = (name, value) => {
         router.get(
             route("campaigns.index"),
@@ -39,21 +29,9 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
         );
     };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(
-            route("campaigns.index"),
-            { ...filters, search: searchTerm },
-            { preserveState: true }
-        );
-    };
-
     const handleClearFilters = () => {
-        setSearchTerm("");
         router.get(route("campaigns.index"), {}, { preserveState: true });
     };
-
-
 
     const handleDelete = (campaign) => {
         setDeleteDialog({
@@ -125,101 +103,63 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
             <Head title="Campañas" />
 
             {/* Main Card Container */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-xl shadow-sm">
                 {/* Header Section with padding */}
-                <div className="p-6 space-y-4">
-                    {/* Filters Row */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <form
-                            onSubmit={handleSearch}
-                            className="flex-1 max-w-md relative"
-                        >
-                            <Input
-                                placeholder="Buscar campaña..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-4 pr-10 py-2.5 bg-indigo-50 border-0 rounded-lg"
-                            />
-                            <Button
-                                type="submit"
-                                size="icon"
-                                variant="ghost"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                            >
-                                <Search className="h-4 w-4 text-gray-400" />
-                            </Button>
-                        </form>
-
-                        <Select
-                            value={filters.client_id || "all"}
-                            onValueChange={(value) =>
-                                handleFilterChange(
-                                    "client_id",
-                                    value === "all" ? "" : value
-                                )
-                            }
-                        >
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Todos los clientes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    Todos los clientes
-                                </SelectItem>
-                                {clients.map((c) => (
-                                    <SelectItem key={c.id} value={c.id.toString()}>
-                                        {c.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Select
-                            value={filters.status || "all"}
-                            onValueChange={(value) =>
-                                handleFilterChange(
-                                    "status",
-                                    value === "all" ? "" : value
-                                )
-                            }
-                        >
-                            <SelectTrigger className="w-[160px]">
-                                <SelectValue placeholder="Todos los estados" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
-                                <SelectItem value="active">Activa</SelectItem>
-                                <SelectItem value="paused">Pausada</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <Button
-                            variant="outline"
-                            onClick={handleClearFilters}
-                            size="sm"
-                        >
-                            <X className="mr-2 h-4 w-4" />
-                            Limpiar
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Table with padding */}
-                <div className="px-6 pb-6">
+                <div className="p-6">
                     <DataTable
-                        columns={getCampaignColumns(handleDelete, handleToggleStatus)}
+                        columns={getCampaignColumns(
+                            handleDelete,
+                            handleToggleStatus
+                        )}
                         data={campaigns.data}
-                        filterColumn="name"
+                        actions={
+                            <DataTableFilters
+                                filters={[
+                                    {
+                                        type: "search",
+                                        name: "search", // Changed from key to name to match others
+                                        placeholder: "Buscar campaña...",
+                                    },
+                                    {
+                                        type: "select",
+                                        name: "client_id",
+                                        placeholder: "Todos los clientes",
+                                        allLabel: "Todos los clientes",
+                                        options: clients,
+                                    },
+                                    {
+                                        type: "select",
+                                        name: "status",
+                                        placeholder: "Todos los estados",
+                                        allLabel: "Todos",
+                                        className: "w-[160px]",
+                                        options: [
+                                            {
+                                                value: "active",
+                                                label: "Activa",
+                                            },
+                                            {
+                                                value: "paused",
+                                                label: "Pausada",
+                                            },
+                                        ],
+                                    },
+                                ]}
+                                values={filters}
+                                onChange={handleFilterChange}
+                                onClear={handleClearFilters}
+                            />
+                        }
                     />
                 </div>
             </div>
 
-
-
             {/* Confirm Delete Dialog */}
             <ConfirmDialog
                 open={deleteDialog.open}
-                onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+                onOpenChange={(open) =>
+                    setDeleteDialog({ ...deleteDialog, open })
+                }
                 onConfirm={confirmDelete}
                 title="¿Eliminar campaña?"
                 description={`¿Estás seguro de eliminar la campaña "${deleteDialog.name}"? Se eliminarán todos los leads asociados. Esta acción no se puede deshacer.`}
@@ -231,7 +171,9 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
             {/* Confirm Toggle Status Dialog */}
             <ConfirmDialog
                 open={toggleDialog.open}
-                onOpenChange={(open) => setToggleDialog({ ...toggleDialog, open })}
+                onOpenChange={(open) =>
+                    setToggleDialog({ ...toggleDialog, open })
+                }
                 onConfirm={confirmToggleStatus}
                 title={
                     toggleDialog.newStatus === "active"
@@ -243,7 +185,9 @@ export default function CampaignsIndex({ campaigns, clients, filters }) {
                         ? `¿Estás seguro de activar la campaña "${toggleDialog.campaign?.name}"? Los leads comenzarán a procesarse automáticamente.`
                         : `¿Estás seguro de pausar la campaña "${toggleDialog.campaign?.name}"? No se procesarán nuevos leads hasta que la reactives.`
                 }
-                confirmText={toggleDialog.newStatus === "active" ? "Activar" : "Pausar"}
+                confirmText={
+                    toggleDialog.newStatus === "active" ? "Activar" : "Pausar"
+                }
                 cancelText="Cancelar"
             />
         </AppLayout>

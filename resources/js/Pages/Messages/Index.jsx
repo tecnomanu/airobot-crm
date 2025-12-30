@@ -2,15 +2,22 @@ import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { ScrollArea } from "@/Components/ui/scroll-area";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/Components/ui/select";
+import { Switch } from "@/Components/ui/switch";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link, router } from "@inertiajs/react";
 import {
     Bot,
     Building2,
     Circle,
+    Eye,
     MessageSquare,
-    MoreVertical,
-    Pause,
     Phone,
     Search,
     Send,
@@ -23,13 +30,19 @@ export default function MessagesIndex({
     conversations,
     selectedConversation,
     messages: initialMessages,
+
     filters,
+    clients = [],
 }) {
     const [searchQuery, setSearchQuery] = useState(filters.search || "");
+    const [box, setBox] = useState(filters.box || "all");
+    const [clientId, setClientId] = useState(filters.client_id || "all");
     const [messageInput, setMessageInput] = useState("");
     const [messages, setMessages] = useState(initialMessages || []);
     const [sending, setSending] = useState(false);
-    const [aiActive, setAiActive] = useState(selectedConversation?.ai_active ?? true);
+    const [aiActive, setAiActive] = useState(
+        selectedConversation?.ai_active ?? true
+    );
     const messagesEndRef = useRef(null);
 
     // Scroll to bottom when messages change
@@ -45,18 +58,51 @@ export default function MessagesIndex({
 
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get(route("messages.index"), { search: searchQuery }, { preserveState: true });
+        applyFilters({ search: searchQuery });
+    };
+
+    const applyFilters = (newFilters) => {
+        const params = {
+            search: searchQuery,
+            box: box,
+            client_id: clientId === "all" ? null : clientId,
+            ...newFilters,
+        };
+
+        // Remove empty/default values
+        if (params.box === "all") delete params.box;
+        if (params.client_id === "all") delete params.client_id;
+        if (!params.search) delete params.search;
+        if (selectedConversation) params.lead_id = selectedConversation.id;
+
+        router.get(route("messages.index"), params, { preserveState: true });
+    };
+
+    const handleBoxChange = (value) => {
+        setBox(value);
+        applyFilters({ box: value });
+    };
+
+    const handleClientChange = (value) => {
+        setClientId(value);
+        applyFilters({ client_id: value });
     };
 
     const selectConversation = (leadId) => {
         router.get(
             route("messages.index"),
-            { lead_id: leadId, search: searchQuery },
+            {
+                lead_id: leadId,
+                search: searchQuery,
+                box: box !== "all" ? box : undefined,
+                client_id: clientId !== "all" ? clientId : undefined,
+            },
             { preserveState: true }
         );
     };
 
     const handleSendMessage = async (e) => {
+        // ... (unchanged)
         e.preventDefault();
         if (!messageInput.trim() || !selectedConversation || sending) return;
 
@@ -101,13 +147,16 @@ export default function MessagesIndex({
         } catch (error) {
             console.error("Error sending message:", error);
             // Remove temp message on error
-            setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+            setMessages((prev) =>
+                prev.filter((msg) => msg.id !== tempMessage.id)
+            );
             setMessageInput(content);
         } finally {
             setSending(false);
         }
     };
 
+    // ... (rest of functions unchanged)
     const toggleAiAgent = async () => {
         if (!selectedConversation) return;
 
@@ -137,10 +186,12 @@ export default function MessagesIndex({
     const formatTime = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
-        return date.toLocaleTimeString("es-ES", {
-            hour: "2-digit",
-            minute: "2-digit",
-        }) + " a. m.";
+        return (
+            date.toLocaleTimeString("es-ES", {
+                hour: "2-digit",
+                minute: "2-digit",
+            }) + " a. m."
+        );
     };
 
     const getSourceColor = (source) => {
@@ -193,22 +244,75 @@ export default function MessagesIndex({
     };
 
     return (
-        <AppLayout>
+        <AppLayout
+            header={{
+                title: "Mensajes",
+                subtitle: "Gestión de conversaciones y chats con leads",
+            }}
+        >
             <Head title="Mensajes" />
 
             {/* Main Container - same structure as Campaigns */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-[calc(100vh-7rem)] flex overflow-hidden">
                 {/* Conversations List - Left Panel */}
                 <div className="w-96 border-r flex flex-col bg-white flex-shrink-0">
-                    {/* Search - Fixed height */}
-                    <div className="p-3 border-b flex-shrink-0">
+                    {/* Filters & Search - Fixed height */}
+                    <div className="p-3 border-b flex-shrink-0 space-y-3">
+                        <div className="flex gap-2">
+                            <Select value={box} onValueChange={handleBoxChange}>
+                                <SelectTrigger className="h-8 text-xs w-full">
+                                    <SelectValue placeholder="Bandeja" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        Todas las bandejas
+                                    </SelectItem>
+                                    <SelectItem value="inbox">
+                                        Inbox (Pendientes)
+                                    </SelectItem>
+                                    <SelectItem value="active">
+                                        Active Pipeline
+                                    </SelectItem>
+                                    <SelectItem value="sales_ready">
+                                        Sales Ready (Listos)
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+
+                            {clients.length > 0 && (
+                                <Select
+                                    value={clientId}
+                                    onValueChange={handleClientChange}
+                                >
+                                    <SelectTrigger className="h-8 text-xs w-full">
+                                        <SelectValue placeholder="Cliente" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            Todos los clientes
+                                        </SelectItem>
+                                        {clients.map((client) => (
+                                            <SelectItem
+                                                key={client.id}
+                                                value={client.id}
+                                            >
+                                                {client.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+
                         <form onSubmit={handleSearch}>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
                                     placeholder="Buscar conversaciones..."
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) =>
+                                        setSearchQuery(e.target.value)
+                                    }
                                     className="pl-9 bg-gray-100 border-0 h-9 text-sm"
                                 />
                             </div>
@@ -229,9 +333,12 @@ export default function MessagesIndex({
                                     return (
                                         <div
                                             key={conv.id}
-                                            onClick={() => selectConversation(conv.id)}
+                                            onClick={() =>
+                                                selectConversation(conv.id)
+                                            }
                                             className={`p-3 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                                selectedConversation?.id === conv.id
+                                                selectedConversation?.id ===
+                                                conv.id
                                                     ? "bg-indigo-50 border-l-2 border-l-indigo-600"
                                                     : ""
                                             }`}
@@ -258,7 +365,8 @@ export default function MessagesIndex({
 
                                                     {/* Last message */}
                                                     <p className="text-xs text-gray-500 truncate mt-1">
-                                                        {conv.last_message || "Sin mensajes"}
+                                                        {conv.last_message ||
+                                                            "Sin mensajes"}
                                                     </p>
 
                                                     {/* Source + Campaign + Client */}
@@ -270,14 +378,20 @@ export default function MessagesIndex({
                                                                 )} text-transparent`}
                                                             />
                                                             <span className="text-[10px] text-gray-400 uppercase">
-                                                                {conv.source_label}
+                                                                {
+                                                                    conv.source_label
+                                                                }
                                                             </span>
                                                         </div>
                                                         {conv.campaign && (
                                                             <div className="flex items-center gap-1 text-[10px] text-gray-400">
                                                                 <Target className="h-2.5 w-2.5" />
                                                                 <span className="truncate max-w-[100px]">
-                                                                    {conv.campaign.name}
+                                                                    {
+                                                                        conv
+                                                                            .campaign
+                                                                            .name
+                                                                    }
                                                                 </span>
                                                             </div>
                                                         )}
@@ -285,14 +399,20 @@ export default function MessagesIndex({
                                                             <div className="flex items-center gap-1 text-[10px] text-purple-500">
                                                                 <Building2 className="h-2.5 w-2.5" />
                                                                 <span className="truncate max-w-[80px]">
-                                                                    {conv.client.name}
+                                                                    {
+                                                                        conv
+                                                                            .client
+                                                                            .name
+                                                                    }
                                                                 </span>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                                                    {formatTime(conv.last_message_time)}
+                                                    {formatTime(
+                                                        conv.last_message_time
+                                                    )}
                                                 </span>
                                             </div>
                                         </div>
@@ -303,194 +423,241 @@ export default function MessagesIndex({
                     </ScrollArea>
                 </div>
 
-                    {/* Chat Panel - Right */}
-                    <div className="flex-1 flex flex-col min-w-0">
-                        {selectedConversation ? (
-                            <>
-                                {/* Chat Header - Fixed height */}
-                                <div className="border-b flex items-center justify-between px-4 py-3 bg-white flex-shrink-0">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                            <User className="h-5 w-5 text-gray-400" />
+                {/* Chat Panel - Right */}
+                <div className="flex-1 flex flex-col min-w-0">
+                    {selectedConversation ? (
+                        <>
+                            {/* Chat Header - Fixed height */}
+                            <div className="border-b flex items-center justify-between px-4 py-3 bg-white flex-shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                        <User className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="font-medium text-sm text-gray-900 truncate">
+                                                {selectedConversation.name}
+                                            </h2>
+                                            <Badge
+                                                variant="outline"
+                                                className={`text-[9px] px-1.5 py-0 h-4 font-medium ${
+                                                    getStatusBadge(
+                                                        selectedConversation
+                                                    ).className
+                                                }`}
+                                            >
+                                                {
+                                                    getStatusBadge(
+                                                        selectedConversation
+                                                    ).label
+                                                }
+                                            </Badge>
                                         </div>
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <h2 className="font-medium text-sm text-gray-900 truncate">
-                                                    {selectedConversation.name}
-                                                </h2>
-                                                <Badge
-                                                    variant="outline"
-                                                    className={`text-[9px] px-1.5 py-0 h-4 font-medium ${
-                                                        getStatusBadge(selectedConversation).className
-                                                    }`}
+                                        <p className="text-xs text-gray-500 font-mono">
+                                            {selectedConversation.phone}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            {selectedConversation.campaign && (
+                                                <Link
+                                                    href={route(
+                                                        "campaigns.show",
+                                                        selectedConversation
+                                                            .campaign.id
+                                                    )}
+                                                    className="flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-800"
                                                 >
-                                                    {getStatusBadge(selectedConversation).label}
-                                                </Badge>
-                                            </div>
-                                            <p className="text-xs text-gray-500 font-mono">
-                                                {selectedConversation.phone}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                {selectedConversation.campaign && (
-                                                    <Link
-                                                        href={route("campaigns.show", selectedConversation.campaign.id)}
-                                                        className="flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-800"
-                                                    >
-                                                        <Target className="h-2.5 w-2.5" />
-                                                        {selectedConversation.campaign.name}
-                                                    </Link>
-                                                )}
-                                                {selectedConversation.client && (
-                                                    <span className="flex items-center gap-1 text-[10px] text-purple-600">
-                                                        <Building2 className="h-2.5 w-2.5" />
-                                                        {selectedConversation.client.name}
-                                                    </span>
-                                                )}
-                                            </div>
+                                                    <Target className="h-2.5 w-2.5" />
+                                                    {
+                                                        selectedConversation
+                                                            .campaign.name
+                                                    }
+                                                </Link>
+                                            )}
+                                            {selectedConversation.client && (
+                                                <span className="flex items-center gap-1 text-[10px] text-purple-600">
+                                                    <Building2 className="h-2.5 w-2.5" />
+                                                    {
+                                                        selectedConversation
+                                                            .client.name
+                                                    }
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <Link
-                                            href={route("leads.show", selectedConversation.id)}
-                                            className="text-xs text-indigo-600 hover:text-indigo-800 underline mr-2"
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <Link
+                                        href={route(
+                                            "leads.show",
+                                            selectedConversation.id
+                                        )}
+                                    >
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-8 w-8"
                                         >
-                                            Ver Lead
-                                        </Link>
-
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <Phone className="h-4 w-4 text-gray-500" />
+                                            <Eye className="h-4 w-4" />
                                         </Button>
+                                    </Link>
 
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                    >
+                                        <Phone className="h-4 w-4" />
+                                    </Button>
+
+                                    <div className="flex items-center gap-2 px-3 py-1 rounded-lg border border-gray-200 bg-gray-50">
                                         <Badge
+                                            variant="outline"
                                             className={`${
                                                 aiActive
                                                     ? "bg-green-50 text-green-700 border-green-200"
                                                     : "bg-gray-100 text-gray-600 border-gray-200"
-                                            } flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-medium border`}
+                                            } flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-medium border-0`}
                                         >
                                             <Bot className="h-3 w-3" />
-                                            {aiActive ? "IA ACTIVA" : "IA PAUSADA"}
+                                            {aiActive
+                                                ? "IA ACTIVA"
+                                                : "IA PAUSADA"}
                                         </Badge>
-
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={toggleAiAgent}
-                                            title={aiActive ? "Pausar IA" : "Activar IA"}
-                                            className="h-8 w-8"
-                                        >
-                                            <Pause className="h-4 w-4 text-gray-500" />
-                                        </Button>
-
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <MoreVertical className="h-4 w-4 text-gray-500" />
-                                        </Button>
+                                        <Switch
+                                            checked={aiActive}
+                                            onCheckedChange={toggleAiAgent}
+                                            className="scale-75"
+                                        />
                                     </div>
-                                </div>
 
-                                {/* Messages Area - Scrollable */}
-                                <ScrollArea className="flex-1 bg-gray-50">
-                                    <div className="p-3 space-y-2.5 max-w-3xl mx-auto">
-                                        {messages.length === 0 ? (
-                                            <div className="text-center py-12 text-gray-500">
-                                                <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                                                <p className="text-sm">Sin mensajes</p>
-                                                <p className="text-xs mt-1">
-                                                    Inicia la conversación o espera la respuesta del lead
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            messages.map((message) => (
-                                                <div
-                                                    key={message.id}
-                                                    className={`flex ${
-                                                        message.is_from_lead
-                                                            ? "justify-start"
-                                                            : "justify-end"
-                                                    }`}
-                                                >
-                                                    <div
-                                                        className={`max-w-[70%] rounded-2xl px-3.5 py-2 ${
-                                                            message.is_from_lead
-                                                                ? "bg-white border border-gray-200 shadow-sm"
-                                                                : "bg-green-100"
-                                                        }`}
-                                                    >
-                                                        {!message.is_from_lead && (
-                                                            <p className="text-[9px] font-semibold text-green-700 mb-0.5 uppercase tracking-wide">
-                                                                BOT IA
-                                                            </p>
-                                                        )}
-                                                        <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                                                            {message.content}
-                                                        </p>
-                                                        <p
-                                                            className={`text-[10px] mt-1 ${
-                                                                message.is_from_lead
-                                                                    ? "text-gray-400"
-                                                                    : "text-green-600"
-                                                            }`}
-                                                        >
-                                                            {formatTime(message.created_at)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                        <div ref={messagesEndRef} />
-                                    </div>
-                                </ScrollArea>
-
-                                {/* Message Input - Fixed height */}
-                                <div className="p-3 border-t bg-white flex-shrink-0">
-                                    <form onSubmit={handleSendMessage}>
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                placeholder={
-                                                    aiActive
-                                                        ? "Pausa la IA para escribir..."
-                                                        : "Escribe un mensaje..."
-                                                }
-                                                value={messageInput}
-                                                onChange={(e) => setMessageInput(e.target.value)}
-                                                disabled={aiActive}
-                                                className="flex-1 bg-gray-100 border-0 rounded-full px-4 h-9 text-sm"
-                                            />
-                                            <Button
-                                                type="submit"
-                                                size="icon"
-                                                disabled={!messageInput.trim() || sending || aiActive}
-                                                className="rounded-full bg-green-500 hover:bg-green-600 h-9 w-9 flex-shrink-0"
-                                            >
-                                                <Send className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </form>
-                                    {aiActive && (
-                                        <p className="text-[10px] text-gray-500 mt-1.5 text-center">
-                                            <span className="font-medium">Nota:</span> Pausa el agente IA
-                                            para tomar control de la conversación.
-                                        </p>
-                                    )}
-                                </div>
-                            </>
-                        ) : (
-                            /* No conversation selected */
-                            <div className="flex-1 flex items-center justify-center bg-gray-50">
-                                <div className="text-center text-gray-500">
-                                    <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                                    <h3 className="text-base font-medium text-gray-700">
-                                        Selecciona una conversación
-                                    </h3>
-                                    <p className="text-xs mt-1">
-                                        Elige un chat del panel izquierdo para ver los mensajes
-                                    </p>
+                                    {/* <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                    >
+                                        <MoreVertical className="h-4 w-4" />
+                                    </Button> */}
                                 </div>
                             </div>
-                        )}
-                    </div>
+
+                            {/* Messages Area - Scrollable */}
+                            <ScrollArea className="flex-1 bg-gray-50">
+                                <div className="p-3 space-y-2.5 max-w-3xl mx-auto">
+                                    {messages.length === 0 ? (
+                                        <div className="text-center py-12 text-gray-500">
+                                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                                            <p className="text-sm">
+                                                Sin mensajes
+                                            </p>
+                                            <p className="text-xs mt-1">
+                                                Inicia la conversación o espera
+                                                la respuesta del lead
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        messages.map((message) => (
+                                            <div
+                                                key={message.id}
+                                                className={`flex ${
+                                                    message.is_from_lead
+                                                        ? "justify-start"
+                                                        : "justify-end"
+                                                }`}
+                                            >
+                                                <div
+                                                    className={`max-w-[70%] rounded-2xl px-3.5 py-2 ${
+                                                        message.is_from_lead
+                                                            ? "bg-white border border-gray-200 shadow-sm"
+                                                            : "bg-green-100"
+                                                    }`}
+                                                >
+                                                    {!message.is_from_lead && (
+                                                        <p className="text-[9px] font-semibold text-green-700 mb-0.5 uppercase tracking-wide">
+                                                            BOT IA
+                                                        </p>
+                                                    )}
+                                                    <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                                                        {message.content}
+                                                    </p>
+                                                    <p
+                                                        className={`text-[10px] mt-1 ${
+                                                            message.is_from_lead
+                                                                ? "text-gray-400"
+                                                                : "text-green-600"
+                                                        }`}
+                                                    >
+                                                        {formatTime(
+                                                            message.created_at
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                            </ScrollArea>
+
+                            {/* Message Input - Fixed height */}
+                            <div className="p-3 border-t bg-white flex-shrink-0">
+                                <form onSubmit={handleSendMessage}>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            placeholder={
+                                                aiActive
+                                                    ? "Pausa la IA para escribir..."
+                                                    : "Escribe un mensaje..."
+                                            }
+                                            value={messageInput}
+                                            onChange={(e) =>
+                                                setMessageInput(e.target.value)
+                                            }
+                                            disabled={aiActive}
+                                            className="flex-1 bg-gray-100 border-0 rounded-full px-4 h-9 text-sm"
+                                        />
+                                        <Button
+                                            type="submit"
+                                            size="icon"
+                                            disabled={
+                                                !messageInput.trim() ||
+                                                sending ||
+                                                aiActive
+                                            }
+                                            className="rounded-full bg-green-500 hover:bg-green-600 h-9 w-9 flex-shrink-0"
+                                        >
+                                            <Send className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </form>
+                                {aiActive && (
+                                    <p className="text-[10px] text-gray-500 mt-1.5 text-center">
+                                        <span className="font-medium">
+                                            Nota:
+                                        </span>{" "}
+                                        Pausa el agente IA para tomar control de
+                                        la conversación.
+                                    </p>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        /* No conversation selected */
+                        <div className="flex-1 flex items-center justify-center bg-gray-50">
+                            <div className="text-center text-gray-500">
+                                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                                <h3 className="text-base font-medium text-gray-700">
+                                    Selecciona una conversación
+                                </h3>
+                                <p className="text-xs mt-1">
+                                    Elige un chat del panel izquierdo para ver
+                                    los mensajes
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
+            </div>
         </AppLayout>
     );
 }
