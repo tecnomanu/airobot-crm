@@ -63,6 +63,7 @@ SESSION_DRIVER=redis
 
 # Reverb WebSockets (frontend)
 VITE_APP_NAME="AIRobot CRM"
+VITE_APP_ENV=production
 VITE_REVERB_APP_KEY=your-reverb-app-key
 VITE_REVERB_HOST=your-reverb-domain.com
 VITE_REVERB_PORT=443

@@ -1,22 +1,24 @@
-import { Checkbox } from '@/Components/ui/checkbox';
-import { Label } from '@/Components/ui/label';
-import { Input } from '@/Components/ui/input';
-import { Button } from '@/Components/ui/button';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Button } from "@/Components/ui/button";
+import { Checkbox } from "@/Components/ui/checkbox";
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
+import GuestLayout from "@/Layouts/GuestLayout";
+import { Head, Link, useForm } from "@inertiajs/react";
 
 export default function Login({ status, canResetPassword }) {
+    const isProduction = import.meta.env.VITE_APP_ENV === "production";
+
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: 'admin@airobot.com',
-        password: 'password',
+        email: isProduction ? "" : "admin@airobot.com",
+        password: isProduction ? "" : "password",
         remember: true,
     });
 
     const submit = (e) => {
         e.preventDefault();
 
-        post(route('login'), {
-            onFinish: () => reset('password'),
+        post(route("login"), {
+            onFinish: () => reset("password"),
         });
     };
 
@@ -42,11 +44,13 @@ export default function Login({ status, canResetPassword }) {
                         className="mt-1"
                         autoComplete="username"
                         autoFocus
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => setData("email", e.target.value)}
                     />
 
                     {errors.email && (
-                        <p className="mt-2 text-sm text-destructive">{errors.email}</p>
+                        <p className="mt-2 text-sm text-destructive">
+                            {errors.email}
+                        </p>
                     )}
                 </div>
 
@@ -60,11 +64,13 @@ export default function Login({ status, canResetPassword }) {
                         value={data.password}
                         className="mt-1"
                         autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
+                        onChange={(e) => setData("password", e.target.value)}
                     />
 
                     {errors.password && (
-                        <p className="mt-2 text-sm text-destructive">{errors.password}</p>
+                        <p className="mt-2 text-sm text-destructive">
+                            {errors.password}
+                        </p>
                     )}
                 </div>
 
@@ -73,9 +79,14 @@ export default function Login({ status, canResetPassword }) {
                         id="remember"
                         name="remember"
                         checked={data.remember}
-                        onCheckedChange={(checked) => setData('remember', checked)}
+                        onCheckedChange={(checked) =>
+                            setData("remember", checked)
+                        }
                     />
-                    <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground cursor-pointer">
+                    <Label
+                        htmlFor="remember"
+                        className="text-sm font-normal text-muted-foreground cursor-pointer"
+                    >
                         Remember me
                     </Label>
                 </div>
@@ -83,7 +94,7 @@ export default function Login({ status, canResetPassword }) {
                 <div className="mt-4 flex items-center justify-end">
                     {canResetPassword && (
                         <Link
-                            href={route('password.request')}
+                            href={route("password.request")}
                             className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
                         >
                             Forgot your password?
