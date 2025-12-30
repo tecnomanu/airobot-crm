@@ -97,8 +97,18 @@ COPY --from=assets /var/www/public/build ./public/build
 RUN mkdir -p /var/www/storage/logs /var/www/bootstrap/cache && \
     chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
+# Create temporary .env for build (real env vars injected at runtime by Dokploy)
+RUN echo "APP_NAME=\"AIRobot CRM\"" > .env && \
+    echo "APP_ENV=production" >> .env && \
+    echo "APP_KEY=base64:temporarykeyforbuildonlyrealkeyinjectedatruntime=" >> .env && \
+    echo "APP_DEBUG=false" >> .env && \
+    echo "DB_CONNECTION=pgsql" >> .env
+
 # Install PHP dependencies with optimized autoloader
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+# Remove temporary .env (Dokploy will inject real one at runtime)
+RUN rm -f .env
 
 EXPOSE 80
 CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
