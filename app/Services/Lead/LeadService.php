@@ -5,6 +5,7 @@ namespace App\Services\Lead;
 use App\Contracts\WhatsAppSenderInterface;
 use App\Enums\CampaignActionType;
 use App\Enums\LeadAutomationStatus;
+use App\Enums\LeadManagerTab;
 use App\Enums\LeadIntention;
 use App\Enums\LeadIntentionOrigin;
 use App\Enums\LeadIntentionStatus;
@@ -54,7 +55,7 @@ class LeadService
     /**
      * Get leads for unified Leads Manager view with tab support
      * 
-     * @param string $tab One of: 'inbox', 'active', 'sales_ready'
+     * @param string $tab One of: 'inbox', 'active', 'sales_ready', 'closed', 'errors'
      * @param array $filters Additional filters (campaign_id, status, search, client_id)
      * @param int $perPage Pagination size
      */
@@ -62,12 +63,14 @@ class LeadService
     {
         $query = Lead::query();
 
-        // Apply tab-specific scope
-        match ($tab) {
-            'inbox' => $query->inbox(),
-            'active' => $query->activePipeline(),
-            'sales_ready' => $query->salesReady(),
-            default => $query->inbox(), // Default to inbox
+        // Apply tab-specific scope using enum
+        $tabEnum = LeadManagerTab::tryFrom($tab) ?? LeadManagerTab::default();
+        match ($tabEnum) {
+            LeadManagerTab::INBOX => $query->inbox(),
+            LeadManagerTab::ACTIVE => $query->activePipeline(),
+            LeadManagerTab::SALES_READY => $query->salesReady(),
+            LeadManagerTab::CLOSED => $query->closed(),
+            LeadManagerTab::ERRORS => $query->withErrors(),
         };
 
         // Apply additional filters
@@ -92,7 +95,7 @@ class LeadService
         }
 
         // Eager load common relationships
-        $query->with(['campaign.client', 'creator', 'messages' => function ($q) {
+        $query->with(['campaign.client', 'creator', 'assignee', 'messages' => function ($q) {
             $q->latest()->limit(3);
         }]);
 
@@ -119,6 +122,8 @@ class LeadService
             'inbox' => (clone $baseQuery)->inbox()->count(),
             'active' => (clone $baseQuery)->activePipeline()->count(),
             'sales_ready' => (clone $baseQuery)->salesReady()->count(),
+            'closed' => (clone $baseQuery)->closed()->count(),
+            'errors' => (clone $baseQuery)->withErrors()->count(),
         ];
     }
 

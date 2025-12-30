@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Web\Lead;
 
+use App\Enums\LeadManagerTab;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Lead\StoreLeadRequest;
 use App\Http\Requests\Lead\UpdateLeadRequest;
 use App\Http\Resources\Lead\LeadResource;
+use App\Models\User;
 use App\Services\Campaign\CampaignService;
 use App\Services\Client\ClientService;
 use App\Services\Lead\LeadService;
@@ -24,15 +26,12 @@ class LeadController extends Controller
     ) {}
 
     /**
-     * Unified Leads view with tabs: Inbox, Active Pipeline, Sales Ready
+     * Unified Leads view with tabs: Inbox, Active Pipeline, Sales Ready, Closed, Errors
      */
     public function index(Request $request): Response
     {
-        $tab = $request->input('tab', 'inbox');
-
-        if (!in_array($tab, ['inbox', 'active', 'sales_ready'])) {
-            $tab = 'inbox';
-        }
+        $tabEnum = LeadManagerTab::fromStringOrDefault($request->input('tab'));
+        $tab = $tabEnum->value;
 
         $filters = [
             'campaign_id' => $request->input('campaign_id'),
@@ -80,14 +79,19 @@ class LeadController extends Controller
             'campaign.client',
             'calls' => function ($query) {
                 $query->orderBy('created_at', 'desc')->limit(5);
-            }
+            },
+            'assignee',
         ]);
 
         // Convert resource to array directly to avoid serialization issues
         $leadData = (new LeadResource($lead))->toArray(request());
 
+        // Get available users for manual assignment
+        $availableUsers = User::select('id', 'name', 'email')->orderBy('name')->get();
+
         return Inertia::render('Leads/Show', [
             'lead' => $leadData,
+            'available_users' => $availableUsers,
         ]);
     }
 
