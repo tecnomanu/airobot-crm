@@ -7,10 +7,10 @@ services:
       context: ./
       dockerfile: ./Dockerfile
       target: production
-    restart: unless-stopped
-    working_dir: /var/www
     env_file:
       - .env
+    restart: unless-stopped
+    working_dir: /var/www
     volumes:
       - airobot_storage_v1:/var/www/storage
     expose:
