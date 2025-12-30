@@ -12,9 +12,11 @@ done
 
 echo "✅ Database is up!"
 
-# Run migrations
-echo "📦 Running migrations..."
-php artisan migrate --force --isolated
+# Run migrations if needed
+if [ "$RUN_MIGRATIONS" = "true" ]; then
+    echo "Running migrations..."
+    php /var/www/artisan migrate --force
+fi
 
 # Clear and cache configurations
 echo "🔧 Optimizing application..."

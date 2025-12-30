@@ -101,4 +101,4 @@ RUN mkdir -p /var/www/storage/logs /var/www/bootstrap/cache && \
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
 EXPOSE 80
-CMD ["/usr/local/bin/entrypoint.sh"]
+CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
