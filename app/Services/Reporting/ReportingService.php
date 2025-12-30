@@ -34,8 +34,8 @@ class ReportingService
         $leadsStats = DB::table('leads')
             ->select([
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending'),
-                DB::raw('SUM(CASE WHEN status = "closed" THEN 1 ELSE 0 END) as converted'),
+                DB::raw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending"),
+                DB::raw("SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as converted"),
             ])
             ->first();
 
@@ -81,7 +81,7 @@ class ReportingService
             return new ClientMonthlySummary(
                 clientId: $client->id,
                 clientName: $client->name,
-                period: $from->format('Y-m').' - '.$to->format('Y-m'),
+                period: $from->format('Y-m') . ' - ' . $to->format('Y-m'),
                 totalLeads: 0,
                 pendingLeads: 0,
                 contactedLeads: 0,
@@ -98,9 +98,9 @@ class ReportingService
             ->select([
                 'campaign_id',
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending'),
-                DB::raw('SUM(CASE WHEN status = "contacted" THEN 1 ELSE 0 END) as contacted'),
-                DB::raw('SUM(CASE WHEN status = "closed" THEN 1 ELSE 0 END) as converted'),
+                DB::raw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending"),
+                DB::raw("SUM(CASE WHEN status = 'contacted' THEN 1 ELSE 0 END) as contacted"),
+                DB::raw("SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as converted"),
             ])
             ->whereIn('campaign_id', $campaignIds)
             ->whereBetween('created_at', [$from, $to])
@@ -112,7 +112,7 @@ class ReportingService
             ->select([
                 'campaign_id',
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed'),
+                DB::raw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed"),
                 DB::raw('SUM(duration_seconds) as total_duration'),
                 DB::raw('SUM(cost) as total_cost'),
             ])
@@ -178,7 +178,7 @@ class ReportingService
         return new ClientMonthlySummary(
             clientId: $client->id,
             clientName: $client->name,
-            period: $from->format('M Y').' - '.$to->format('M Y'),
+            period: $from->format('M Y') . ' - ' . $to->format('M Y'),
             totalLeads: $totals['leads'],
             pendingLeads: $totals['pending'],
             contactedLeads: $totals['contacted'],
@@ -232,7 +232,7 @@ class ReportingService
             $leadsStats = DB::table('leads')
                 ->select([
                     DB::raw('COUNT(*) as total'),
-                    DB::raw('SUM(CASE WHEN status = "closed" THEN 1 ELSE 0 END) as converted'),
+                    DB::raw("SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as converted"),
                 ])
                 ->where('campaign_id', $campaign->id)
                 ->first();
@@ -275,7 +275,7 @@ class ReportingService
         $leadsStats = DB::table('leads')
             ->select([
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "closed" THEN 1 ELSE 0 END) as converted'),
+                DB::raw("SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as converted"),
             ])
             ->whereIn('campaign_id', $campaignIds)
             ->first();
