@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Lead\Lead;
 use App\Models\User;
+use App\Policies\Traits\HasMatrizAuthorization;
 
 /**
  * Policy for Lead authorization.
@@ -14,12 +15,13 @@ use App\Models\User;
  */
 class LeadPolicy
 {
+    use HasMatrizAuthorization;
+
     /**
      * Determine whether the user can view any leads.
      */
     public function viewAny(User $user): bool
     {
-        // All authenticated users can list leads (filtered by scope)
         return true;
     }
 
@@ -28,12 +30,10 @@ class LeadPolicy
      */
     public function view(User $user, Lead $lead): bool
     {
-        // If user belongs to matriz (no client_id), can view all
         if ($this->isMatrizUser($user)) {
             return true;
         }
 
-        // Client users can only view leads belonging to their client
         return $this->leadBelongsToUserClient($user, $lead);
     }
 
@@ -42,7 +42,6 @@ class LeadPolicy
      */
     public function create(User $user): bool
     {
-        // Only matriz users can create leads
         return $this->isMatrizUser($user);
     }
 
@@ -63,7 +62,6 @@ class LeadPolicy
      */
     public function delete(User $user, Lead $lead): bool
     {
-        // Only matriz users can delete leads
         return $this->isMatrizUser($user);
     }
 
@@ -72,7 +70,6 @@ class LeadPolicy
      */
     public function dispatch(User $user, Lead $lead): bool
     {
-        // Only matriz users can dispatch leads
         return $this->isMatrizUser($user);
     }
 
@@ -101,23 +98,23 @@ class LeadPolicy
     }
 
     /**
-     * Check if user belongs to the matriz (parent company).
-     * Matriz users have no client_id association.
+     * Determine whether the user can retry automation.
      */
-    private function isMatrizUser(User $user): bool
+    public function retryAutomation(User $user, Lead $lead): bool
     {
-        // TODO: Implement client_id relationship on User model
-        // For now, all users are treated as matriz users
-        return !property_exists($user, 'client_id') || $user->client_id === null;
+        if ($this->isMatrizUser($user)) {
+            return true;
+        }
+
+        return $this->leadBelongsToUserClient($user, $lead);
     }
 
     /**
      * Check if the lead belongs to the user's client.
      */
-    private function leadBelongsToUserClient(User $user, Lead $lead): bool
+    protected function leadBelongsToUserClient(User $user, Lead $lead): bool
     {
-        // If user has no client association, they can't own leads
-        if (!property_exists($user, 'client_id') || $user->client_id === null) {
+        if ($user->client_id === null) {
             return false;
         }
 

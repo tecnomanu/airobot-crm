@@ -8,13 +8,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign\Campaign;
 use App\Models\User;
 use App\Services\Lead\LeadAssignmentService;
+use App\Services\User\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CampaignAssigneeController extends Controller
 {
     public function __construct(
-        private LeadAssignmentService $assignmentService
+        private LeadAssignmentService $assignmentService,
+        private UserService $userService
     ) {}
 
     /**
@@ -46,6 +48,7 @@ class CampaignAssigneeController extends Controller
 
     /**
      * Sync assignees for a campaign.
+     * Only sellers from the campaign's client (or global sellers) can be assigned.
      */
     public function sync(Request $request, string $campaignId): JsonResponse
     {
@@ -55,6 +58,18 @@ class CampaignAssigneeController extends Controller
         ]);
 
         $campaign = Campaign::findOrFail($campaignId);
+
+        // Validate that all provided users are valid sellers for this campaign
+        $validSellers = $this->userService->getSellersForCampaign($campaign->client_id);
+        $validSellerIds = $validSellers->pluck('id')->toArray();
+
+        $invalidIds = array_diff($validated['user_ids'], $validSellerIds);
+        if (!empty($invalidIds)) {
+            return response()->json([
+                'message' => 'Algunos usuarios no son vendedores válidos para este cliente',
+                'invalid_ids' => array_values($invalidIds),
+            ], 422);
+        }
 
         $this->assignmentService->syncAssignees($campaign, $validated['user_ids']);
 
@@ -66,13 +81,14 @@ class CampaignAssigneeController extends Controller
 
     /**
      * Get available users that can be assigned to campaigns.
+     * Optionally filter by campaign's client_id.
      */
-    public function availableUsers(): JsonResponse
+    public function availableUsers(Request $request): JsonResponse
     {
-        // For now, return all users. In a real app, filter by role/permissions
-        $users = User::select('id', 'name', 'email')
-            ->orderBy('name')
-            ->get();
+        $clientId = $request->input('client_id');
+
+        // Get sellers for the specific client (or all sellers if no client specified)
+        $users = $this->userService->getSellersForCampaign($clientId);
 
         return response()->json(['users' => $users]);
     }

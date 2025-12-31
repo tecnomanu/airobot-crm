@@ -12,6 +12,7 @@ use App\Enums\LeadStatus;
 use App\Enums\MessageChannel;
 use App\Enums\MessageDirection;
 use App\Enums\MessageStatus;
+use App\Enums\UserRole;
 use App\Models\Campaign\Campaign;
 use App\Models\Client\Client;
 use App\Models\Lead\Lead;
@@ -27,11 +28,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create test user
+        // Create admin user (global, no client)
         $user = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@airobot.com',
             'password' => bcrypt('password'),
+            'role' => UserRole::ADMIN,
+            'is_seller' => false,
+            'client_id' => null,
         ]);
 
         // Create client
@@ -228,5 +232,46 @@ class DatabaseSeeder extends Seeder
 
         // Create WhatsApp templates
         $this->call(CampaignWhatsappTemplateSeeder::class);
+
+        // Create additional users with different roles
+        // Supervisor (global)
+        User::factory()->create([
+            'name' => 'Supervisor Global',
+            'email' => 'supervisor@airobot.com',
+            'password' => bcrypt('password'),
+            'role' => UserRole::SUPERVISOR,
+            'is_seller' => true, // Supervisors can also be sellers
+            'client_id' => null,
+        ]);
+
+        // Seller for Acme Corporation
+        User::factory()->create([
+            'name' => 'Carlos Vendedor',
+            'email' => 'carlos@acme.com',
+            'password' => bcrypt('password'),
+            'role' => UserRole::USER,
+            'is_seller' => true,
+            'client_id' => $client->id,
+        ]);
+
+        // Another seller for Acme Corporation
+        User::factory()->create([
+            'name' => 'Ana Ventas',
+            'email' => 'ana@acme.com',
+            'password' => bcrypt('password'),
+            'role' => UserRole::USER,
+            'is_seller' => true,
+            'client_id' => $client->id,
+        ]);
+
+        // Regular user for Acme (not a seller)
+        User::factory()->create([
+            'name' => 'Pedro Soporte',
+            'email' => 'pedro@acme.com',
+            'password' => bcrypt('password'),
+            'role' => UserRole::USER,
+            'is_seller' => false,
+            'client_id' => $client->id,
+        ]);
     }
 }

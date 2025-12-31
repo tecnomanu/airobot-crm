@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\Lead\LeadController;
 use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\SourceController;
+use App\Http\Controllers\Web\User\UserController;
 use App\Http\Controllers\Web\WebhookConfigController;
 use App\Http\Controllers\Auth\GoogleController;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +60,16 @@ Route::middleware('auth')->group(function () {
 
     // Clients
     Route::resource('clients', ClientController::class);
+
+    // Users
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+        Route::patch('/{id}/toggle-seller', [UserController::class, 'toggleSeller'])->name('toggle-seller');
+        Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('toggle-status');
+    });
 
     // Lead Calls (Call History)
     Route::prefix('lead-calls')->name('lead-calls.')->group(function () {

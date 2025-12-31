@@ -10,7 +10,7 @@ use App\Services\Campaign\CampaignService;
 use App\Services\Campaign\CampaignWhatsappTemplateService;
 use App\Services\Client\ClientService;
 use App\Services\Source\SourceService;
-use App\Models\User;
+use App\Services\User\UserService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +23,8 @@ class CampaignController extends Controller
         private CampaignService $campaignService,
         private ClientService $clientService,
         private CampaignWhatsappTemplateService $templateService,
-        private SourceService $sourceService
+        private SourceService $sourceService,
+        private UserService $userService
     ) {}
 
     public function index(Request $request): Response
@@ -70,8 +71,8 @@ class CampaignController extends Controller
         $whatsappSources = $allActiveSources->filter(fn($s) => $s->type->isWhatsApp());
         $webhookSources = $allActiveSources->filter(fn($s) => $s->type->isWebhook());
 
-        // Get available users for assignment
-        $availableUsers = User::select('id', 'name', 'email')->orderBy('name')->get();
+        // Get available sellers for assignment (from campaign's client + global sellers)
+        $availableUsers = $this->userService->getSellersForCampaign($campaign->client_id);
 
         return Inertia::render('Campaigns/Show', [
             'campaign' => $campaign,

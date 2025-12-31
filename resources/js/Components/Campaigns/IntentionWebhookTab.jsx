@@ -1,6 +1,6 @@
 import GoogleIntegrationSelector from "@/Components/Campaigns/GoogleIntegrationSelector";
 import SourceCombobox from "@/Components/Common/SourceCombobox";
-import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
+import SourceFormModal from "@/Components/Sources/SourceFormModal";
 import {
     Card,
     CardContent,
@@ -330,10 +330,10 @@ export default function IntentionWebhookTab({
                 )}
             </Card>
 
-            <CreateSourceModal
+            <SourceFormModal
                 open={createWebhookModalOpen}
                 onOpenChange={setCreateWebhookModalOpen}
-                sourceType="webhook"
+                presetType="webhook"
                 clients={clients}
                 redirectTo={window.location.pathname}
                 onSuccess={() => router.reload({ only: ["webhook_sources"] })}

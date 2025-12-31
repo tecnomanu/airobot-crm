@@ -1,5 +1,5 @@
 import SourceCombobox from "@/Components/Common/SourceCombobox";
-import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
+import SourceFormModal from "@/Components/Sources/SourceFormModal";
 import {
     Card,
     CardContent,
@@ -101,20 +101,20 @@ export default function AutomationTab({
             </div>
 
             {/* Dialog para crear fuente WhatsApp */}
-            <CreateSourceModal
+            <SourceFormModal
                 open={createWhatsappDialog}
                 onOpenChange={setCreateWhatsappDialog}
-                sourceType="whatsapp"
+                presetType="whatsapp"
                 clients={clients}
                 redirectTo={window.location.pathname}
                 onSuccess={() => router.reload({ only: ["whatsappSources"] })}
             />
 
             {/* Dialog para crear fuente Webhook */}
-            <CreateSourceModal
+            <SourceFormModal
                 open={createWebhookDialog}
                 onOpenChange={setCreateWebhookDialog}
-                sourceType="webhook"
+                presetType="webhook"
                 clients={clients}
                 redirectTo={window.location.pathname}
                 onSuccess={() => router.reload({ only: ["webhookSources"] })}

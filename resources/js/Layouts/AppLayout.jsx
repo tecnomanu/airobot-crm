@@ -40,27 +40,45 @@ import {
     Users,
 } from "lucide-react";
 
-const navigation = [
-    { name: "Dashboard", href: route("dashboard"), icon: Home },
-    { name: "Leads Manager", href: route("leads.index"), icon: Users },
-    { name: "Messages", href: route("messages.index"), icon: MessageSquare },
-    { name: "Campaigns", href: route("campaigns.index"), icon: Megaphone },
-    { name: "Sources", href: route("sources.index"), icon: Link2 },
-    { name: "Clients", href: route("clients.index"), icon: Building2 },
-    { name: "Retell Agents", href: route("call-agents.index"), icon: Bot },
-    { name: "Call History", href: route("lead-calls.index"), icon: Phone },
-    { name: "Calculator", href: route("calculator.index"), icon: Table },
-    {
-        name: "Integrations",
-        href: route("settings.integrations"),
-        icon: Settings,
-    },
-];
+// Navigation items - some require specific permissions
+const getNavigation = (user) => {
+    const baseItems = [
+        { name: "Dashboard", href: route("dashboard"), icon: Home },
+        { name: "Leads Manager", href: route("leads.index"), icon: Users },
+        { name: "Messages", href: route("messages.index"), icon: MessageSquare },
+        { name: "Campaigns", href: route("campaigns.index"), icon: Megaphone },
+        { name: "Sources", href: route("sources.index"), icon: Link2 },
+        { name: "Clients", href: route("clients.index"), icon: Building2 },
+        { name: "Retell Agents", href: route("call-agents.index"), icon: Bot },
+        { name: "Call History", href: route("lead-calls.index"), icon: Phone },
+        { name: "Calculator", href: route("calculator.index"), icon: Table },
+        {
+            name: "Integrations",
+            href: route("settings.integrations"),
+            icon: Settings,
+        },
+    ];
+
+    // Add Users menu only for admin/supervisor
+    if (user?.role === "admin" || user?.role === "supervisor") {
+        // Insert after Clients
+        const clientsIndex = baseItems.findIndex((item) => item.name === "Clients");
+        baseItems.splice(clientsIndex + 1, 0, {
+            name: "Users",
+            href: route("users.index"),
+            icon: Users,
+            iconColor: "text-purple-400",
+        });
+    }
+
+    return baseItems;
+};
 
 function AppSidebar() {
     const { auth } = usePage().props;
     const user = auth.user;
     const { open } = useSidebar();
+    const navigation = getNavigation(user);
 
     const getUserInitials = (name) => {
         return name

@@ -1,7 +1,7 @@
+import StatusSwitch from "@/Components/Common/StatusSwitch";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Checkbox } from "@/Components/ui/checkbox";
-import { Switch } from "@/Components/ui/switch";
 import { ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 
 export const getSourceColumns = (
@@ -143,20 +143,12 @@ export const getSourceColumns = (
             const source = row.original;
             const isActive = source.status === "active";
             return (
-                <div className="flex items-center gap-2">
-                    <Switch
-                        checked={isActive}
-                        onCheckedChange={() => handleToggleStatus(source)}
-                        className="data-[state=checked]:bg-green-600 h-5 w-9"
-                    />
-                    <span
-                        className={`text-xs font-medium ${
-                            isActive ? "text-green-600" : "text-gray-500"
-                        }`}
-                    >
-                        {isActive ? "Activo" : "Inactivo"}
-                    </span>
-                </div>
+                <StatusSwitch
+                    checked={isActive}
+                    onChange={() => handleToggleStatus(source)}
+                    activeText="Activo"
+                    inactiveText="Inactivo"
+                />
             );
         },
         enableSorting: false,

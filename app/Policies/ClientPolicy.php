@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Client\Client;
 use App\Models\User;
+use App\Policies\Traits\HasMatrizAuthorization;
 
 /**
  * Policy for Client authorization.
@@ -14,12 +15,13 @@ use App\Models\User;
  */
 class ClientPolicy
 {
+    use HasMatrizAuthorization;
+
     /**
      * Determine whether the user can view any clients.
      */
     public function viewAny(User $user): bool
     {
-        // Only matriz users can list all clients
         return $this->isMatrizUser($user);
     }
 
@@ -32,7 +34,7 @@ class ClientPolicy
             return true;
         }
 
-        return $this->clientBelongsToUser($user, $client);
+        return $user->client_id === $client->id;
     }
 
     /**
@@ -53,7 +55,7 @@ class ClientPolicy
         }
 
         // Client users can update their own client profile
-        return $this->clientBelongsToUser($user, $client);
+        return $user->client_id === $client->id;
     }
 
     /**
@@ -71,25 +73,4 @@ class ClientPolicy
     {
         return $this->isMatrizUser($user);
     }
-
-    /**
-     * Check if user belongs to the matriz (parent company).
-     */
-    private function isMatrizUser(User $user): bool
-    {
-        return !property_exists($user, 'client_id') || $user->client_id === null;
-    }
-
-    /**
-     * Check if the client belongs to the user.
-     */
-    private function clientBelongsToUser(User $user, Client $client): bool
-    {
-        if (!property_exists($user, 'client_id') || $user->client_id === null) {
-            return false;
-        }
-
-        return $client->id === $user->client_id;
-    }
 }
-

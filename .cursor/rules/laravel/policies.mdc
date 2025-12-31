@@ -1,0 +1,324 @@
+---
+description: Patrón de autorización con Policies y trait AuthorizesActions
+globs: app/Http/Controllers/**/*.php, app/Policies/**/*.php
+alwaysApply: false
+---
+
+# Patrón de Autorización con Policies
+
+Este documento define el patrón estándar para manejar autorización usando Policies de Laravel, con traits para simplificar el código en controllers y compartir lógica entre policies.
+
+## Estructura de Archivos
+
+```
+app/
+├── Http/
+│   └── Traits/
+│       └── AuthorizesActions.php    # Trait para controllers
+├── Policies/
+│   ├── Traits/
+│   │   └── HasMatrizAuthorization.php  # Lógica compartida
+│   ├── CampaignPolicy.php
+│   ├── ClientPolicy.php
+│   ├── LeadPolicy.php
+│   └── UserPolicy.php
+```
+
+## Trait HasMatrizAuthorization
+
+Usado en todas las Policies para lógica compartida de autorización matriz/cliente:
+
+```php
+namespace App\Policies\Traits;
+
+use App\Models\User;
+
+trait HasMatrizAuthorization
+{
+    /**
+     * Check if user belongs to matriz (parent company).
+     * Matriz users have no client_id association (null).
+     */
+    protected function isMatrizUser(User $user): bool
+    {
+        return $user->client_id === null;
+    }
+
+    /**
+     * Check if user belongs to a specific client.
+     */
+    protected function belongsToClient(User $user, ?string $clientId): bool
+    {
+        if ($user->client_id === null || $clientId === null) {
+            return false;
+        }
+
+        return $user->client_id === $clientId;
+    }
+
+    protected function isAdmin(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    protected function isSupervisor(User $user): bool
+    {
+        return $user->isSupervisor();
+    }
+
+    protected function hasElevatedPrivileges(User $user): bool
+    {
+        return $this->isAdmin($user) || $this->isSupervisor($user);
+    }
+}
+```
+
+## Creación de Policy
+
+Toda Policy debe usar el trait `HasMatrizAuthorization`:
+
+```php
+namespace App\Policies;
+
+use App\Models\Example;
+use App\Models\User;
+use App\Policies\Traits\HasMatrizAuthorization;
+
+class ExamplePolicy
+{
+    use HasMatrizAuthorization;
+
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, Example $example): bool
+    {
+        if ($this->isMatrizUser($user)) {
+            return true;
+        }
+
+        return $this->belongsToClient($user, $example->client_id);
+    }
+
+    public function create(User $user): bool
+    {
+        return $this->isMatrizUser($user);
+    }
+
+    public function update(User $user, Example $example): bool
+    {
+        return $this->isMatrizUser($user);
+    }
+
+    public function delete(User $user, Example $example): bool
+    {
+        return $this->isMatrizUser($user);
+    }
+}
+```
+
+## Trait AuthorizesActions en Controllers
+
+El trait `AuthorizesActions` simplifica el uso de policies en controllers:
+
+```php
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Http\Traits\AuthorizesActions;
+use App\Models\Example;
+
+class ExampleController extends Controller
+{
+    use AuthorizesActions;
+
+    public function index()
+    {
+        // Autorizar acción sobre clase (viewAny, create)
+        $this->authorizePolicyAction('viewAny', Example::class);
+        // ... o
+        $this->authorizeForModel(Example::class, 'viewAny');
+
+        return Inertia::render('Examples/Index', [
+            'can' => [
+                'create' => $this->canPerform('create', Example::class),
+            ],
+        ]);
+    }
+
+    public function show(Example $example)
+    {
+        // Autorizar acción sobre instancia
+        $this->authorizeFor($example, 'view');
+
+        return Inertia::render('Examples/Show', [
+            'example' => $example,
+            'can' => $this->getCrudAbilities(Example::class, $example),
+        ]);
+    }
+
+    public function update(Request $request, Example $example)
+    {
+        $this->authorizeFor($example, 'update');
+
+        // ...
+    }
+
+    public function destroy(Example $example)
+    {
+        $this->authorizeFor($example, 'delete');
+
+        // ...
+    }
+}
+```
+
+## Métodos del Trait AuthorizesActions
+
+| Método | Uso | Ejemplo |
+|--------|-----|---------|
+| `authorizePolicyAction($ability, $arguments)` | Autorizar acción (lanza excepción si falla) | `$this->authorizePolicyAction('view', $model)` |
+| `authorizeFor($model, $ability)` | Autorizar sobre instancia | `$this->authorizeFor($user, 'update')` |
+| `authorizeForModel($class, $ability)` | Autorizar sobre clase | `$this->authorizeForModel(User::class, 'create')` |
+| `canPerform($ability, $arguments)` | Verificar sin lanzar excepción | `$this->canPerform('delete', $model)` |
+| `getAuthorizationAbilities($model, $abilities)` | Obtener array de permisos | Para pasar a Inertia |
+| `getCrudAbilities($class, $instance)` | Obtener permisos CRUD | Para pasar a Inertia |
+
+## Pasar Permisos al Frontend
+
+Para que el frontend (React/Inertia) conozca los permisos del usuario:
+
+```php
+// En el controller
+return Inertia::render('Users/Index', [
+    'users' => $users,
+    'can' => [
+        'create' => $this->canPerform('create', User::class),
+        'viewAllClients' => $currentUser->isAdmin(),
+    ],
+]);
+
+// Para una instancia específica
+return Inertia::render('Users/Show', [
+    'user' => $user,
+    'can' => $this->getCrudAbilities(User::class, $user),
+]);
+```
+
+## Acciones Personalizadas
+
+Para acciones que no son CRUD estándar:
+
+```php
+// En la Policy
+public function toggleStatus(User $user, User $model): bool
+{
+    if ($user->id === $model->id) {
+        return false; // No puede desactivarse a sí mismo
+    }
+    return $this->canManageUser($user, $model);
+}
+
+public function assignRole(User $user, User $model, string $role): bool
+{
+    if ($role === UserRole::ADMIN->value && !$this->isAdmin($user)) {
+        return false;
+    }
+    return $this->canManageUser($user, $model);
+}
+```
+
+```php
+// En el Controller
+$this->authorizeFor($targetUser, 'toggleStatus');
+
+// Con argumentos adicionales
+$this->authorizePolicyAction('assignRole', [$targetUser, $newRole]);
+```
+
+## Registro de Policies
+
+Laravel 12 auto-descubre policies por convención de nombres:
+- `App\Models\User` → `App\Policies\UserPolicy`
+- `App\Models\Campaign\Campaign` → `App\Policies\CampaignPolicy`
+
+Si necesitas registro manual, usa `AuthServiceProvider`:
+
+```php
+protected $policies = [
+    \App\Models\User::class => \App\Policies\UserPolicy::class,
+];
+```
+
+## Principios Clave
+
+1. **Nunca duplicar lógica de autorización**: Usa el trait `HasMatrizAuthorization`
+2. **Policies para todas las entidades**: Cada modelo con permisos debe tener Policy
+3. **Controllers delgados**: Solo llaman a `authorize*`, no implementan lógica
+4. **Frontend informado**: Siempre pasar `can` array a Inertia para UI condicional
+5. **Acciones específicas**: Crear métodos de policy para cada acción especial
+6. **Sin lógica en Services**: Los Services no verifican permisos, eso es del Controller
+
+## Ejemplo Completo: UserPolicy
+
+```php
+class UserPolicy
+{
+    use HasMatrizAuthorization;
+
+    public function viewAny(User $user): bool
+    {
+        return $this->hasElevatedPrivileges($user);
+    }
+
+    public function view(User $user, User $model): bool
+    {
+        if ($user->id === $model->id) {
+            return true;
+        }
+        return $this->canManageUser($user, $model);
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->role->canManageUsers();
+    }
+
+    public function update(User $user, User $model): bool
+    {
+        if ($user->id === $model->id) {
+            return true;
+        }
+        return $this->canManageUser($user, $model);
+    }
+
+    public function delete(User $user, User $model): bool
+    {
+        if ($user->id === $model->id) {
+            return false;
+        }
+        return $this->canManageUser($user, $model);
+    }
+
+    protected function canManageUser(User $actor, User $target): bool
+    {
+        if ($this->isAdmin($actor)) {
+            return true;
+        }
+
+        if ($this->isSupervisor($actor)) {
+            if ($this->isAdmin($target)) {
+                return false;
+            }
+            if ($this->isMatrizUser($actor)) {
+                return true;
+            }
+            return $actor->client_id === $target->client_id;
+        }
+
+        return false;
+    }
+}
+```

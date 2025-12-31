@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Campaign\Campaign;
 use App\Models\User;
+use App\Policies\Traits\HasMatrizAuthorization;
 
 /**
  * Policy for Campaign authorization.
@@ -14,6 +15,8 @@ use App\Models\User;
  */
 class CampaignPolicy
 {
+    use HasMatrizAuthorization;
+
     /**
      * Determine whether the user can view any campaigns.
      */
@@ -31,7 +34,7 @@ class CampaignPolicy
             return true;
         }
 
-        return $this->campaignBelongsToUserClient($user, $campaign);
+        return $this->belongsToClient($user, $campaign->client_id);
     }
 
     /**
@@ -39,7 +42,6 @@ class CampaignPolicy
      */
     public function create(User $user): bool
     {
-        // Only matriz users can create campaigns
         return $this->isMatrizUser($user);
     }
 
@@ -48,7 +50,6 @@ class CampaignPolicy
      */
     public function update(User $user, Campaign $campaign): bool
     {
-        // Only matriz users can update campaigns
         return $this->isMatrizUser($user);
     }
 
@@ -57,7 +58,6 @@ class CampaignPolicy
      */
     public function delete(User $user, Campaign $campaign): bool
     {
-        // Only matriz users can delete campaigns
         return $this->isMatrizUser($user);
     }
 
@@ -76,25 +76,4 @@ class CampaignPolicy
     {
         return $this->isMatrizUser($user);
     }
-
-    /**
-     * Check if user belongs to the matriz (parent company).
-     */
-    private function isMatrizUser(User $user): bool
-    {
-        return !property_exists($user, 'client_id') || $user->client_id === null;
-    }
-
-    /**
-     * Check if the campaign belongs to the user's client.
-     */
-    private function campaignBelongsToUserClient(User $user, Campaign $campaign): bool
-    {
-        if (!property_exists($user, 'client_id') || $user->client_id === null) {
-            return false;
-        }
-
-        return $campaign->client_id === $user->client_id;
-    }
 }
-

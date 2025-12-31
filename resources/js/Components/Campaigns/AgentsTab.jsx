@@ -1,4 +1,4 @@
-import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
+import SourceFormModal from "@/Components/Sources/SourceFormModal";
 import SourceCombobox from "@/Components/Common/SourceCombobox";
 import { Button } from "@/Components/ui/button";
 import {
@@ -324,19 +324,19 @@ export default function AgentsTab({
             )}
 
             {/* Modales de creación de fuentes */}
-            <CreateSourceModal
+            <SourceFormModal
                 open={whatsappModalOpen}
                 onOpenChange={setWhatsappModalOpen}
-                sourceType="whatsapp"
+                presetType="whatsapp"
                 clients={clients}
                 redirectTo={window.location.pathname}
                 onSuccess={() => router.reload({ only: ["whatsapp_sources"] })}
             />
 
-            <CreateSourceModal
+            <SourceFormModal
                 open={webhookModalOpen}
                 onOpenChange={setWebhookModalOpen}
-                sourceType="webhook"
+                presetType="webhook"
                 clients={clients}
                 redirectTo={window.location.pathname}
                 onSuccess={() => router.reload({ only: ["webhook_sources"] })}

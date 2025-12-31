@@ -1,29 +1,12 @@
 import ConfirmDialog from "@/Components/Common/ConfirmDialog";
-import SourceFormWebhook from "@/Components/Sources/SourceFormWebhook";
-import SourceFormWhatsApp from "@/Components/Sources/SourceFormWhatsApp";
+import SourceFormModal from "@/Components/Sources/SourceFormModal";
 import { Button } from "@/Components/ui/button";
 import { DataTable } from "@/Components/ui/data-table";
 import DataTableFilters from "@/Components/ui/data-table-filters";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/Components/ui/dialog";
-import { Label } from "@/Components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/Components/ui/select";
 import AppLayout from "@/Layouts/AppLayout";
-import { Head, router, useForm } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { getSourceColumns } from "./columns";
 
@@ -46,45 +29,6 @@ export default function SourcesIndex({
         source: null,
         newStatus: null,
     });
-
-    const { data, setData, post, put, processing, errors, reset } = useForm({
-        name: "",
-        type: presetType || "",
-        status: "active",
-        client_id: "",
-        config: {},
-    });
-
-    // Resetear formulario cuando se abre/cierra modal
-    useEffect(() => {
-        if (!isModalOpen) {
-            setEditingSource(null);
-            reset();
-            if (presetType) {
-                setData("type", presetType);
-            }
-        }
-    }, [isModalOpen]);
-
-    // Cargar datos al editar
-    useEffect(() => {
-        if (editingSource) {
-            setData({
-                name: editingSource.name || "",
-                type: editingSource.type || "",
-                status: editingSource.status || "active",
-                client_id: editingSource.client_id?.toString() || "",
-                config: editingSource.config || {},
-            });
-        }
-    }, [editingSource]);
-
-    // Inicializar tipo si es preset
-    useEffect(() => {
-        if (presetType && !editingSource) {
-            setData("type", presetType);
-        }
-    }, [presetType, editingSource]);
 
     const handleFilterChange = (name, value) => {
         router.get(
@@ -118,55 +62,10 @@ export default function SourcesIndex({
         setIsModalOpen(true);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        // Validate for duplicates
-        const isDuplicate = sources.data?.some((source) => {
-            if (editingSource && source.id === editingSource.id) return false; // Skip self when editing
-
-            if (data.type === "whatsapp" && source.type === "whatsapp") {
-                const existingPhone = source.config?.phone_number;
-                const newPhone = data.config?.phone_number;
-                return existingPhone && newPhone && existingPhone === newPhone;
-            }
-
-            if (data.type === "webhook" && source.type === "webhook") {
-                const existingUrl = source.config?.url;
-                const newUrl = data.config?.url;
-                return existingUrl && newUrl && existingUrl === newUrl;
-            }
-
-            return false;
-        });
-
-        if (isDuplicate) {
-            toast.error(
-                "Ya existe una fuente con este valor. No se pueden crear duplicados."
-            );
-            return;
-        }
-
-        if (editingSource) {
-            put(route("sources.update", editingSource.id), {
-                onSuccess: () => {
-                    setIsModalOpen(false);
-                    toast.success("Fuente actualizada exitosamente");
-                },
-                onError: () => {
-                    toast.error("Error al actualizar la fuente");
-                },
-            });
-        } else {
-            post(route("sources.store"), {
-                onSuccess: () => {
-                    setIsModalOpen(false);
-                    toast.success("Fuente creada exitosamente");
-                },
-                onError: () => {
-                    toast.error("Error al crear la fuente");
-                },
-            });
+    const handleModalClose = (open) => {
+        setIsModalOpen(open);
+        if (!open) {
+            setEditingSource(null);
         }
     };
 
@@ -189,16 +88,6 @@ export default function SourcesIndex({
         });
         setDeleteDialog({ open: false, id: null, name: "" });
     };
-
-    // ... (existing form hook) ...
-
-    // ... (existing useEffects) ...
-
-    // ... (existing filter handlers) ...
-
-    // ... (existing modal handlers) ...
-
-    // ... (existing delete handlers) ...
 
     const handleToggleStatus = (source) => {
         const newStatus = source.status === "active" ? "inactive" : "active";
@@ -230,23 +119,6 @@ export default function SourcesIndex({
         setToggleDialog({ open: false, source: null, newStatus: null });
     };
 
-    const getDialogTitle = () => {
-        if (editingSource) return "Editar Fuente";
-        if (presetType === "whatsapp") return "Crear Fuente de WhatsApp";
-        if (presetType === "webhook") return "Crear Fuente de Webhook";
-        return "Crear Nueva Fuente";
-    };
-
-    const getDialogDescription = () => {
-        if (editingSource)
-            return "Modifica los datos de esta fuente existente.";
-        if (presetType === "whatsapp")
-            return "Configura una nueva fuente de WhatsApp para enviar mensajes a tus leads.";
-        if (presetType === "webhook")
-            return "Configura una nueva fuente de webhook para integrar con sistemas externos.";
-        return "Completa los datos para crear una nueva fuente reutilizable.";
-    };
-
     return (
         <AppLayout
             header={{
@@ -268,7 +140,6 @@ export default function SourcesIndex({
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div className="p-6">
-                    {/* Table with Actions (Filters) */}
                     <DataTable
                         columns={getSourceColumns(
                             handleEdit,
@@ -352,124 +223,15 @@ export default function SourcesIndex({
                 </div>
             </div>
 
-            {/* Create/Edit Source Modal */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{getDialogTitle()}</DialogTitle>
-                        <DialogDescription>
-                            {getDialogDescription()}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Selector de tipo (solo si no es preset) */}
-                        {!presetType && (
-                            <div className="space-y-2">
-                                <Label htmlFor="type">
-                                    Tipo de Fuente{" "}
-                                    <span className="text-red-500">*</span>
-                                </Label>
-                                <Select
-                                    value={data.type}
-                                    onValueChange={(value) =>
-                                        setData("type", value)
-                                    }
-                                    disabled={!!editingSource}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleccionar tipo" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="whatsapp">
-                                            WhatsApp (Evolution API)
-                                        </SelectItem>
-                                        <SelectItem value="webhook">
-                                            Webhook HTTP
-                                        </SelectItem>
-                                        <SelectItem value="meta_whatsapp">
-                                            WhatsApp Business (Meta)
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {errors.type && (
-                                    <p className="text-sm text-red-500">
-                                        {errors.type}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Formulario específico según tipo */}
-                        {data.type === "whatsapp" && (
-                            <SourceFormWhatsApp
-                                data={data}
-                                setData={setData}
-                                errors={errors}
-                                clients={clients}
-                            />
-                        )}
-
-                        {data.type === "webhook" && (
-                            <SourceFormWebhook
-                                data={data}
-                                setData={setData}
-                                errors={errors}
-                                clients={clients}
-                            />
-                        )}
-
-                        {/* Mensaje si no hay tipo seleccionado */}
-                        {!data.type && (
-                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                                <p className="font-medium">
-                                    Selecciona un tipo de fuente
-                                </p>
-                                <p className="text-xs mt-1">
-                                    Primero selecciona el tipo de fuente que
-                                    deseas configurar.
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Tipos no implementados */}
-                        {data.type &&
-                            !["whatsapp", "webhook"].includes(data.type) && (
-                                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                                    <p className="font-medium">
-                                        Configuración en desarrollo
-                                    </p>
-                                    <p className="text-xs mt-1">
-                                        La configuración para este tipo de
-                                        fuente estará disponible próximamente.
-                                    </p>
-                                </div>
-                            )}
-
-                        <DialogFooter className="gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsModalOpen(false)}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={processing || !data.type}
-                            >
-                                {processing
-                                    ? editingSource
-                                        ? "Actualizando..."
-                                        : "Creando..."
-                                    : editingSource
-                                    ? "Actualizar Fuente"
-                                    : "Crear Fuente"}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            {/* Source Form Modal */}
+            <SourceFormModal
+                open={isModalOpen}
+                onOpenChange={handleModalClose}
+                source={editingSource}
+                sources={sources.data || sources}
+                clients={clients}
+                presetType={presetType}
+            />
 
             {/* Confirm Delete Dialog */}
             <ConfirmDialog

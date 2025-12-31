@@ -9,6 +9,7 @@ use App\Repositories\Eloquent\EloquentCalculatorRepository;
 use App\Repositories\Eloquent\LeadCallRepository;
 use App\Repositories\Eloquent\LeadRepository;
 use App\Repositories\Eloquent\SourceRepository;
+use App\Repositories\Eloquent\UserRepository;
 use App\Repositories\Interfaces\CalculatorRepositoryInterface;
 use App\Repositories\Interfaces\CampaignRepositoryInterface;
 use App\Repositories\Interfaces\CampaignWhatsappTemplateRepositoryInterface;
@@ -16,6 +17,7 @@ use App\Repositories\Interfaces\ClientRepositoryInterface;
 use App\Repositories\Interfaces\LeadCallRepositoryInterface;
 use App\Repositories\Interfaces\LeadRepositoryInterface;
 use App\Repositories\Interfaces\SourceRepositoryInterface;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\ServiceProvider;
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -66,6 +68,12 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             CalculatorRepositoryInterface::class,
             EloquentCalculatorRepository::class
+        );
+
+        // User Repository
+        $this->app->bind(
+            UserRepositoryInterface::class,
+            UserRepository::class
         );
     }
 

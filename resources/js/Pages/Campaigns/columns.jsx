@@ -1,6 +1,6 @@
+import StatusSwitch from "@/Components/Common/StatusSwitch";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
-import { Switch } from "@/Components/ui/switch";
 import { router } from "@inertiajs/react";
 import { Eye, Trash2, Zap, GitBranch } from "lucide-react";
 
@@ -77,18 +77,12 @@ export const getCampaignColumns = (handleDelete, handleToggleStatus) => [
             const isActive = campaign.status === "active";
 
             return (
-                <div className="flex items-center gap-2">
-                    <Switch
-                        checked={isActive}
-                        onCheckedChange={() => handleToggleStatus(campaign)}
-                        className="data-[state=checked]:bg-green-600 h-5 w-9"
-                    />
-                    <span className={`text-xs font-medium ${
-                        isActive ? "text-green-600" : "text-gray-500"
-                    }`}>
-                        {isActive ? "Activa" : "Pausada"}
-                    </span>
-                </div>
+                <StatusSwitch
+                    checked={isActive}
+                    onChange={() => handleToggleStatus(campaign)}
+                    activeText="Activa"
+                    inactiveText="Pausada"
+                />
             );
         },
     },

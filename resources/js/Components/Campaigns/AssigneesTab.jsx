@@ -2,7 +2,7 @@ import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Checkbox } from "@/Components/ui/checkbox";
-import { AlertCircle, RefreshCw, User, Users } from "lucide-react";
+import { AlertCircle, RefreshCw, User, UserCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -116,6 +116,7 @@ export default function AssigneesTab({
                     </CardTitle>
                     <CardDescription>
                         Selecciona los vendedores que recibirán leads de esta campaña.
+                        Solo se muestran usuarios marcados como vendedores del cliente asociado.
                         La asignación se realiza automáticamente usando round-robin cuando un lead
                         pasa a estado "Sales Ready" (interesado y finalizado).
                     </CardDescription>
@@ -183,9 +184,15 @@ export default function AssigneesTab({
                 <CardContent>
                     <div className="grid gap-2">
                         {availableUsers.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">
-                                No hay usuarios disponibles para asignar.
-                            </p>
+                            <div className="text-center py-6 px-4 bg-amber-50 rounded-lg border border-amber-200">
+                                <UserCheck className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-amber-800">
+                                    No hay vendedores disponibles
+                                </p>
+                                <p className="text-xs text-amber-600 mt-1">
+                                    Ve a Usuarios y marca usuarios como vendedores para este cliente
+                                </p>
+                            </div>
                         ) : (
                             availableUsers.map((user) => (
                                 <label
@@ -201,13 +208,18 @@ export default function AssigneesTab({
                                         onCheckedChange={() => handleToggleUser(user.id)}
                                     />
                                     <div className="flex items-center gap-3 flex-1">
-                                        <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                                            <User className="h-4 w-4 text-gray-600" />
+                                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                                            <UserCheck className="h-4 w-4 text-green-600" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium text-sm truncate">{user.name}</p>
                                             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                                         </div>
+                                        {!user.client_id && (
+                                            <Badge variant="outline" className="text-xs">
+                                                Global
+                                            </Badge>
+                                        )}
                                     </div>
                                     {selectedUserIds.includes(user.id) && (
                                         <Badge variant="secondary" className="text-xs">
