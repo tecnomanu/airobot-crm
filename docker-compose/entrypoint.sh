@@ -24,11 +24,13 @@ php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
-# Only cache if not in production (to avoid loading factories)
-if [ "$APP_ENV" != "production" ]; then
+# Cache configurations in production for better performance
+if [ "$APP_ENV" = "production" ]; then
+    echo "📦 Caching configurations for production..."
     php artisan config:cache
     php artisan route:cache
     php artisan view:cache
+    php artisan event:cache
 fi
 
 # Create storage link if it doesn't exist

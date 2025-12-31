@@ -37,11 +37,13 @@ RUN apk add --no-cache $PHPIZE_DEPS && \
 RUN curl -sS https://getcomposer.org/installer | php && \
     mv composer.phar /usr/local/bin/composer
 
-# Create necessary directories and config for nginx/supervisor
-RUN mkdir -p /etc/supervisor.d /run/nginx /var/www /var/log/supervisor /var/log/nginx && \
+# Create necessary directories and config for nginx/supervisor/php
+RUN mkdir -p /etc/supervisor.d /run/nginx /var/www /var/log/supervisor /var/log/nginx /var/log/php && \
     touch /run/nginx/nginx.pid && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
-    ln -sf /dev/stderr /var/log/nginx/error.log
+    ln -sf /dev/stderr /var/log/nginx/error.log && \
+    ln -sf /dev/stderr /var/log/php/error.log && \
+    chown -R www-data:www-data /var/log/php
 
 # Copy config files
 COPY ./docker-compose/php/local.ini /usr/local/etc/php/php.ini
@@ -114,4 +116,4 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 RUN rm -f .env
 
 EXPOSE 80
-CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
