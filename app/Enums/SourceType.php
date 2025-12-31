@@ -86,7 +86,7 @@ enum SourceType: string
     {
         return match ($this) {
             self::WHATSAPP => ['instance_name', 'api_url', 'api_key'],
-            self::WEBHOOK => ['url', 'method', 'secret'],
+            self::WEBHOOK => ['url', 'method'], // secret is optional, auto-generated if not provided
             self::META_WHATSAPP => ['phone_number_id', 'access_token', 'verify_token'],
             self::FACEBOOK_LEAD_ADS => ['page_id', 'access_token'],
             self::GOOGLE_ADS => ['customer_id', 'conversion_action_id', 'developer_token'],

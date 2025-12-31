@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Services\Reporting\ReportingService;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,20 +16,34 @@ class DashboardController extends Controller
 
     public function index(): Response
     {
-        // Métricas globales optimizadas
-        $metrics = $this->reportingService->getGlobalDashboardMetrics();
+        $user = Auth::user();
+        
+        // Determine if user is global (admin always global, supervisor without client is global)
+        $isAdmin = $user->role->value === 'admin';
+        $isSupervisor = $user->role->value === 'supervisor';
+        $isGlobalUser = $isAdmin || ($isSupervisor && $user->client_id === null);
+        $effectiveClientId = $isGlobalUser ? null : $user->client_id;
 
-        // Últimos leads (optimizado, solo 10)
-        $recentLeads = $this->reportingService->getRecentLeads(10);
+        // For sellers, also pass their user ID for assignment filtering
+        $assignedTo = null;
+        if ($effectiveClientId && $user->is_seller && $user->role->value === 'user') {
+            $assignedTo = $user->id;
+        }
 
-        // Rendimiento de campañas (top 5)
-        $campaignPerformance = $this->reportingService->getCampaignPerformance(null, 5);
+        // Metrics scoped to client (or global for admin users)
+        $metrics = $this->reportingService->getGlobalDashboardMetrics($effectiveClientId, $assignedTo);
 
-        // Leads por estado
-        $leadsByStatus = $this->reportingService->getLeadsByStatus();
+        // Recent leads scoped to client
+        $recentLeads = $this->reportingService->getRecentLeads(10, $effectiveClientId, $assignedTo);
 
-        // Clientes activos
-        $activeClients = $this->reportingService->getActiveClients();
+        // Campaign performance scoped to client
+        $campaignPerformance = $this->reportingService->getCampaignPerformance($effectiveClientId, 5);
+
+        // Leads by status scoped to client
+        $leadsByStatus = $this->reportingService->getLeadsByStatus($effectiveClientId, $assignedTo);
+
+        // Active clients - only for global users
+        $activeClients = $isGlobalUser ? $this->reportingService->getActiveClients() : collect();
 
         return Inertia::render('Dashboard', [
             'summary' => $metrics->toArray(),

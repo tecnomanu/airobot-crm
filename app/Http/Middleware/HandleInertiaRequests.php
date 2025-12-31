@@ -48,7 +48,39 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
                 'google_integration' => $googleIntegration,
+                'permissions' => $user ? $this->getUserPermissions($user) : [],
             ],
+        ];
+    }
+
+    /**
+     * Build permissions array for frontend navigation and access control.
+     * 
+     * Admin users are ALWAYS global regardless of client_id assignment.
+     */
+    private function getUserPermissions($user): array
+    {
+        $isAdmin = $user->role->value === 'admin';
+        $isSupervisor = $user->role->value === 'supervisor';
+
+        // Admins are always global, supervisors without client are global
+        $isGlobal = $isAdmin || ($isSupervisor && $user->client_id === null);
+
+        // Effective client_id for tenant scoping (null for global users)
+        $effectiveClientId = $isGlobal ? null : $user->client_id;
+
+        return [
+            'is_global_user' => $isGlobal,
+            'is_admin' => $isAdmin,
+            'is_supervisor' => $isSupervisor,
+            'effective_client_id' => $effectiveClientId,
+            // Menu visibility permissions
+            'can_view_clients' => $isAdmin || ($isSupervisor && !$effectiveClientId),
+            'can_view_retell_agents' => $isAdmin || ($isSupervisor && !$effectiveClientId),
+            'can_view_users' => $isAdmin || $isSupervisor,
+            'can_view_integrations' => $isAdmin || !$effectiveClientId,
+            'can_view_call_history' => true,
+            'can_view_calculator' => $isAdmin || !$effectiveClientId,
         ];
     }
 }

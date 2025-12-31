@@ -28,10 +28,30 @@ class ReportingService
 
     /**
      * Get global metrics for Dashboard
+     * 
+     * @param string|null $clientId Filter by client (tenant isolation)
+     * @param int|null $assignedTo Filter by assigned seller
      */
-    public function getGlobalDashboardMetrics(): GlobalMetrics
+    public function getGlobalDashboardMetrics(?string $clientId = null, ?int $assignedTo = null): GlobalMetrics
     {
-        $leadsStats = DB::table('leads')
+        $leadsQuery = DB::table('leads');
+        $callsQuery = DB::table('lead_calls');
+        $campaignsQuery = DB::table('campaigns')->where('status', CampaignStatus::ACTIVE->value);
+
+        // Apply client filter for tenant isolation
+        if ($clientId) {
+            $campaignIds = DB::table('campaigns')->where('client_id', $clientId)->pluck('id');
+            $leadsQuery->whereIn('campaign_id', $campaignIds);
+            $callsQuery->where('client_id', $clientId);
+            $campaignsQuery->where('client_id', $clientId);
+        }
+
+        // Apply seller assignment filter
+        if ($assignedTo) {
+            $leadsQuery->where('assigned_to', $assignedTo);
+        }
+
+        $leadsStats = $leadsQuery
             ->select([
                 DB::raw('COUNT(*) as total'),
                 DB::raw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending"),
@@ -39,20 +59,19 @@ class ReportingService
             ])
             ->first();
 
-        $callsStats = DB::table('lead_calls')
+        $callsStats = $callsQuery
             ->select([
                 DB::raw('COUNT(*) as total'),
                 DB::raw('SUM(cost) as total_cost'),
             ])
             ->first();
 
-        $activeCampaigns = DB::table('campaigns')
-            ->where('status', CampaignStatus::ACTIVE->value)
-            ->count();
+        $activeCampaigns = $campaignsQuery->count();
 
-        $activeClients = DB::table('clients')
-            ->where('status', ClientStatus::ACTIVE->value)
-            ->count();
+        // Active clients only relevant for global users
+        $activeClients = $clientId 
+            ? 1 
+            : DB::table('clients')->where('status', ClientStatus::ACTIVE->value)->count();
 
         $totalLeads = $leadsStats->total ?? 0;
         $convertedLeads = $leadsStats->converted ?? 0;
@@ -193,10 +212,26 @@ class ReportingService
 
     /**
      * Get recent leads (for Dashboard)
+     * 
+     * @param int $limit Number of leads to return
+     * @param string|null $clientId Filter by client (tenant isolation)
+     * @param int|null $assignedTo Filter by assigned seller
      */
-    public function getRecentLeads(int $limit = 10): Collection
+    public function getRecentLeads(int $limit = 10, ?string $clientId = null, ?int $assignedTo = null): Collection
     {
-        return $this->leadRepository->getRecent($limit);
+        $query = \App\Models\Lead\Lead::query()
+            ->with(['campaign.client'])
+            ->orderBy('created_at', 'desc');
+
+        if ($clientId) {
+            $query->forClient($clientId);
+        }
+
+        if ($assignedTo) {
+            $query->where('assigned_to', $assignedTo);
+        }
+
+        return $query->limit($limit)->get();
     }
 
     /**
@@ -212,8 +247,11 @@ class ReportingService
 
     /**
      * Get campaign performance (for Dashboard)
+     * 
+     * @param string|null $clientId Filter by client (tenant isolation)
+     * @param int $limit Number of campaigns to return
      */
-    public function getCampaignPerformance(?int $clientId = null, int $limit = 10): Collection
+    public function getCampaignPerformance(?string $clientId = null, int $limit = 10): Collection
     {
         $query = Campaign::query()
             ->select([
@@ -305,10 +343,26 @@ class ReportingService
 
     /**
      * Get leads distribution by status
+     * 
+     * @param string|null $clientId Filter by client (tenant isolation)
+     * @param int|null $assignedTo Filter by assigned seller
      */
-    public function getLeadsByStatus(): array
+    public function getLeadsByStatus(?string $clientId = null, ?int $assignedTo = null): array
     {
-        $stats = DB::table('leads')
+        $query = DB::table('leads');
+
+        // Apply client filter
+        if ($clientId) {
+            $campaignIds = DB::table('campaigns')->where('client_id', $clientId)->pluck('id');
+            $query->whereIn('campaign_id', $campaignIds);
+        }
+
+        // Apply seller assignment filter
+        if ($assignedTo) {
+            $query->where('assigned_to', $assignedTo);
+        }
+
+        $stats = $query
             ->select('status', DB::raw('COUNT(*) as count'))
             ->groupBy('status')
             ->get();

@@ -85,43 +85,87 @@ class CampaignController extends Controller
 
     public function index(Request $request): Response
     {
+        $user = Auth::user();
+        
+        // Determine effective client_id for tenant isolation
+        $isAdmin = $user->role->value === 'admin';
+        $isSupervisor = $user->role->value === 'supervisor';
+        $isGlobalUser = $isAdmin || ($isSupervisor && $user->client_id === null);
+        $effectiveClientId = $isGlobalUser ? null : $user->client_id;
+
         $filters = [
             'client_id' => $request->input('client_id'),
             'status' => $request->input('status'),
             'search' => $request->input('search'),
         ];
 
-        $campaigns = $this->campaignService->getCampaigns($filters, $request->input('per_page', 15));
-        $clients = $this->clientService->getActiveClients();
+        // Force client_id filter for non-global users
+        if ($effectiveClientId) {
+            $filters['client_id'] = $effectiveClientId;
+        }
 
-        // Get WhatsApp sources for campaign creation
-        $allActiveSources = $this->sourceService->getAll(['active_only' => true]);
+        $campaigns = $this->campaignService->getCampaigns($filters, $request->input('per_page', 15));
+        
+        // Only global users can see clients list
+        $clients = $effectiveClientId ? collect() : $this->clientService->getActiveClients();
+
+        // Get WhatsApp sources filtered by client for non-global users
+        $sourceFilters = ['active_only' => true];
+        if ($effectiveClientId) {
+            $sourceFilters['client_id'] = $effectiveClientId;
+        }
+        $allActiveSources = $this->sourceService->getAll($sourceFilters);
         $whatsappSources = $allActiveSources->filter(fn ($s) => $s->type->isWhatsApp());
+
+        // Determine if user can manage campaigns
+        $canManage = $isAdmin || $isSupervisor;
 
         return Inertia::render('Campaigns/Index', [
             'campaigns' => $campaigns,
             'clients' => $clients,
             'filters' => $filters,
             'whatsapp_sources' => $whatsappSources->values()->map(fn ($s) => (new SourceResource($s))->resolve()),
+            'can' => [
+                'create' => $canManage,
+                'edit' => $canManage,
+                'delete' => $canManage,
+            ],
         ]);
     }
 
     public function show(string $id): Response
     {
+        $user = Auth::user();
         $campaign = $this->campaignService->getCampaignById($id);
 
         if (! $campaign) {
             abort(404, 'Campaña no encontrada');
         }
 
+        // Tenant isolation: verify user can access this campaign
+        $isAdmin = $user->role->value === 'admin';
+        $isSupervisor = $user->role->value === 'supervisor';
+        $isGlobalUser = $isAdmin || ($isSupervisor && $user->client_id === null);
+        $effectiveClientId = $isGlobalUser ? null : $user->client_id;
+
+        if ($effectiveClientId && $campaign->client_id !== $effectiveClientId) {
+            abort(403, 'No tienes permiso para ver esta campaña');
+        }
+
         // Load assignees with their user relation
         $campaign->load(['assignees.user', 'assignmentCursor']);
 
         $templates = $this->templateService->getTemplatesByCampaign($id);
-        $clients = $this->clientService->getActiveClients();
+        
+        // Only global users can see clients list
+        $clients = $effectiveClientId ? collect() : $this->clientService->getActiveClients();
 
-        // Obtener todas las fuentes activas
-        $allActiveSources = $this->sourceService->getAll(['active_only' => true]);
+        // Get sources filtered by client for non-global users
+        $sourceFilters = ['active_only' => true];
+        if ($effectiveClientId) {
+            $sourceFilters['client_id'] = $effectiveClientId;
+        }
+        $allActiveSources = $this->sourceService->getAll($sourceFilters);
 
         // Filtrar por tipo (WhatsApp incluye Evolution API y Meta)
         $whatsappSources = $allActiveSources->filter(fn($s) => $s->type->isWhatsApp());
@@ -133,6 +177,9 @@ class CampaignController extends Controller
         // Get available Google integrations for this campaign
         $googleIntegrationsData = $this->getAvailableGoogleIntegrations($campaign->client_id);
 
+        // Determine if user can manage this campaign
+        $canManage = $isAdmin || $isSupervisor;
+
         return Inertia::render('Campaigns/Show', [
             'campaign' => $campaign,
             'templates' => $templates,
@@ -141,11 +188,22 @@ class CampaignController extends Controller
             'webhook_sources' => $webhookSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
             'available_users' => $availableUsers,
             'google_integrations' => $googleIntegrationsData,
+            'can' => [
+                'edit' => $canManage,
+                'delete' => $canManage,
+            ],
         ]);
     }
 
     public function create(): Response
     {
+        $user = Auth::user();
+        
+        // Only admin/supervisor can create campaigns
+        if (!in_array($user->role->value, ['admin', 'supervisor'])) {
+            abort(403, 'No tienes permiso para crear campañas');
+        }
+
         $clients = $this->clientService->getActiveClients();
 
         // Obtener todas las fuentes activas
@@ -169,6 +227,13 @@ class CampaignController extends Controller
 
     public function store(StoreCampaignRequest $request): RedirectResponse
     {
+        $user = Auth::user();
+        
+        // Only admin/supervisor can create campaigns
+        if (!in_array($user->role->value, ['admin', 'supervisor'])) {
+            abort(403, 'No tienes permiso para crear campañas');
+        }
+
         try {
             $this->campaignService->createCampaign(
                 array_merge($request->validated(), [
@@ -187,6 +252,13 @@ class CampaignController extends Controller
 
     public function update(UpdateCampaignRequest $request, string $id): RedirectResponse
     {
+        $user = Auth::user();
+        
+        // Only admin/supervisor can update campaigns
+        if (!in_array($user->role->value, ['admin', 'supervisor'])) {
+            abort(403, 'No tienes permiso para editar campañas');
+        }
+
         try {
             $this->campaignService->updateCampaign($id, $request->validated());
 
@@ -201,6 +273,13 @@ class CampaignController extends Controller
 
     public function destroy(string $id): RedirectResponse
     {
+        $user = Auth::user();
+        
+        // Only admin/supervisor can delete campaigns
+        if (!in_array($user->role->value, ['admin', 'supervisor'])) {
+            abort(403, 'No tienes permiso para eliminar campañas');
+        }
+
         try {
             $this->campaignService->deleteCampaign($id);
 
@@ -214,6 +293,13 @@ class CampaignController extends Controller
 
     public function toggleStatus(string $id): RedirectResponse
     {
+        $user = Auth::user();
+        
+        // Only admin/supervisor can toggle campaign status
+        if (!in_array($user->role->value, ['admin', 'supervisor'])) {
+            abort(403, 'No tienes permiso para cambiar el estado de campañas');
+        }
+
         try {
             $this->campaignService->toggleCampaignStatus($id);
 

@@ -40,30 +40,25 @@ import {
     Users,
 } from "lucide-react";
 
-// Navigation items - some require specific permissions
-const getNavigation = (user) => {
-    const baseItems = [
-        { name: "Dashboard", href: route("dashboard"), icon: Home },
-        { name: "Leads Manager", href: route("leads.index"), icon: Users },
-        { name: "Messages", href: route("messages.index"), icon: MessageSquare },
-        { name: "Campaigns", href: route("campaigns.index"), icon: Megaphone },
-        { name: "Sources", href: route("sources.index"), icon: Link2 },
-        { name: "Clients", href: route("clients.index"), icon: Building2 },
-        { name: "Retell Agents", href: route("call-agents.index"), icon: Bot },
-        { name: "Call History", href: route("lead-calls.index"), icon: Phone },
-        { name: "Calculator", href: route("calculator.index"), icon: Table },
-        {
-            name: "Integrations",
-            href: route("settings.integrations"),
-            icon: Settings,
-        },
-    ];
+// Navigation items - filtered by user permissions
+const getNavigation = (user, permissions) => {
+    const items = [];
 
-    // Add Users menu only for admin/supervisor
-    if (user?.role === "admin" || user?.role === "supervisor") {
-        // Insert after Clients
-        const clientsIndex = baseItems.findIndex((item) => item.name === "Clients");
-        baseItems.splice(clientsIndex + 1, 0, {
+    // Always visible
+    items.push({ name: "Dashboard", href: route("dashboard"), icon: Home });
+    items.push({ name: "Leads Manager", href: route("leads.index"), icon: Users });
+    items.push({ name: "Messages", href: route("messages.index"), icon: MessageSquare });
+    items.push({ name: "Campaigns", href: route("campaigns.index"), icon: Megaphone });
+    items.push({ name: "Sources", href: route("sources.index"), icon: Link2 });
+
+    // Clients - only for global users (admin/supervisor)
+    if (permissions?.can_view_clients) {
+        items.push({ name: "Clients", href: route("clients.index"), icon: Building2 });
+    }
+
+    // Users - admin/supervisor only
+    if (permissions?.can_view_users) {
+        items.push({
             name: "Users",
             href: route("users.index"),
             icon: Users,
@@ -71,14 +66,39 @@ const getNavigation = (user) => {
         });
     }
 
-    return baseItems;
+    // Retell Agents - only for global users (admin/supervisor)
+    if (permissions?.can_view_retell_agents) {
+        items.push({ name: "Retell Agents", href: route("call-agents.index"), icon: Bot });
+    }
+
+    // Call History - visible to all
+    if (permissions?.can_view_call_history) {
+        items.push({ name: "Call History", href: route("lead-calls.index"), icon: Phone });
+    }
+
+    // Calculator - global users or admin
+    if (permissions?.can_view_calculator) {
+        items.push({ name: "Calculator", href: route("calculator.index"), icon: Table });
+    }
+
+    // Integrations - global users or admin
+    if (permissions?.can_view_integrations) {
+        items.push({
+            name: "Integrations",
+            href: route("settings.integrations"),
+            icon: Settings,
+        });
+    }
+
+    return items;
 };
 
 function AppSidebar() {
     const { auth } = usePage().props;
     const user = auth.user;
+    const permissions = auth.permissions;
     const { open } = useSidebar();
-    const navigation = getNavigation(user);
+    const navigation = getNavigation(user, permissions);
 
     const getUserInitials = (name) => {
         return name

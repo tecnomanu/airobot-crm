@@ -56,7 +56,7 @@ class LeadService
      * Get leads for unified Leads Manager view with tab support
      * 
      * @param string $tab One of: 'inbox', 'active', 'sales_ready', 'closed', 'errors'
-     * @param array $filters Additional filters (campaign_id, status, search, client_id)
+     * @param array $filters Additional filters (campaign_id, status, search, client_id, assigned_to)
      * @param int $perPage Pagination size
      */
     public function getLeadsForManager(string $tab, array $filters = [], int $perPage = 15)
@@ -80,6 +80,11 @@ class LeadService
 
         if (!empty($filters['client_id'])) {
             $query->forClient($filters['client_id']);
+        }
+
+        // Filter by assigned seller (tenant isolation for sellers)
+        if (!empty($filters['assigned_to'])) {
+            $query->where('assigned_to', $filters['assigned_to']);
         }
 
         if (!empty($filters['status'])) {
@@ -116,6 +121,11 @@ class LeadService
 
         if (!empty($filters['client_id'])) {
             $baseQuery->forClient($filters['client_id']);
+        }
+
+        // Filter by assigned seller (tenant isolation for sellers)
+        if (!empty($filters['assigned_to'])) {
+            $baseQuery->where('assigned_to', $filters['assigned_to']);
         }
 
         return [

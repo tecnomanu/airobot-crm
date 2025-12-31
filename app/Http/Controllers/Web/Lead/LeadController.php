@@ -41,8 +41,15 @@ class LeadController extends Controller
      */
     public function index(Request $request): Response
     {
+        $user = Auth::user();
         $tabEnum = LeadManagerTab::fromStringOrDefault($request->input('tab'));
         $tab = $tabEnum->value;
+
+        // Determine if user is global (admin always global, supervisor without client is global)
+        $isAdmin = $user->role->value === 'admin';
+        $isSupervisor = $user->role->value === 'supervisor';
+        $isGlobalUser = $isAdmin || ($isSupervisor && $user->client_id === null);
+        $effectiveClientId = $isGlobalUser ? null : $user->client_id;
 
         $filters = [
             'campaign_id' => $request->input('campaign_id'),
@@ -50,6 +57,16 @@ class LeadController extends Controller
             'status' => $request->input('status'),
             'search' => $request->input('search'),
         ];
+
+        // Tenant isolation: force client_id filter for non-global users
+        if ($effectiveClientId) {
+            $filters['client_id'] = $effectiveClientId;
+            
+            // Regular users who are sellers only see their assigned leads
+            if ($user->is_seller && $user->role->value === 'user') {
+                $filters['assigned_to'] = $user->id;
+            }
+        }
 
         $leads = $this->leadService->getLeadsForManager(
             $tab,
@@ -59,8 +76,13 @@ class LeadController extends Controller
 
         $tabCounts = $this->leadService->getTabCounts($filters);
 
-        $campaigns = $this->campaignService->getActiveCampaigns();
-        $clients = $this->clientService->getActiveClients();
+        // Filter campaigns and clients based on user's tenant
+        $campaigns = $effectiveClientId
+            ? $this->campaignService->getActiveCampaignsForClient($effectiveClientId)
+            : $this->campaignService->getActiveCampaigns();
+        
+        // Only global users can see clients list (for filtering)
+        $clients = $effectiveClientId ? collect() : $this->clientService->getActiveClients();
 
         return Inertia::render('Leads/Index', [
             'leads' => LeadResource::collection($leads),

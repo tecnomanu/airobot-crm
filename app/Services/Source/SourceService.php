@@ -64,8 +64,18 @@ class SourceService
         // Validar tipo válido
         $type = $this->validateAndGetType($data['type']);
 
+        // Assign internal client if client_id is empty
+        if (empty($data['client_id'])) {
+            $data['client_id'] = \App\Models\Client\Client::INTERNAL_CLIENT_ID;
+        }
+
         // Validar nombre único para el cliente
-        $this->validateUniqueName($data['name'], $data['client_id'] ?? null);
+        $this->validateUniqueName($data['name'], $data['client_id']);
+
+        // Auto-generate secret for webhooks if not provided
+        if ($type === SourceType::WEBHOOK && empty($data['config']['secret'])) {
+            $data['config']['secret'] = bin2hex(random_bytes(16));
+        }
 
         // Validar configuración según tipo
         $this->validateConfig($type, $data['config'] ?? []);

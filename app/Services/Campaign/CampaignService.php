@@ -232,6 +232,17 @@ class CampaignService
     }
 
     /**
+     * Obtener campañas activas para un cliente específico (tenant isolation)
+     */
+    public function getActiveCampaignsForClient(string $clientId)
+    {
+        return Campaign::where('client_id', $clientId)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'status']);
+    }
+
+    /**
      * Obtener campañas de un cliente
      */
     public function getCampaignsByClient(string $clientId)

@@ -2,7 +2,7 @@ import StatusSwitch from "@/Components/Common/StatusSwitch";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 import { Checkbox } from "@/Components/ui/checkbox";
-import { ArrowUpDown, Check, Edit, Trash2 } from "lucide-react";
+import { ArrowUpDown, Briefcase, Edit, Trash2 } from "lucide-react";
 
 const getRoleConfig = (role) => {
     const config = {
@@ -86,18 +86,6 @@ export const getUserColumns = (
         },
     },
     {
-        accessorKey: "is_seller",
-        header: "Vendedor",
-        cell: ({ row }) => {
-            const isSeller = row.getValue("is_seller");
-            return isSeller ? (
-                <Check className="h-4 w-4 text-green-600" />
-            ) : (
-                <span className="text-muted-foreground">-</span>
-            );
-        },
-    },
-    {
         accessorKey: "client",
         header: "Cliente",
         cell: ({ row }) => {
@@ -164,10 +152,10 @@ export const getUserColumns = (
                                 : "Hacer vendedor"
                         }
                     >
-                        <Check
+                        <Briefcase
                             className={`h-3.5 w-3.5 ${
                                 user.is_seller
-                                    ? "text-green-500"
+                                    ? "text-amber-500"
                                     : "text-gray-300"
                             }`}
                         />
