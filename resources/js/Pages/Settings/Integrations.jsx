@@ -8,8 +8,9 @@ import {
     CardTitle,
 } from "@/Components/ui/card";
 import AppLayout from "@/Layouts/AppLayout";
-import { Head, usePage } from "@inertiajs/react";
+import { Head, router, usePage } from "@inertiajs/react";
 import { SiGoogle, SiGooglesheets } from "react-icons/si";
+import { Unlink } from "lucide-react";
 
 export default function Integrations() {
     const { auth, flash } = usePage().props;
@@ -71,8 +72,16 @@ export default function Integrations() {
                         </div>
 
                         {googleIntegration ? (
-                            <Button variant="outline" disabled>
-                                Conectado
+                            <Button
+                                variant="destructive"
+                                onClick={() => {
+                                    if (confirm("¿Estás seguro de desconectar tu cuenta de Google?")) {
+                                        router.delete(route("auth.google.disconnect"));
+                                    }
+                                }}
+                            >
+                                <Unlink className="mr-2 h-4 w-4" />
+                                Desconectar
                             </Button>
                         ) : (
                             <Button asChild>

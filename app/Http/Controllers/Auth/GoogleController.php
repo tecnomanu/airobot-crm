@@ -22,13 +22,13 @@ class GoogleController extends Controller
     {
         try {
             $googleUser = Socialite::driver('google')->user();
-            
+
             $integration = GoogleIntegration::updateOrCreate(
                 [
-                    'google_id' => $googleUser->id,
                     'user_id' => Auth::id(),
                 ],
                 [
+                    'google_id' => $googleUser->id,
                     'email' => $googleUser->email,
                     'name' => $googleUser->name,
                     'avatar' => $googleUser->avatar,
@@ -38,9 +38,16 @@ class GoogleController extends Controller
                 ]
             );
 
-            return redirect()->route('dashboard')->with('success', 'Cuenta de Google conectada exitosamente');
+            return redirect()->route('settings.integrations')->with('success', 'Cuenta de Google conectada exitosamente');
         } catch (\Exception $e) {
-            return redirect()->route('dashboard')->with('error', 'Error al conectar con Google: ' . $e->getMessage());
+            return redirect()->route('settings.integrations')->with('error', 'Error al conectar con Google: ' . $e->getMessage());
         }
+    }
+
+    public function disconnect()
+    {
+        GoogleIntegration::where('user_id', Auth::id())->delete();
+
+        return redirect()->route('settings.integrations')->with('success', 'Cuenta de Google desconectada');
     }
 }
