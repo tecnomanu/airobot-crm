@@ -15,6 +15,42 @@ class UpdateCampaignRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Prepare the data for validation.
+     * Removes empty agent objects to avoid validation errors for direct campaigns.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Clean empty call_agent object
+        if ($this->has('call_agent')) {
+            $callAgent = $this->input('call_agent');
+            if (is_array($callAgent) && $this->isEmptyAgentConfig($callAgent, ['name', 'provider'])) {
+                $this->getInputSource()->remove('call_agent');
+            }
+        }
+
+        // Clean empty whatsapp_agent object
+        if ($this->has('whatsapp_agent')) {
+            $whatsappAgent = $this->input('whatsapp_agent');
+            if (is_array($whatsappAgent) && $this->isEmptyAgentConfig($whatsappAgent, ['name'])) {
+                $this->getInputSource()->remove('whatsapp_agent');
+            }
+        }
+    }
+
+    /**
+     * Check if agent config is effectively empty (required fields are empty).
+     */
+    private function isEmptyAgentConfig(array $config, array $requiredFields): bool
+    {
+        foreach ($requiredFields as $field) {
+            if (!empty($config[$field])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public function rules(): array
     {
         return [

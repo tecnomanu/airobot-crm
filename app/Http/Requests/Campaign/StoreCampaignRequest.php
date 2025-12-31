@@ -88,11 +88,28 @@ class StoreCampaignRequest extends FormRequest
     }
 
     /**
-     * Prepara los datos para ser validados
-     * Solo crea opciones por defecto para campañas dinámicas (IVR)
+     * Prepara los datos para ser validados.
+     * - Limpia objetos vacíos de agentes (para campañas directas)
+     * - Crea opciones por defecto para campañas dinámicas (IVR)
      */
     protected function prepareForValidation(): void
     {
+        // Clean empty call_agent object
+        if ($this->has('call_agent')) {
+            $callAgent = $this->input('call_agent');
+            if (is_array($callAgent) && $this->isEmptyAgentConfig($callAgent, ['name', 'provider'])) {
+                $this->getInputSource()->remove('call_agent');
+            }
+        }
+
+        // Clean empty whatsapp_agent object
+        if ($this->has('whatsapp_agent')) {
+            $whatsappAgent = $this->input('whatsapp_agent');
+            if (is_array($whatsappAgent) && $this->isEmptyAgentConfig($whatsappAgent, ['name'])) {
+                $this->getInputSource()->remove('whatsapp_agent');
+            }
+        }
+
         $strategyType = $this->input('strategy_type', 'dynamic');
 
         // Only create default options for dynamic (IVR) campaigns
@@ -116,5 +133,18 @@ class StoreCampaignRequest extends FormRequest
                 'direct_delay' => 0,
             ]);
         }
+    }
+
+    /**
+     * Check if agent config is effectively empty (required fields are empty).
+     */
+    private function isEmptyAgentConfig(array $config, array $requiredFields): bool
+    {
+        foreach ($requiredFields as $field) {
+            if (!empty($config[$field])) {
+                return false;
+            }
+        }
+        return true;
     }
 }
