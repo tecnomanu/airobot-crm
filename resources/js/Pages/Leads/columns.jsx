@@ -147,6 +147,7 @@ const SourceBadge = ({ source, label }) => {
 
 /**
  * Format relative date for display
+ * Shows "hace Xh" for recent, "dd-mm-yy" for older dates
  */
 const formatRelativeDate = (dateString) => {
     if (!dateString) return "-";
@@ -158,14 +159,15 @@ const formatRelativeDate = (dateString) => {
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return "Ahora";
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-    if (diffDays < 7) return `${diffDays}d`;
+    if (diffMins < 60) return `hace ${diffMins}m`;
+    if (diffHours < 24) return `hace ${diffHours}h`;
+    if (diffDays < 7) return `hace ${diffDays}d`;
 
-    return date.toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-    });
+    // Format as dd/mm/yy
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day}/${month}/${year}`;
 };
 
 /**
