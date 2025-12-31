@@ -12,7 +12,8 @@ class ClientRepository implements ClientRepositoryInterface
 {
     public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Client::with('creator');
+        $query = Client::with('creator')
+            ->excludeInternal(); // Never show internal client in listings
 
         // Filtro por estado
         if (! empty($filters['status'])) {
@@ -62,6 +63,7 @@ class ClientRepository implements ClientRepositoryInterface
     public function getActive(): Collection
     {
         return Client::where('status', ClientStatus::ACTIVE->value)
+            ->excludeInternal() // Never include internal client
             ->orderBy('name')
             ->get();
     }

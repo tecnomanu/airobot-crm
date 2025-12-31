@@ -14,7 +14,8 @@ import { Unlink } from "lucide-react";
 
 export default function Integrations() {
     const { auth, flash } = usePage().props;
-    const googleIntegration = auth.user.google_integration; // Assuming we pass this from HandleInertiaRequests or Controller
+    // Google integration is now tenant-scoped (belongs to client, not user)
+    const googleIntegration = auth.google_integration;
 
     return (
         <AppLayout

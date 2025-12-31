@@ -10,13 +10,7 @@ import {
 } from "@/Components/ui/dialog";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/Components/ui/select";
+import { Switch } from "@/Components/ui/switch";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, router, useForm } from "@inertiajs/react";
 import { Plus } from "lucide-react";
@@ -32,6 +26,10 @@ export default function ClientsIndex({ clients, filters }) {
         open: false,
         id: null,
         name: "",
+    });
+    const [statusDialog, setStatusDialog] = useState({
+        open: false,
+        client: null,
     });
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
@@ -143,6 +141,34 @@ export default function ClientsIndex({ clients, filters }) {
         setDeleteDialog({ open: false, id: null, name: "" });
     };
 
+    const handleToggleStatus = (client) => {
+        setStatusDialog({ open: true, client });
+    };
+
+    const confirmToggleStatus = () => {
+        const client = statusDialog.client;
+        const newStatus = client.status === "active" ? "inactive" : "active";
+
+        router.put(
+            route("clients.update", client.id),
+            { ...client, status: newStatus },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.success(
+                        newStatus === "active"
+                            ? "Cliente activado exitosamente"
+                            : "Cliente desactivado exitosamente"
+                    );
+                },
+                onError: () => {
+                    toast.error("Error al cambiar el estado del cliente");
+                },
+            }
+        );
+        setStatusDialog({ open: false, client: null });
+    };
+
     return (
         <AppLayout
             header={{
@@ -167,7 +193,7 @@ export default function ClientsIndex({ clients, filters }) {
                 {/* Header Section with padding */}
                 <div className="p-6">
                     <DataTable
-                        columns={getClientColumns(handleDelete, handleEdit)}
+                        columns={getClientColumns(handleDelete, handleEdit, handleToggleStatus)}
                         data={clients.data}
                         pagination={clients}
                         actions={
@@ -286,24 +312,21 @@ export default function ClientsIndex({ clients, filters }) {
 
                         <div className="space-y-2">
                             <Label htmlFor="status">Estado</Label>
-                            <Select
-                                value={data.status}
-                                onValueChange={(value) =>
-                                    setData("status", value)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="active">
-                                        Activo
-                                    </SelectItem>
-                                    <SelectItem value="inactive">
-                                        Inactivo
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="flex items-center gap-3 pt-1">
+                                <Switch
+                                    id="status"
+                                    checked={data.status === "active"}
+                                    onCheckedChange={(checked) =>
+                                        setData("status", checked ? "active" : "inactive")
+                                    }
+                                    className="data-[state=checked]:bg-green-600"
+                                />
+                                <span className={`text-sm font-medium ${
+                                    data.status === "active" ? "text-green-600" : "text-gray-500"
+                                }`}>
+                                    {data.status === "active" ? "Activo" : "Inactivo"}
+                                </span>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -353,6 +376,28 @@ export default function ClientsIndex({ clients, filters }) {
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="destructive"
+            />
+
+            {/* Confirm Status Toggle Dialog */}
+            <ConfirmDialog
+                open={statusDialog.open}
+                onOpenChange={(open) =>
+                    setStatusDialog({ ...statusDialog, open })
+                }
+                onConfirm={confirmToggleStatus}
+                title={
+                    statusDialog.client?.status === "active"
+                        ? "¿Desactivar cliente?"
+                        : "¿Activar cliente?"
+                }
+                description={
+                    statusDialog.client?.status === "active"
+                        ? `¿Estás seguro de desactivar el cliente "${statusDialog.client?.name}"? Sus campañas y leads seguirán disponibles pero el cliente no estará activo.`
+                        : `¿Estás seguro de activar el cliente "${statusDialog.client?.name}"?`
+                }
+                confirmText={statusDialog.client?.status === "active" ? "Desactivar" : "Activar"}
+                cancelText="Cancelar"
+                variant={statusDialog.client?.status === "active" ? "destructive" : "default"}
             />
         </AppLayout>
     );

@@ -1,18 +1,10 @@
-import { Badge } from "@/Components/ui/badge";
+import StatusSwitch from "@/Components/Common/StatusSwitch";
 import { Button } from "@/Components/ui/button";
 import { Checkbox } from "@/Components/ui/checkbox";
 import { router } from "@inertiajs/react";
 import { ArrowUpDown, Edit, Eye, Trash2 } from "lucide-react";
 
-const getStatusLabel = (status) => {
-    const labels = {
-        active: "Activo",
-        inactive: "Inactivo",
-    };
-    return labels[status] || status;
-};
-
-export const getClientColumns = (handleDelete, handleEdit) => [
+export const getClientColumns = (handleDelete, handleEdit, handleToggleStatus) => [
     {
         id: "select",
         header: ({ table }) => (
@@ -72,17 +64,16 @@ export const getClientColumns = (handleDelete, handleEdit) => [
         accessorKey: "status",
         header: "Estado",
         cell: ({ row }) => {
-            const status = row.getValue("status");
-            const colors = {
-                active: "bg-green-100 text-green-800 hover:bg-green-100",
-                inactive: "bg-red-100 text-red-800 hover:bg-red-100",
-            };
+            const client = row.original;
+            const isActive = client.status === "active";
+
             return (
-                <Badge
-                    className={colors[status] || "bg-gray-100 text-gray-800"}
-                >
-                    {row.original.status_label || getStatusLabel(status)}
-                </Badge>
+                <StatusSwitch
+                    checked={isActive}
+                    onChange={() => handleToggleStatus(client)}
+                    activeText="Activo"
+                    inactiveText="Inactivo"
+                />
             );
         },
     },

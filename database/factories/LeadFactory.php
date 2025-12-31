@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\LeadAutomationStatus;
+use App\Enums\LeadStage;
 use App\Enums\LeadStatus;
 use App\Models\Campaign\Campaign;
 use App\Models\User;
@@ -28,7 +29,8 @@ class LeadFactory extends Factory
             'city' => fake()->city(),
             'option_selected' => null,
             'campaign_id' => Campaign::factory(),
-            'status' => fake()->randomElement(LeadStatus::cases())->value,
+            'stage' => LeadStage::INBOX->value,
+            'status' => LeadStatus::PENDING->value,
             'source' => 'webhook',
             'sent_at' => now(),
             'intention' => fake()->optional()->sentence(),

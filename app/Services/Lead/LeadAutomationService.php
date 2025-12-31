@@ -117,9 +117,6 @@ class LeadAutomationService
             $option = $campaign->getOption($optionKey);
             if ($option && $option->source_id) {
                 $source = $option->source;
-            } elseif ($option && $option->config && !empty($option->config['source_id'])) {
-                // Fallback if source_id is in config json of the option
-                $source = \App\Models\Integration\Source::find($option->config['source_id']);
             } else {
                 // Fallback to JSON config on campaign
                 $optionConfig = $campaign->getConfigForOption($optionKey);
@@ -228,11 +225,9 @@ class LeadAutomationService
         // Similar logic to resolve source (could be refactored to helper)
         if ($optionField && preg_match('/option_(.*?)_action/', $optionField, $matches)) {
             $optionKey = $matches[1];
-             $option = $campaign->getOption($optionKey);
+            $option = $campaign->getOption($optionKey);
             if ($option && $option->source_id) {
-                 $source = $option->source;
-            } elseif ($option && $option->config && !empty($option->config['source_id'])) {
-                 $source = \App\Models\Integration\Source::find($option->config['source_id']);
+                $source = $option->source;
             } else {
                 $optionConfig = $campaign->getConfigForOption($optionKey);
                 if (!empty($optionConfig['source_id'])) {

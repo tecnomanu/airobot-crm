@@ -77,6 +77,11 @@ class ClientService
             throw new \InvalidArgumentException('Cliente no encontrado');
         }
 
+        // Internal client can NEVER be deleted
+        if ($client->isInternal()) {
+            throw new \InvalidArgumentException('El cliente interno del sistema no puede ser eliminado');
+        }
+
         return $this->clientRepository->delete($client);
     }
 
@@ -108,10 +113,40 @@ class ClientService
             throw new \InvalidArgumentException('Cliente no encontrado');
         }
 
+        // Internal client can NEVER be deactivated
+        if ($client->isInternal()) {
+            throw new \InvalidArgumentException('El cliente interno del sistema no puede ser desactivado');
+        }
+
         $newStatus = $client->status->value === 'active' ? 'inactive' : 'active';
 
         return $this->clientRepository->update($client, [
             'status' => $newStatus,
         ]);
+    }
+
+    /**
+     * Actualizar un cliente existente (with internal client protection)
+     */
+    public function updateClientWithProtection(string $id, array $data): Client
+    {
+        $client = $this->clientRepository->findById($id);
+
+        if (! $client) {
+            throw new \InvalidArgumentException('Cliente no encontrado');
+        }
+
+        // Internal client has restricted updates
+        if ($client->isInternal()) {
+            // Only allow updating non-critical fields for internal client
+            $allowedFields = ['notes'];
+            $data = array_intersect_key($data, array_flip($allowedFields));
+
+            if (empty($data)) {
+                throw new \InvalidArgumentException('No se pueden modificar los campos del cliente interno del sistema');
+            }
+        }
+
+        return $this->updateClient($id, $data);
     }
 }

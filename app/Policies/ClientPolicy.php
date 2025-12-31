@@ -10,8 +10,9 @@ use App\Policies\Traits\HasMatrizAuthorization;
  * Policy for Client authorization.
  *
  * Controls access based on company relationship:
- * - Matriz (parent company) can manage all clients
+ * - Internal users (AirRobot HQ) can manage external clients
  * - Client users can only view their own client profile
+ * - Internal client cannot be modified or deleted
  */
 class ClientPolicy
 {
@@ -22,7 +23,7 @@ class ClientPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->isMatrizUser($user);
+        return $this->isInternalUser($user);
     }
 
     /**
@@ -30,7 +31,7 @@ class ClientPolicy
      */
     public function view(User $user, Client $client): bool
     {
-        if ($this->isMatrizUser($user)) {
+        if ($this->isInternalUser($user)) {
             return true;
         }
 
@@ -42,7 +43,7 @@ class ClientPolicy
      */
     public function create(User $user): bool
     {
-        return $this->isMatrizUser($user);
+        return $this->isInternalUser($user);
     }
 
     /**
@@ -50,7 +51,12 @@ class ClientPolicy
      */
     public function update(User $user, Client $client): bool
     {
-        if ($this->isMatrizUser($user)) {
+        // Internal client can never be modified (except by direct DB)
+        if ($client->isInternal()) {
+            return false;
+        }
+
+        if ($this->isInternalUser($user)) {
             return true;
         }
 
@@ -63,7 +69,25 @@ class ClientPolicy
      */
     public function delete(User $user, Client $client): bool
     {
-        return $this->isMatrizUser($user);
+        // Internal client can NEVER be deleted
+        if ($client->isInternal()) {
+            return false;
+        }
+
+        return $this->isInternalUser($user);
+    }
+
+    /**
+     * Determine whether the user can toggle the client status.
+     */
+    public function toggleStatus(User $user, Client $client): bool
+    {
+        // Internal client can never be deactivated
+        if ($client->isInternal()) {
+            return false;
+        }
+
+        return $this->isInternalUser($user);
     }
 
     /**
@@ -71,6 +95,6 @@ class ClientPolicy
      */
     public function dispatchLeads(User $user, Client $client): bool
     {
-        return $this->isMatrizUser($user);
+        return $this->isInternalUser($user);
     }
 }

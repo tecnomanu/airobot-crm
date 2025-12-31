@@ -1,6 +1,3 @@
-import AppLayout from "@/Layouts/AppLayout";
-import { Head } from "@inertiajs/react";
-import { Users, Megaphone, Phone, DollarSign, Clock } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -8,7 +5,9 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
-import { Badge } from "@/Components/ui/badge";
+import AppLayout from "@/Layouts/AppLayout";
+import { Head } from "@inertiajs/react";
+import { DollarSign, Megaphone, Phone, Users } from "lucide-react";
 
 export default function ClientShow({ client, overview }) {
     const stats = [
@@ -51,6 +50,7 @@ export default function ClientShow({ client, overview }) {
             header={{
                 title: client.name,
                 subtitle: client.company,
+                backButton: { href: route("clients.index") },
                 badges: [
                     {
                         label: client.status_label,
@@ -62,7 +62,6 @@ export default function ClientShow({ client, overview }) {
             <Head title={`Cliente: ${client.name}`} />
 
             <div className="space-y-6">
-
                 {/* Client Info */}
                 <Card>
                     <CardHeader>
@@ -70,7 +69,9 @@ export default function ClientShow({ client, overview }) {
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2">
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Email</p>
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Email
+                            </p>
                             <p className="text-sm">{client.email || "-"}</p>
                         </div>
                         <div>
@@ -101,7 +102,9 @@ export default function ClientShow({ client, overview }) {
                                 <stat.icon className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{stat.value}</div>
+                                <div className="text-2xl font-bold">
+                                    {stat.value}
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                     {stat.subtitle}
                                 </p>
@@ -141,7 +144,8 @@ export default function ClientShow({ client, overview }) {
                                     Duración Total Llamadas
                                 </span>
                                 <span className="font-medium">
-                                    {overview?.total_duration_minutes || 0} minutos
+                                    {overview?.total_duration_minutes || 0}{" "}
+                                    minutos
                                 </span>
                             </div>
                         </div>

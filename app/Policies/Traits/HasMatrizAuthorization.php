@@ -2,23 +2,33 @@
 
 namespace App\Policies\Traits;
 
+use App\Enums\ClientType;
+use App\Models\Client\Client;
 use App\Models\User;
 
 /**
  * Trait for common authorization logic across policies.
  *
  * Provides consistent methods for determining user access based on
- * matriz (parent company) vs client user relationships.
+ * internal (AirRobot HQ) vs external client user relationships.
  */
 trait HasMatrizAuthorization
 {
     /**
-     * Check if user belongs to matriz (parent company).
-     * Matriz users have no client_id association (null).
+     * Check if user belongs to the internal AirRobot HQ client.
+     * Internal users are the platform owners/administrators.
+     */
+    protected function isInternalUser(User $user): bool
+    {
+        return $user->client_id === Client::INTERNAL_CLIENT_ID;
+    }
+
+    /**
+     * @deprecated Use isInternalUser() instead.
      */
     protected function isMatrizUser(User $user): bool
     {
-        return $user->client_id === null;
+        return $this->isInternalUser($user);
     }
 
     /**
@@ -31,6 +41,14 @@ trait HasMatrizAuthorization
         }
 
         return $user->client_id === $clientId;
+    }
+
+    /**
+     * Check if user belongs to same client as a resource.
+     */
+    protected function belongsToSameClient(User $user, ?string $resourceClientId): bool
+    {
+        return $this->belongsToClient($user, $resourceClientId);
     }
 
     /**
@@ -55,5 +73,13 @@ trait HasMatrizAuthorization
     protected function hasElevatedPrivileges(User $user): bool
     {
         return $this->isAdmin($user) || $this->isSupervisor($user);
+    }
+
+    /**
+     * Check if user is a superadmin (internal admin with full access).
+     */
+    protected function isSuperAdmin(User $user): bool
+    {
+        return $this->isInternalUser($user) && $this->isAdmin($user);
     }
 }

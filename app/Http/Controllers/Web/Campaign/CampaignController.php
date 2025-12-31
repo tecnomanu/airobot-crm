@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Campaign\StoreCampaignRequest;
 use App\Http\Requests\Campaign\UpdateCampaignRequest;
 use App\Http\Resources\Source\SourceResource;
+use App\Models\Client\Client;
+use App\Models\Integration\GoogleIntegration;
 use App\Services\Campaign\CampaignService;
 use App\Services\Campaign\CampaignWhatsappTemplateService;
 use App\Services\Client\ClientService;
@@ -26,6 +28,60 @@ class CampaignController extends Controller
         private SourceService $sourceService,
         private UserService $userService
     ) {}
+
+    /**
+     * Get available Google integrations for a campaign.
+     *
+     * Logic:
+     * - Internal users: see internal integrations + campaign client's integrations
+     * - Client users: see only their own client's integrations
+     *
+     * @param string|null $campaignClientId The client_id of the campaign being edited
+     * @return array{integrations: array, can_change: bool, current_integration: ?array}
+     */
+    private function getAvailableGoogleIntegrations(?string $campaignClientId): array
+    {
+        $user = Auth::user();
+        $isInternalUser = $user->client_id === Client::INTERNAL_CLIENT_ID;
+
+        $integrations = collect();
+
+        // Always include user's own client integrations
+        if ($user->client_id) {
+            $ownIntegrations = GoogleIntegration::where('client_id', $user->client_id)
+                ->get()
+                ->map(fn($i) => [
+                    'id' => $i->id,
+                    'email' => $i->email,
+                    'client_id' => $i->client_id,
+                    'is_internal' => $i->client_id === Client::INTERNAL_CLIENT_ID,
+                    'label' => $i->client_id === Client::INTERNAL_CLIENT_ID
+                        ? "AirRobot ({$i->email})"
+                        : $i->email,
+                ]);
+            $integrations = $integrations->merge($ownIntegrations);
+        }
+
+        // Internal users also see the campaign client's integrations
+        if ($isInternalUser && $campaignClientId && $campaignClientId !== Client::INTERNAL_CLIENT_ID) {
+            $clientIntegrations = GoogleIntegration::where('client_id', $campaignClientId)
+                ->get()
+                ->map(fn($i) => [
+                    'id' => $i->id,
+                    'email' => $i->email,
+                    'client_id' => $i->client_id,
+                    'is_internal' => false,
+                    'label' => $i->email,
+                ]);
+            $integrations = $integrations->merge($clientIntegrations);
+        }
+
+        return [
+            'integrations' => $integrations->unique('id')->values()->toArray(),
+            'can_change' => $isInternalUser || $integrations->isNotEmpty(),
+            'user_is_internal' => $isInternalUser,
+        ];
+    }
 
     public function index(Request $request): Response
     {
@@ -74,6 +130,9 @@ class CampaignController extends Controller
         // Get available sellers for assignment (from campaign's client + global sellers)
         $availableUsers = $this->userService->getSellersForCampaign($campaign->client_id);
 
+        // Get available Google integrations for this campaign
+        $googleIntegrationsData = $this->getAvailableGoogleIntegrations($campaign->client_id);
+
         return Inertia::render('Campaigns/Show', [
             'campaign' => $campaign,
             'templates' => $templates,
@@ -81,6 +140,7 @@ class CampaignController extends Controller
             'whatsapp_sources' => $whatsappSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
             'webhook_sources' => $webhookSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
             'available_users' => $availableUsers,
+            'google_integrations' => $googleIntegrationsData,
         ]);
     }
 
@@ -95,11 +155,15 @@ class CampaignController extends Controller
         $whatsappSources = $allActiveSources->filter(fn($s) => $s->type->isWhatsApp());
         $webhookSources = $allActiveSources->filter(fn($s) => $s->type->isWebhook());
 
+        // Get available Google integrations (no campaign client yet, so just user's client)
+        $googleIntegrationsData = $this->getAvailableGoogleIntegrations(null);
+
         return Inertia::render('Campaigns/Create', [
             'clients' => $clients,
             'whatsapp_sources' => $whatsappSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
             'webhook_sources' => $webhookSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
             'templates' => [],
+            'google_integrations' => $googleIntegrationsData,
         ]);
     }
 

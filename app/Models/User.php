@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -107,11 +106,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Google integration for this user.
+     * Google integrations created by this user (audit trail).
      */
-    public function google_integration(): HasOne
+    public function createdGoogleIntegrations(): HasMany
     {
-        return $this->hasOne(GoogleIntegration::class);
+        return $this->hasMany(GoogleIntegration::class, 'created_by_user_id');
     }
 
     // =========================================================================

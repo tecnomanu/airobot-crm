@@ -8,12 +8,13 @@ use App\Enums\DispatchType;
 use App\Models\Campaign\Campaign;
 use App\Models\Client\Client;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeadDispatchAttempt extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $fillable = [
         'lead_id',

@@ -231,16 +231,11 @@ class LeadIngestionService
     }
 
     /**
-     * Compute the current stage for a lead.
+     * Get the current stage for a lead (now persisted directly).
      */
     private function computeStage(Lead $lead): LeadStage
     {
-        return LeadStage::fromLead(
-            $lead->status,
-            $lead->automation_status,
-            $lead->intention_status,
-            $lead->intention
-        );
+        return $lead->stage ?? LeadStage::INBOX;
     }
 
     /**
@@ -248,7 +243,7 @@ class LeadIngestionService
      */
     private function stageChanged(Lead $oldLead, Lead $newLead): bool
     {
-        return $this->computeStage($oldLead) !== $this->computeStage($newLead);
+        return $oldLead->stage !== $newLead->stage;
     }
 }
 

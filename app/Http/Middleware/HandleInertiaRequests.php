@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Integration\GoogleIntegration;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -34,10 +35,19 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        // Get Google integration for the user's client (tenant-scoped)
+        $googleIntegration = null;
+        if ($user?->client_id) {
+            $googleIntegration = GoogleIntegration::where('client_id', $user->client_id)->first();
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user()?->load('google_integration'),
+                'user' => $user,
+                'google_integration' => $googleIntegration,
             ],
         ];
     }

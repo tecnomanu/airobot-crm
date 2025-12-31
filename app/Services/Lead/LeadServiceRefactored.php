@@ -509,12 +509,7 @@ class LeadServiceRefactored
 
     private function computeStage(Lead $lead): LeadStage
     {
-        return LeadStage::fromLead(
-            $lead->status,
-            $lead->automation_status,
-            $lead->intention_status,
-            $lead->intention
-        );
+        return $lead->stage ?? LeadStage::INBOX;
     }
 }
 

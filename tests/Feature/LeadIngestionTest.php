@@ -191,7 +191,7 @@ class LeadIngestionTest extends TestCase
     public function it_throws_exception_when_no_active_campaign(): void
     {
         // Deactivate all campaigns
-        Campaign::query()->update(['status' => CampaignStatus::INACTIVE]);
+        Campaign::query()->update(['status' => CampaignStatus::PAUSED]);
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Could not associate lead with any active campaign');
