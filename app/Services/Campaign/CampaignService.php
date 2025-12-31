@@ -139,6 +139,11 @@ class CampaignService
                 'description',
                 'status',
                 'auto_process_enabled',
+                'use_client_call_defaults',
+                'use_client_whatsapp_defaults',
+                'no_response_action_enabled',
+                'no_response_max_attempts',
+                'no_response_timeout_hours',
             ]));
 
             // Si se proporciona slug, normalizarlo
@@ -186,6 +191,11 @@ class CampaignService
                 }
             }
 
+            // Sync assignees (vendedores) if provided
+            if (array_key_exists('assignee_user_ids', $data)) {
+                $this->syncAssignees($campaign, $data['assignee_user_ids'] ?? []);
+            }
+
             return $campaign->fresh([
                 'callAgent',
                 'whatsappAgent.source',
@@ -193,6 +203,7 @@ class CampaignService
                 'options.template',
                 'intentionActions.webhook',
                 'intentionActions.googleIntegration',
+                'assignees.user',
             ]);
         });
     }
@@ -445,6 +456,31 @@ class CampaignService
             throw new ValidationException(
                 'La fuente seleccionada no es de tipo Webhook. Tipo actual: ' . $source->type->label()
             );
+        }
+    }
+
+    /**
+     * Sync campaign assignees (vendedores).
+     */
+    protected function syncAssignees(Campaign $campaign, array $userIds): void
+    {
+        // Delete existing assignees
+        $campaign->assignees()->delete();
+
+        // Create new assignees in order
+        foreach ($userIds as $index => $userId) {
+            $campaign->assignees()->create([
+                'user_id' => $userId,
+                'sort_order' => $index,
+                'is_active' => true,
+            ]);
+        }
+
+        // Reset assignment cursor if it exists
+        if ($campaign->assignmentCursor) {
+            $campaign->assignmentCursor()->update([
+                'current_index' => 0,
+            ]);
         }
     }
 

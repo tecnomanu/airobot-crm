@@ -72,6 +72,19 @@ class UpdateCampaignRequest extends FormRequest
             'options.*.message' => ['nullable', 'string'],
             'options.*.delay' => ['nullable', 'integer', 'min:0'],
             'options.*.enabled' => ['nullable', 'boolean'],
+
+            // Vendedores (assignees) - array of user IDs
+            'assignee_user_ids' => ['nullable', 'array'],
+            'assignee_user_ids.*' => ['integer', 'exists:users,id'],
+
+            // Client defaults flags
+            'use_client_call_defaults' => ['nullable', 'boolean'],
+            'use_client_whatsapp_defaults' => ['nullable', 'boolean'],
+
+            // No response configuration
+            'no_response_action_enabled' => ['nullable', 'boolean'],
+            'no_response_max_attempts' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'no_response_timeout_hours' => ['nullable', 'integer', 'min:1', 'max:168'],
         ];
     }
 

@@ -8,11 +8,12 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
+import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/Components/ui/radio-group";
 import { Switch } from "@/Components/ui/switch";
 import { router } from "@inertiajs/react";
-import { CheckCircle, CircleDot, Sheet, Webhook, XCircle } from "lucide-react";
+import { CheckCircle, CircleDot, Clock, Info, Sheet, Webhook, XCircle } from "lucide-react";
 import { useState } from "react";
 
 export default function IntentionWebhookTab({
@@ -216,11 +217,11 @@ export default function IntentionWebhookTab({
             <Card>
                 <div className="flex items-center justify-between border-b p-4 bg-gray-50/50">
                     <div className="flex items-center gap-2">
-                        <XCircle className="h-5 w-5 text-red-600" />
+                        <XCircle className="h-5 w-5 text-red-500" />
                         <div>
                             <h3 className="font-medium">Lead No Interesado</h3>
                             <p className="text-xs text-muted-foreground">
-                                Acción cuando la intención es negativa
+                                Acción cuando la intención es negativa (cerrar lead)
                             </p>
                         </div>
                     </div>
@@ -325,6 +326,84 @@ export default function IntentionWebhookTab({
                                     />
                                 </div>
                             )}
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
+
+            {/* Sin Respuesta */}
+            <Card>
+                <div className="flex items-center justify-between border-b p-4 bg-gray-50/50">
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-amber-500" />
+                        <div>
+                            <h3 className="font-medium">Sin Respuesta</h3>
+                            <p className="text-xs text-muted-foreground">
+                                Acción cuando el lead no responde después de X intentos
+                            </p>
+                        </div>
+                    </div>
+                    <Switch
+                        checked={data.no_response_action_enabled || false}
+                        onCheckedChange={(checked) =>
+                            setData("no_response_action_enabled", checked)
+                        }
+                    />
+                </div>
+
+                {data.no_response_action_enabled && (
+                    <CardContent className="pt-6 space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="no_response_max_attempts">
+                                    Máximo de intentos
+                                </Label>
+                                <Input
+                                    id="no_response_max_attempts"
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    value={data.no_response_max_attempts || 3}
+                                    onChange={(e) =>
+                                        setData(
+                                            "no_response_max_attempts",
+                                            parseInt(e.target.value) || 3
+                                        )
+                                    }
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Intentos antes de marcar como sin respuesta
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="no_response_timeout_hours">
+                                    Timeout (horas)
+                                </Label>
+                                <Input
+                                    id="no_response_timeout_hours"
+                                    type="number"
+                                    min="1"
+                                    max="168"
+                                    value={data.no_response_timeout_hours || 48}
+                                    onChange={(e) =>
+                                        setData(
+                                            "no_response_timeout_hours",
+                                            parseInt(e.target.value) || 48
+                                        )
+                                    }
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Horas de espera antes de cerrar automáticamente
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                            <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                            <p className="text-xs text-amber-700">
+                                Cuando se cumplan las condiciones, el lead será cerrado automáticamente
+                                con motivo "NO_RESPONSE" y será visible en el tab "Cerrados".
+                            </p>
                         </div>
                     </CardContent>
                 )}

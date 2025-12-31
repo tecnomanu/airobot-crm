@@ -2,6 +2,7 @@
 
 namespace App\Models\Campaign;
 
+use App\Enums\CampaignActionType;
 use App\Enums\CampaignStatus;
 use App\Enums\CampaignStrategy;
 use App\Enums\ExportRule;
@@ -34,6 +35,11 @@ class Campaign extends Model
         'status',
         'slug',
         'auto_process_enabled',
+        'use_client_call_defaults',
+        'use_client_whatsapp_defaults',
+        'no_response_action_enabled',
+        'no_response_max_attempts',
+        'no_response_timeout_hours',
         'country',
         'strategy_type',
         'export_rule',
@@ -45,6 +51,11 @@ class Campaign extends Model
         'strategy_type' => CampaignStrategy::class,
         'export_rule' => ExportRule::class,
         'auto_process_enabled' => 'boolean',
+        'use_client_call_defaults' => 'boolean',
+        'use_client_whatsapp_defaults' => 'boolean',
+        'no_response_action_enabled' => 'boolean',
+        'no_response_max_attempts' => 'integer',
+        'no_response_timeout_hours' => 'integer',
     ];
 
     // =========================================================================
@@ -243,6 +254,147 @@ class Campaign extends Model
     public function getEnabledAIAgent(): ?\App\Models\AI\CampaignAgent
     {
         return $this->agent()->where('enabled', true)->first();
+    }
+
+    // =========================================================================
+    // RESOLVED AGENT HELPERS (Campaign → Client fallback)
+    // =========================================================================
+
+    /**
+     * Get the effective WhatsApp source (campaign-specific or client default).
+     */
+    public function getResolvedWhatsappSource(): ?Source
+    {
+        // 1. Try campaign's own WhatsApp agent source
+        if ($this->whatsappAgent && $this->whatsappAgent->enabled && $this->whatsappAgent->source) {
+            return $this->whatsappAgent->source;
+        }
+
+        // 2. Fallback to client default if flag is enabled
+        if ($this->use_client_whatsapp_defaults && $this->client?->defaultWhatsappSource) {
+            return $this->client->defaultWhatsappSource;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the effective call agent (campaign-specific or client default).
+     */
+    public function getResolvedCallAgent(): ?\App\Models\RetellAgent
+    {
+        // 1. Try campaign's own call agent
+        $campaignCallAgent = $this->getEnabledCallAgent();
+        if ($campaignCallAgent && $campaignCallAgent->retell_agent_id) {
+            return $campaignCallAgent->retellAgent;
+        }
+
+        // 2. Fallback to client default if flag is enabled
+        if ($this->use_client_call_defaults && $this->client?->defaultCallAgent) {
+            return $this->client->defaultCallAgent;
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if campaign has a resolved WhatsApp source (own or client default).
+     */
+    public function hasResolvedWhatsappSource(): bool
+    {
+        return $this->getResolvedWhatsappSource() !== null;
+    }
+
+    /**
+     * Check if campaign has a resolved call agent (own or client default).
+     */
+    public function hasResolvedCallAgent(): bool
+    {
+        return $this->getResolvedCallAgent() !== null;
+    }
+
+    /**
+     * Check if campaign is using client defaults for WhatsApp.
+     */
+    public function isUsingClientWhatsappDefaults(): bool
+    {
+        // Has no own config but has client default
+        $hasOwnSource = $this->whatsappAgent && $this->whatsappAgent->enabled && $this->whatsappAgent->source_id;
+
+        return !$hasOwnSource
+            && $this->use_client_whatsapp_defaults
+            && $this->client?->default_whatsapp_source_id !== null;
+    }
+
+    /**
+     * Check if campaign is using client defaults for call.
+     */
+    public function isUsingClientCallDefaults(): bool
+    {
+        $campaignCallAgent = $this->getEnabledCallAgent();
+        $hasOwnAgent = $campaignCallAgent && $campaignCallAgent->retell_agent_id;
+
+        return !$hasOwnAgent
+            && $this->use_client_call_defaults
+            && $this->client?->default_call_agent_id !== null;
+    }
+
+    // =========================================================================
+    // ACTIONS USED HELPERS (for conditional validation)
+    // =========================================================================
+
+    /**
+     * Get all unique action types used by this campaign.
+     * For direct campaigns: single action from option_key='0'
+     * For dynamic campaigns: all actions from enabled options
+     */
+    public function getUsedActionTypes(): array
+    {
+        $actions = [];
+
+        if ($this->isDirect()) {
+            $option = $this->getDirectOption();
+            if ($option && $option->action) {
+                $actions[] = $option->action;
+            }
+        } else {
+            // Dynamic: collect all enabled options' actions
+            foreach ($this->getEnabledOptions() as $option) {
+                if ($option->action) {
+                    $actions[] = $option->action;
+                }
+            }
+        }
+
+        return array_unique($actions, SORT_REGULAR);
+    }
+
+    /**
+     * Check if campaign uses WhatsApp action (anywhere).
+     */
+    public function usesWhatsappAction(): bool
+    {
+        foreach ($this->getUsedActionTypes() as $action) {
+            if ($action === CampaignActionType::WHATSAPP) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if campaign uses Call AI action (anywhere).
+     */
+    public function usesCallAction(): bool
+    {
+        foreach ($this->getUsedActionTypes() as $action) {
+            if ($action === CampaignActionType::CALL_AI) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

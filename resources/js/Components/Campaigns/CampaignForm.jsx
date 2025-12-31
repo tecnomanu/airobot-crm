@@ -156,6 +156,13 @@ export default function CampaignForm({
                 enabled: true,
             },
         ],
+
+        // Assignees (vendedores) - saved with campaign
+        assignee_user_ids: (defaultCampaign.assignees || []).map(a => a.user_id),
+
+        // Client defaults flags
+        use_client_call_defaults: defaultCampaign.use_client_call_defaults ?? true,
+        use_client_whatsapp_defaults: defaultCampaign.use_client_whatsapp_defaults ?? true,
     });
 
     const isDirectCampaign = data.strategy_type === "direct";
@@ -246,15 +253,15 @@ export default function CampaignForm({
                 ...baseTabs,
                 { value: "action", label: "Acción Directa", hasError: tabsWithErrors.agents },
                 { value: "assignees", label: "Vendedores", hasError: false },
-                { value: "webhooks", label: "Webhooks", hasError: false },
+                { value: "webhooks", label: "Resultados", hasError: false },
             ];
         }
         return [
             ...baseTabs,
             { value: "agents", label: "Agentes", hasError: tabsWithErrors.agents },
-            { value: "automation", label: "Automatización", hasError: tabsWithErrors.automation },
+            { value: "automation", label: "Automatización (IVR)", hasError: tabsWithErrors.automation },
             { value: "assignees", label: "Vendedores", hasError: false },
-            { value: "webhooks", label: "Webhooks", hasError: false },
+            { value: "webhooks", label: "Resultados", hasError: false },
             { value: "templates", label: "Plantillas", hasError: false },
         ];
     };
@@ -383,8 +390,11 @@ export default function CampaignForm({
                     {activeTab === "assignees" && (
                         <TabsContent value="assignees" className="mt-0">
                             <AssigneesTab
+                                data={data}
+                                setData={setData}
                                 campaign={defaultCampaign}
                                 availableUsers={available_users}
+                                errors={errors}
                             />
                         </TabsContent>
                     )}

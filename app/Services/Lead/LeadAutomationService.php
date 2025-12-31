@@ -112,14 +112,14 @@ class LeadAutomationService
         // Extract key from optionField (e.g. 'option_2_action' -> '2')
         if (preg_match('/option_(.*?)_action/', $optionField, $matches)) {
             $optionKey = $matches[1];
-            
+
             // Try getting from relation first (preferred)
             $option = $campaign->getOption($optionKey);
             if ($option && $option->source_id) {
-                 $source = $option->source;
+                $source = $option->source;
             } elseif ($option && $option->config && !empty($option->config['source_id'])) {
-                 // Fallback if source_id is in config json of the option
-                 $source = \App\Models\Integration\Source::find($option->config['source_id']);
+                // Fallback if source_id is in config json of the option
+                $source = \App\Models\Integration\Source::find($option->config['source_id']);
             } else {
                 // Fallback to JSON config on campaign
                 $optionConfig = $campaign->getConfigForOption($optionKey);
@@ -129,9 +129,9 @@ class LeadAutomationService
             }
         }
 
-        // 2. If not in option, try campaign default agent
-        if (!$source && $campaign->whatsappAgent && $campaign->whatsappAgent->source) {
-            $source = $campaign->whatsappAgent->source;
+        // 2. If not in option, try campaign resolved source (campaign -> client default)
+        if (!$source) {
+            $source = $campaign->getResolvedWhatsappSource();
         }
 
         if ($source) {
@@ -207,12 +207,14 @@ class LeadAutomationService
             Log::warning('Campaña no tiene fuente de WhatsApp configurada', [
                 'lead_id' => $lead->id,
                 'campaign_id' => $campaign->id,
+                'client_id' => $campaign->client_id,
                 'option_field' => $optionField,
+                'use_client_defaults' => $campaign->use_client_whatsapp_defaults,
             ]);
 
             throw new ValidationException(
                 'Campaña no tiene fuente de WhatsApp configurada. ' .
-                    'Configure una Source de tipo WhatsApp para esta campaña u opción.'
+                    'Configure una Source de tipo WhatsApp para esta campaña, opción, o configure un default en el Cliente.'
             );
         }
     }
