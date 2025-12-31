@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('agent_templates', function (Blueprint $table) {
@@ -17,16 +14,16 @@ return new class extends Migration
             $table->string('type'); // appointment, sales, survey, support, qualification
             $table->text('description')->nullable();
 
-            // Secciones del prompt (fijas y reutilizables)
-            $table->longText('style_section'); // Estilo de conversación, tono, regionalismo
-            $table->longText('behavior_section'); // Comportamientos obligatorios
-            $table->longText('data_section_template')->nullable(); // Template para sección de datos
+            // Prompt sections (fixed and reusable)
+            $table->longText('style_section'); // Conversation style, tone, regionalism
+            $table->longText('behavior_section'); // Required behaviors
+            $table->longText('data_section_template')->nullable(); // Template for data section
 
-            // Variables disponibles para este template
+            // Available variables for this template
             $table->json('available_variables')->nullable(); // ["company", "product", "timezone"]
 
-            // Configuración de Retell (template base)
-            $table->json('retell_config_template')->nullable(); // voice, webhooks base, tools, etc.
+            // Retell configuration (base template)
+            $table->json('retell_config_template')->nullable(); // voice, webhooks, tools, etc.
 
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -36,11 +33,9 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('agent_templates');
     }
 };
+

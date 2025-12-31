@@ -13,27 +13,30 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/Components/ui/tooltip";
+import { Link } from "@inertiajs/react";
 import {
     AlertTriangle,
     Bot,
     Calendar,
     CheckCircle,
     Clock,
-    Edit,
+    ExternalLink,
     Eye,
     Loader2,
     MessageSquare,
     MoreHorizontal,
     Pause,
     Phone,
+    PhoneCall,
     RefreshCw,
     Trash2,
     User,
     XCircle,
+    XOctagon,
 } from "lucide-react";
 
 /**
- * Stage badge component - derives visible stage from backend computed fields
+ * Stage badge component - shows persisted stage from backend
  */
 const StageBadge = ({ stage, label, color }) => {
     const colorMap = {
@@ -59,6 +62,34 @@ const StageBadge = ({ stage, label, color }) => {
 };
 
 /**
+ * Close reason badge component
+ */
+const CloseReasonBadge = ({ reason, label, color }) => {
+    const colorMap = {
+        green: "bg-green-50 text-green-700 border-green-200",
+        red: "bg-red-50 text-red-700 border-red-200",
+        orange: "bg-orange-50 text-orange-700 border-orange-200",
+        blue: "bg-blue-50 text-blue-700 border-blue-200",
+        gray: "bg-gray-50 text-gray-700 border-gray-200",
+    };
+
+    if (!reason) {
+        return <span className="text-xs text-gray-400">—</span>;
+    }
+
+    return (
+        <Badge
+            variant="outline"
+            className={`${
+                colorMap[color] || colorMap.gray
+            } text-[10px] font-medium px-2 py-0.5`}
+        >
+            {label || reason}
+        </Badge>
+    );
+};
+
+/**
  * Automation status badge - shows current automation state
  */
 const AutomationBadge = ({ status, label, color, error }) => {
@@ -68,18 +99,23 @@ const AutomationBadge = ({ status, label, color, error }) => {
         green: "bg-green-50 text-green-700 border-green-200",
         red: "bg-red-50 text-red-700 border-red-200",
         gray: "bg-gray-50 text-gray-700 border-gray-200",
+        orange: "bg-orange-50 text-orange-700 border-orange-200",
     };
 
     const iconMap = {
         pending: Clock,
-        processing: Loader2,
+        running: Loader2,
+        waiting: Clock,
+        paused: Pause,
         completed: CheckCircle,
         failed: XCircle,
         skipped: Pause,
+        // Legacy support
+        processing: Loader2,
     };
 
     const Icon = iconMap[status] || Clock;
-    const isAnimated = status === "processing";
+    const isAnimated = status === "running" || status === "processing";
 
     if (error) {
         return (
@@ -181,46 +217,66 @@ const formatNextAction = (dateString, label) => {
     const isPast = date < now;
 
     return {
-        label: label || date.toLocaleDateString("es-ES", {
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        }),
+        label:
+            label ||
+            date.toLocaleDateString("es-ES", {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+            }),
         isPast,
     };
 };
 
 /**
+ * Format phone for tel: and wa.me links
+ */
+const formatPhoneForLink = (phone) => {
+    if (!phone) return "";
+    // Remove all non-numeric characters except leading +
+    return phone.replace(/[^\d+]/g, "");
+};
+
+/**
  * Column definitions for leads table
- * Shows: NAME, STAGE, AUTOMATION, NEXT ACTION, LAST ACTIVITY, SOURCE, ACTIONS
+ * Shows: NAME (clickable), STAGE, AUTOMATION, NEXT ACTION, LAST ACTIVITY, SOURCE, ACTIONS
  */
 export const getLeadColumns = (activeTab, handlers = {}) => {
-    const { onDelete, onCall, onWhatsApp, onView, onEdit, onRetryAutomation } =
-        handlers;
+    const {
+        onDelete,
+        onView,
+        onClose,
+        onExecuteCallAI,
+        onExecuteWhatsAppAI,
+        onRetryAutomation,
+    } = handlers;
 
     // Base columns present in all views
     const baseColumns = [
-        // NAME Column - Name + Phone
+        // NAME Column - Name + Phone (clickable to detail)
         {
             accessorKey: "name",
             header: "LEAD",
             cell: ({ row }) => {
                 const lead = row.original;
                 return (
-                    <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-medium text-gray-900 truncate">
+                    <Link
+                        href={route("leads.show", lead.id)}
+                        className="flex flex-col min-w-0 group"
+                    >
+                        <span className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-600 transition-colors">
                             {lead.name || "Sin nombre"}
                         </span>
-                        <span className="text-xs text-gray-500 font-mono">
+                        <span className="text-xs text-gray-500 font-mono group-hover:text-indigo-500 transition-colors">
                             {lead.phone}
                         </span>
-                    </div>
+                    </Link>
                 );
             },
         },
 
-        // STAGE Column - Computed stage from backend
+        // STAGE Column - Persisted stage from backend
         {
             accessorKey: "stage",
             header: "ETAPA",
@@ -242,7 +298,7 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
             header: "AUTOMATIZACIÓN",
             cell: ({ row }) => {
                 const lead = row.original;
-                
+
                 if (!lead.automation_status) {
                     return <span className="text-xs text-gray-400">—</span>;
                 }
@@ -305,7 +361,12 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
             header: "FUENTE",
             cell: ({ row }) => {
                 const lead = row.original;
-                return <SourceBadge source={lead.source} label={lead.source_label} />;
+                return (
+                    <SourceBadge
+                        source={lead.source}
+                        label={lead.source_label}
+                    />
+                );
             },
         },
     ];
@@ -386,6 +447,34 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
         });
     }
 
+    // Close reason column for closed tab
+    if (activeTab === "closed") {
+        conditionalColumns.push({
+            accessorKey: "close_reason",
+            header: "MOTIVO CIERRE",
+            cell: ({ row }) => {
+                const lead = row.original;
+                return (
+                    <CloseReasonBadge
+                        reason={lead.close_reason}
+                        label={lead.close_reason_label}
+                        color={lead.close_reason_color}
+                    />
+                );
+            },
+        });
+
+        conditionalColumns.push({
+            accessorKey: "closed_at",
+            header: "CERRADO",
+            cell: ({ row }) => (
+                <span className="text-xs text-gray-500">
+                    {formatRelativeDate(row.original.closed_at)}
+                </span>
+            ),
+        });
+    }
+
     // Error details for errors tab
     if (activeTab === "errors") {
         conditionalColumns.push({
@@ -424,6 +513,9 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
         cell: ({ row }) => {
             const lead = row.original;
             const canRetry = lead.can_retry_automation;
+            const canClose = lead.can_close;
+            const canStartAutomation = lead.can_start_automation;
+            const phoneForLink = formatPhoneForLink(lead.phone);
 
             return (
                 <div
@@ -441,45 +533,71 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
                                 <span className="sr-only">Abrir menú</span>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            {/* View */}
+                        <DropdownMenuContent align="end" className="w-56">
+                            {/* View Details */}
                             <DropdownMenuItem
                                 onClick={() => onView?.(lead)}
                                 className="cursor-pointer"
                             >
                                 <Eye className="mr-2 h-4 w-4" />
-                                Ver detalles
-                            </DropdownMenuItem>
-
-                            {/* Edit */}
-                            <DropdownMenuItem
-                                onClick={() => onEdit?.(lead)}
-                                className="cursor-pointer"
-                            >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
+                                Ver detalle
                             </DropdownMenuItem>
 
                             <DropdownMenuSeparator />
 
-                            {/* Communication Actions */}
-                            <DropdownMenuItem
-                                onClick={() => onCall?.(lead)}
-                                className="cursor-pointer"
-                            >
-                                <Phone className="mr-2 h-4 w-4 text-green-600" />
-                                Llamar
+                            {/* Human Communication Actions */}
+                            <DropdownMenuItem asChild>
+                                <a
+                                    href={`tel:${phoneForLink}`}
+                                    className="flex items-center cursor-pointer"
+                                >
+                                    <Phone className="mr-2 h-4 w-4 text-green-600" />
+                                    Llamar (teléfono)
+                                    <ExternalLink className="ml-auto h-3 w-3 text-gray-400" />
+                                </a>
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem
-                                onClick={() => onWhatsApp?.(lead)}
-                                className="cursor-pointer"
-                            >
-                                <MessageSquare className="mr-2 h-4 w-4 text-blue-600" />
-                                Abrir WhatsApp
+                            <DropdownMenuItem asChild>
+                                <a
+                                    href={`https://wa.me/${phoneForLink}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center cursor-pointer"
+                                >
+                                    <MessageSquare className="mr-2 h-4 w-4 text-green-600" />
+                                    Enviar WhatsApp (humano)
+                                    <ExternalLink className="ml-auto h-3 w-3 text-gray-400" />
+                                </a>
                             </DropdownMenuItem>
 
                             <DropdownMenuSeparator />
+
+                            {/* AI Actions - with confirmation */}
+                            {canStartAutomation && (
+                                <>
+                                    <DropdownMenuItem
+                                        onClick={() => onExecuteCallAI?.(lead)}
+                                        className="cursor-pointer"
+                                    >
+                                        <PhoneCall className="mr-2 h-4 w-4 text-purple-600" />
+                                        Ejecutar Llamada IA
+                                        <Bot className="ml-auto h-3 w-3 text-purple-400" />
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            onExecuteWhatsAppAI?.(lead)
+                                        }
+                                        className="cursor-pointer"
+                                    >
+                                        <MessageSquare className="mr-2 h-4 w-4 text-purple-600" />
+                                        Ejecutar WhatsApp IA
+                                        <Bot className="ml-auto h-3 w-3 text-purple-400" />
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
 
                             {/* Retry automation - only if applicable */}
                             {canRetry && (
@@ -490,12 +608,25 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
                                         }
                                         className="cursor-pointer"
                                     >
-                                        <RefreshCw className="mr-2 h-4 w-4 text-purple-600" />
+                                        <RefreshCw className="mr-2 h-4 w-4 text-orange-600" />
                                         Reintentar automatización
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                 </>
                             )}
+
+                            {/* Close Lead - only if not closed */}
+                            {canClose && (
+                                <DropdownMenuItem
+                                    onClick={() => onClose?.(lead)}
+                                    className="cursor-pointer"
+                                >
+                                    <XOctagon className="mr-2 h-4 w-4 text-gray-600" />
+                                    Cerrar lead...
+                                </DropdownMenuItem>
+                            )}
+
+                            <DropdownMenuSeparator />
 
                             {/* Destructive */}
                             <DropdownMenuItem

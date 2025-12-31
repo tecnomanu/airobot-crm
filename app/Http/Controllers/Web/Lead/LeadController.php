@@ -2,15 +2,24 @@
 
 namespace App\Http\Controllers\Web\Lead;
 
+use App\Enums\LeadCloseReason;
 use App\Enums\LeadManagerTab;
+use App\Exceptions\Business\LeadStageException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Lead\CloseLeadRequest;
 use App\Http\Requests\Lead\StoreLeadRequest;
 use App\Http\Requests\Lead\UpdateLeadRequest;
+use App\Http\Requests\Lead\UpdateLeadStageRequest;
+use App\Http\Resources\Lead\LeadDispatchAttemptResource;
 use App\Http\Resources\Lead\LeadResource;
+use App\Models\Lead\Lead;
 use App\Models\User;
 use App\Services\Campaign\CampaignService;
 use App\Services\Client\ClientService;
 use App\Services\Lead\LeadService;
+use App\Services\LeadDispatchService;
+use App\Services\LeadStageService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,7 +31,9 @@ class LeadController extends Controller
     public function __construct(
         private LeadService $leadService,
         private CampaignService $campaignService,
-        private ClientService $clientService
+        private ClientService $clientService,
+        private LeadStageService $stageService,
+        private LeadDispatchService $dispatchService,
     ) {}
 
     /**
@@ -81,6 +92,9 @@ class LeadController extends Controller
                 $query->orderBy('created_at', 'desc')->limit(5);
             },
             'assignee',
+            'dispatchAttempts' => function ($query) {
+                $query->orderBy('created_at', 'desc')->limit(10);
+            },
         ]);
 
         // Convert resource to array directly to avoid serialization issues
@@ -89,9 +103,13 @@ class LeadController extends Controller
         // Get available users for manual assignment
         $availableUsers = User::select('id', 'name', 'email')->orderBy('name')->get();
 
+        // Get close reason options
+        $closeReasonOptions = LeadCloseReason::options();
+
         return Inertia::render('Leads/Show', [
             'lead' => $leadData,
             'available_users' => $availableUsers,
+            'close_reason_options' => $closeReasonOptions,
         ]);
     }
 
@@ -259,6 +277,197 @@ class LeadController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Error general al importar: ' . $e->getMessage());
+        }
+    }
+
+    // ==========================================
+    // STAGE & CLOSE ACTIONS
+    // ==========================================
+
+    /**
+     * Close a lead with reason and notes.
+     */
+    public function close(CloseLeadRequest $request, string $id): RedirectResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (!$lead) {
+            abort(404, 'Lead no encontrado');
+        }
+
+        try {
+            $this->stageService->closeLead(
+                $lead,
+                $request->getCloseReason(),
+                $request->getCloseNotes()
+            );
+
+            return redirect()->back()
+                ->with('success', 'Lead cerrado exitosamente');
+        } catch (LeadStageException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Update lead stage manually.
+     */
+    public function updateStage(UpdateLeadStageRequest $request, string $id): RedirectResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (!$lead) {
+            abort(404, 'Lead no encontrado');
+        }
+
+        try {
+            $this->stageService->transitionTo(
+                $lead,
+                $request->getStage(),
+                $request->getReason()
+            );
+
+            return redirect()->back()
+                ->with('success', 'Stage actualizado exitosamente');
+        } catch (LeadStageException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Mark lead as sales ready.
+     */
+    public function markSalesReady(Request $request, string $id): RedirectResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (!$lead) {
+            abort(404, 'Lead no encontrado');
+        }
+
+        try {
+            $assignToUserId = $request->input('assign_to_user_id');
+            $this->stageService->markSalesReady($lead, $assignToUserId);
+
+            return redirect()->back()
+                ->with('success', 'Lead marcado como Sales Ready');
+        } catch (LeadStageException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Reopen a closed lead.
+     */
+    public function reopen(string $id): RedirectResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (!$lead) {
+            abort(404, 'Lead no encontrado');
+        }
+
+        try {
+            $this->stageService->reopenLead($lead);
+
+            return redirect()->back()
+                ->with('success', 'Lead reabierto exitosamente');
+        } catch (LeadStageException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    // ==========================================
+    // AUTOMATION ACTIONS
+    // ==========================================
+
+    /**
+     * Start automation for a lead.
+     */
+    public function startAutomation(string $id): RedirectResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (!$lead) {
+            abort(404, 'Lead no encontrado');
+        }
+
+        try {
+            $this->stageService->startAutomation($lead);
+
+            return redirect()->back()
+                ->with('success', 'Automatización iniciada');
+        } catch (LeadStageException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Pause automation for a lead.
+     */
+    public function pauseAutomation(string $id): RedirectResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (!$lead) {
+            abort(404, 'Lead no encontrado');
+        }
+
+        try {
+            $this->stageService->pauseAutomation($lead);
+
+            return redirect()->back()
+                ->with('success', 'Automatización pausada');
+        } catch (LeadStageException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    // ==========================================
+    // DISPATCH ACTIONS
+    // ==========================================
+
+    /**
+     * Get dispatch attempts for a lead.
+     */
+    public function dispatchAttempts(string $id): JsonResponse
+    {
+        $lead = $this->leadService->getLeadById($id);
+
+        if (!$lead) {
+            abort(404, 'Lead no encontrado');
+        }
+
+        $attempts = $this->dispatchService->getAttemptsForLead($lead);
+
+        return response()->json([
+            'data' => LeadDispatchAttemptResource::collection($attempts),
+        ]);
+    }
+
+    /**
+     * Retry a failed dispatch attempt.
+     */
+    public function retryDispatch(string $attemptId): RedirectResponse
+    {
+        try {
+            $attempt = \App\Models\Lead\LeadDispatchAttempt::findOrFail($attemptId);
+            $this->dispatchService->retryDispatch($attempt);
+
+            return redirect()->back()
+                ->with('success', 'Reintento de dispatch iniciado');
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error al reintentar dispatch: ' . $e->getMessage());
         }
     }
 }

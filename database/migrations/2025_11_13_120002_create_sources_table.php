@@ -26,24 +26,20 @@ return new class extends Migration
             $table->index(['client_id', 'status']);
         });
 
-        // Add foreign keys to campaigns that reference sources
-        Schema::table('campaigns', function (Blueprint $table) {
-            $table->foreign('intention_interested_webhook_id')
-                ->references('id')->on('sources')
-                ->onDelete('set null');
-            $table->foreign('intention_not_interested_webhook_id')
-                ->references('id')->on('sources')
-                ->onDelete('set null');
+        // Add FK from clients to sources for default_whatsapp_source_id
+        Schema::table('clients', function (Blueprint $table) {
+            $table->foreign('default_whatsapp_source_id')
+                ->references('id')
+                ->on('sources')
+                ->nullOnDelete();
         });
     }
 
     public function down(): void
     {
-        Schema::table('campaigns', function (Blueprint $table) {
-            $table->dropForeign(['intention_interested_webhook_id']);
-            $table->dropForeign(['intention_not_interested_webhook_id']);
+        Schema::table('clients', function (Blueprint $table) {
+            $table->dropForeign(['default_whatsapp_source_id']);
         });
-
         Schema::dropIfExists('sources');
     }
 };

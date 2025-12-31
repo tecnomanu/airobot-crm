@@ -13,7 +13,7 @@ return new class extends Migration
      * Uses polymorphic relations to link to specific event types:
      * - LeadCall: Phone call details
      * - LeadMessage: WhatsApp/SMS messages
-     * - (Future) LeadNote, LeadStatusChange, etc.
+     * - (Future) LeadNote, LeadStageChange, etc.
      */
     public function up(): void
     {

@@ -17,8 +17,18 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            // Role and seller fields
+            $table->string('role')->default('user'); // admin, supervisor, user
+            $table->boolean('is_seller')->default(false);
+            $table->string('status')->default('active'); // active, inactive
+            $table->uuid('client_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
+
+            // Indexes
+            $table->index(['client_id', 'is_seller']);
+            $table->index('role');
+            $table->index('status');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

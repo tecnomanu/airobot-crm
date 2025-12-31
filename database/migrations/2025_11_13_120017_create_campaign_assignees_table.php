@@ -6,11 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Campaign sellers assignment (round-robin pool)
         Schema::create('campaign_assignees', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('campaign_id')->constrained()->cascadeOnDelete();
@@ -33,12 +31,10 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('campaign_assignment_cursors');
         Schema::dropIfExists('campaign_assignees');
     }
 };
+

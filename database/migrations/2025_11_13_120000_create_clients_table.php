@@ -17,16 +17,29 @@ return new class extends Migration
             $table->json('billing_info')->nullable();
             $table->string('status')->default('active'); // active, inactive
             $table->text('notes')->nullable();
+            // Default agents - FK added later in separate migration after sources table exists
+            $table->uuid('default_whatsapp_source_id')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
 
             $table->index('email');
             $table->index('status');
         });
+
+        // Add FK from users to clients (circular dependency)
+        Schema::table('users', function (Blueprint $table) {
+            $table->foreign('client_id')
+                ->references('id')
+                ->on('clients')
+                ->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropForeign(['client_id']);
+        });
         Schema::dropIfExists('clients');
     }
 };

@@ -12,8 +12,8 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->uuid('campaign_id');
             $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade');
-            $table->string('option_key'); // 1, 2, i, t
-            $table->string('action'); // webhook, whatsapp, none, etc.
+            $table->string('option_key'); // 0 (direct), 1, 2, i, t
+            $table->string('action'); // webhook, whatsapp, call, skip, none
             $table->uuid('source_id')->nullable();
             $table->foreign('source_id')->references('id')->on('sources')->nullOnDelete();
             $table->uuid('template_id')->nullable();

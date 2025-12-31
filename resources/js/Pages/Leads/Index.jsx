@@ -7,6 +7,8 @@ import DataTableFilters from "@/Components/ui/data-table-filters";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/Components/ui/dialog";
@@ -19,6 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/Components/ui/select";
+import { Textarea } from "@/Components/ui/textarea";
 import AppLayout from "@/Layouts/AppLayout";
 import {
     hasNotificationPermission,
@@ -30,12 +33,14 @@ import { Head, router, useForm } from "@inertiajs/react";
 import {
     AlertTriangle,
     Archive,
+    Bot,
     CheckCircle,
     Clock,
     FileUp,
     Inbox,
     Plus,
     TrendingUp,
+    XOctagon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -56,6 +61,36 @@ export default function LeadsIndex({
         id: null,
         name: "",
     });
+    const [closeLeadDialog, setCloseLeadDialog] = useState({
+        open: false,
+        lead: null,
+    });
+    const [aiConfirmDialog, setAiConfirmDialog] = useState({
+        open: false,
+        lead: null,
+        type: null, // 'call' | 'whatsapp'
+    });
+
+    // Close lead form
+    const closeLeadForm = useForm({
+        close_reason: "",
+        close_notes: "",
+    });
+
+    // Close reason options
+    const closeReasonOptions = [
+        { value: "interested", label: "Interesado", color: "green" },
+        { value: "qualified", label: "Calificado", color: "green" },
+        { value: "converted", label: "Convertido", color: "green" },
+        { value: "not_interested", label: "No Interesado", color: "red" },
+        { value: "disqualified", label: "Descalificado", color: "red" },
+        { value: "no_response", label: "Sin Respuesta", color: "orange" },
+        { value: "invalid_number", label: "Número Inválido", color: "orange" },
+        { value: "dnc", label: "No Contactar", color: "red" },
+        { value: "callback_requested", label: "Solicita Callback", color: "blue" },
+        { value: "duplicate", label: "Duplicado", color: "gray" },
+        { value: "other", label: "Otro", color: "gray" },
+    ];
 
     const { data, setData, post, processing, errors, reset } = useForm({
         phone: "",
@@ -250,9 +285,63 @@ export default function LeadsIndex({
         router.visit(route("leads.show", lead.id));
     };
 
-    const handleEdit = (lead) => {
-        // TODO: Implement edit modal or redirect to edit page
-        router.visit(route("leads.show", lead.id));
+    const handleClose = (lead) => {
+        closeLeadForm.reset();
+        setCloseLeadDialog({ open: true, lead });
+    };
+
+    const handleCloseSubmit = () => {
+        const lead = closeLeadDialog.lead;
+        if (!lead) return;
+
+        closeLeadForm.post(route("leads.close", lead.id), {
+            onSuccess: () => {
+                setCloseLeadDialog({ open: false, lead: null });
+                closeLeadForm.reset();
+                toast.success("Lead cerrado exitosamente");
+            },
+            onError: (errors) => {
+                toast.error("Error al cerrar el lead", {
+                    description: errors.close_reason || errors.error || "Verifica los campos",
+                });
+            },
+        });
+    };
+
+    const handleExecuteCallAI = (lead) => {
+        setAiConfirmDialog({ open: true, lead, type: "call" });
+    };
+
+    const handleExecuteWhatsAppAI = (lead) => {
+        setAiConfirmDialog({ open: true, lead, type: "whatsapp" });
+    };
+
+    const confirmAIExecution = () => {
+        const { lead, type } = aiConfirmDialog;
+        if (!lead || !type) return;
+
+        const routeName = type === "call" ? "leads.automation.start" : "leads.automation.start";
+
+        router.post(
+            route(routeName, lead.id),
+            {},
+            {
+                onSuccess: () => {
+                    toast.success(
+                        type === "call"
+                            ? "Llamada IA iniciada"
+                            : "WhatsApp IA iniciado"
+                    );
+                },
+                onError: (errors) => {
+                    toast.error("Error al ejecutar automatización", {
+                        description: errors.error || "No se pudo iniciar la automatización",
+                    });
+                },
+            }
+        );
+
+        setAiConfirmDialog({ open: false, lead: null, type: null });
     };
 
     const handleDelete = (lead) => {
@@ -273,36 +362,6 @@ export default function LeadsIndex({
             },
         });
         setDeleteDialog({ open: false, id: null, name: "" });
-    };
-
-    const handleCall = (lead) => {
-        router.post(
-            route("leads.call-action", lead.id),
-            {},
-            {
-                onSuccess: () => {
-                    toast.success("Llamada iniciada");
-                },
-                onError: () => {
-                    toast.error("Error al iniciar la llamada");
-                },
-            }
-        );
-    };
-
-    const handleWhatsApp = (lead) => {
-        router.post(
-            route("leads.whatsapp-action", lead.id),
-            {},
-            {
-                onSuccess: () => {
-                    toast.success("WhatsApp enviado");
-                },
-                onError: () => {
-                    toast.error("Error al enviar WhatsApp");
-                },
-            }
-        );
     };
 
     const handleRetryAutomation = (lead) => {
@@ -393,10 +452,10 @@ export default function LeadsIndex({
     // Get columns with all handlers
     const columns = getLeadColumns(activeTab, {
         onView: handleView,
-        onEdit: handleEdit,
         onDelete: handleDelete,
-        onCall: handleCall,
-        onWhatsApp: handleWhatsApp,
+        onClose: handleClose,
+        onExecuteCallAI: handleExecuteCallAI,
+        onExecuteWhatsAppAI: handleExecuteWhatsAppAI,
         onRetryAutomation: handleRetryAutomation,
     });
 
@@ -775,6 +834,146 @@ export default function LeadsIndex({
                 ]}
                 entityName="Leads"
                 title="Importar Leads"
+            />
+
+            {/* Close Lead Modal */}
+            <Dialog
+                open={closeLeadDialog.open}
+                onOpenChange={(open) =>
+                    setCloseLeadDialog({ ...closeLeadDialog, open })
+                }
+            >
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <XOctagon className="h-5 w-5 text-gray-600" />
+                            Cerrar Lead
+                        </DialogTitle>
+                        <DialogDescription>
+                            Selecciona un motivo de cierre para{" "}
+                            <span className="font-medium">
+                                {closeLeadDialog.lead?.name || closeLeadDialog.lead?.phone}
+                            </span>
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="close_reason">Motivo de cierre *</Label>
+                            <Select
+                                value={closeLeadForm.data.close_reason}
+                                onValueChange={(value) =>
+                                    closeLeadForm.setData("close_reason", value)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona un motivo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {closeReasonOptions.map((option) => (
+                                        <SelectItem
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span
+                                                    className={`h-2 w-2 rounded-full ${
+                                                        option.color === "green"
+                                                            ? "bg-green-500"
+                                                            : option.color === "red"
+                                                            ? "bg-red-500"
+                                                            : option.color === "orange"
+                                                            ? "bg-orange-500"
+                                                            : option.color === "blue"
+                                                            ? "bg-blue-500"
+                                                            : "bg-gray-500"
+                                                    }`}
+                                                />
+                                                {option.label}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {closeLeadForm.errors.close_reason && (
+                                <p className="text-sm text-red-500">
+                                    {closeLeadForm.errors.close_reason}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="close_notes">Notas (opcional)</Label>
+                            <Textarea
+                                id="close_notes"
+                                placeholder="Agrega notas adicionales sobre el cierre..."
+                                value={closeLeadForm.data.close_notes}
+                                onChange={(e) =>
+                                    closeLeadForm.setData("close_notes", e.target.value)
+                                }
+                                rows={3}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                                setCloseLeadDialog({ open: false, lead: null })
+                            }
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleCloseSubmit}
+                            disabled={
+                                closeLeadForm.processing ||
+                                !closeLeadForm.data.close_reason
+                            }
+                        >
+                            {closeLeadForm.processing ? "Cerrando..." : "Cerrar Lead"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* AI Execution Confirmation Modal */}
+            <ConfirmDialog
+                open={aiConfirmDialog.open}
+                onOpenChange={(open) =>
+                    setAiConfirmDialog({ ...aiConfirmDialog, open })
+                }
+                onConfirm={confirmAIExecution}
+                title={
+                    aiConfirmDialog.type === "call"
+                        ? "¿Ejecutar Llamada IA?"
+                        : "¿Ejecutar WhatsApp IA?"
+                }
+                description={
+                    <div className="space-y-2">
+                        <p>
+                            Estás a punto de iniciar una automatización IA para{" "}
+                            <span className="font-medium">
+                                {aiConfirmDialog.lead?.name || aiConfirmDialog.lead?.phone}
+                            </span>
+                        </p>
+                        <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                            <Bot className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                            <p className="text-sm text-amber-800">
+                                Esta acción tiene costo asociado y no se puede deshacer.
+                            </p>
+                        </div>
+                    </div>
+                }
+                confirmText={
+                    aiConfirmDialog.type === "call"
+                        ? "Ejecutar Llamada"
+                        : "Ejecutar WhatsApp"
+                }
+                cancelText="Cancelar"
+                variant="default"
             />
         </AppLayout>
     );

@@ -1,5 +1,15 @@
+import ConfirmDialog from "@/Components/Common/ConfirmDialog";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/Components/ui/dialog";
+import { Label } from "@/Components/ui/label";
 import {
     Select,
     SelectContent,
@@ -8,12 +18,14 @@ import {
     SelectValue,
 } from "@/Components/ui/select";
 import { ScrollArea } from "@/Components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
+import { Textarea } from "@/Components/ui/textarea";
 import AppLayout from "@/Layouts/AppLayout";
 import { Head, Link, router, useForm } from "@inertiajs/react";
 import {
+    AlertTriangle,
     Bot,
     Brain,
+    CheckCircle,
     CheckCircle2,
     Clock,
     ExternalLink,
@@ -23,13 +35,14 @@ import {
     Phone,
     Play,
     PlayCircle,
+    RefreshCw,
     Rocket,
     Send,
     Sparkles,
-    StickyNote,
     User,
     UserPlus,
     XCircle,
+    XOctagon,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -109,18 +122,39 @@ const AutomationControl = ({ lead, isActive, onToggle }) => {
     );
 };
 
-export default function LeadShow({ lead, available_users = [] }) {
+export default function LeadShow({ lead, available_users = [], close_reason_options = [] }) {
     const [automationActive, setAutomationActive] = useState(
         lead.ai_agent_active ?? true
     );
     const [timelineFilter, setTimelineFilter] = useState("all");
     const [isAssigning, setIsAssigning] = useState(false);
     const [currentAssignee, setCurrentAssignee] = useState(lead.assignee);
+    const [closeModalOpen, setCloseModalOpen] = useState(false);
 
     const { data, setData, put, processing } = useForm({
         manual_classification: lead.manual_classification || "",
         decision_notes: lead.decision_notes || "",
     });
+
+    const closeLeadForm = useForm({
+        close_reason: "",
+        close_notes: "",
+    });
+
+    // Default close reason options if not provided
+    const closeReasonOptions = close_reason_options.length > 0 ? close_reason_options : [
+        { value: "interested", label: "Interesado", color: "green" },
+        { value: "qualified", label: "Calificado", color: "green" },
+        { value: "converted", label: "Convertido", color: "green" },
+        { value: "not_interested", label: "No Interesado", color: "red" },
+        { value: "disqualified", label: "Descalificado", color: "red" },
+        { value: "no_response", label: "Sin Respuesta", color: "orange" },
+        { value: "invalid_number", label: "Número Inválido", color: "orange" },
+        { value: "dnc", label: "No Contactar", color: "red" },
+        { value: "callback_requested", label: "Solicita Callback", color: "blue" },
+        { value: "duplicate", label: "Duplicado", color: "gray" },
+        { value: "other", label: "Otro", color: "gray" },
+    ];
 
     const formatDate = (dateString) => {
         if (!dateString) return "";
@@ -172,6 +206,45 @@ export default function LeadShow({ lead, available_users = [] }) {
                 },
             }
         );
+    };
+
+    const handleCloseLead = () => {
+        closeLeadForm.post(route("leads.close", lead.id), {
+            onSuccess: () => {
+                setCloseModalOpen(false);
+                closeLeadForm.reset();
+                toast.success("Lead cerrado exitosamente");
+            },
+            onError: (errors) => {
+                toast.error("Error al cerrar el lead", {
+                    description: errors.close_reason || "Verifica los campos",
+                });
+            },
+        });
+    };
+
+    const handleRetryDispatch = (attemptId) => {
+        router.post(route("dispatch-attempts.retry", attemptId), {}, {
+            onSuccess: () => {
+                toast.success("Reintento de dispatch iniciado");
+            },
+            onError: () => {
+                toast.error("Error al reintentar dispatch");
+            },
+        });
+    };
+
+    const handleReopenLead = () => {
+        router.post(route("leads.reopen", lead.id), {}, {
+            onSuccess: () => {
+                toast.success("Lead reabierto");
+            },
+            onError: (errors) => {
+                toast.error("Error al reabrir el lead", {
+                    description: errors.error || "No se pudo reabrir",
+                });
+            },
+        });
     };
 
     const handleAssignLead = async (userId) => {
@@ -428,23 +501,47 @@ export default function LeadShow({ lead, available_users = [] }) {
                 },
                 actions: (
                     <div className="flex items-center gap-2">
-                        <AutomationControl
-                            lead={lead}
-                            isActive={automationActive}
-                            onToggle={toggleAutomation}
-                        />
+                        {!lead.is_closed && (
+                            <AutomationControl
+                                lead={lead}
+                                isActive={automationActive}
+                                onToggle={toggleAutomation}
+                            />
+                        )}
 
                         <Link
                             href={route("messages.index", { lead_id: lead.id })}
                         >
                             <Button
                                 size="sm"
-                                className="h-7 text-xs bg-indigo-600 hover:bg-indigo-700"
+                                variant="outline"
+                                className="h-7 text-xs"
                             >
                                 <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
                                 Abrir Chat
                             </Button>
                         </Link>
+
+                        {lead.can_close ? (
+                            <Button
+                                size="sm"
+                                onClick={() => setCloseModalOpen(true)}
+                                className="h-7 text-xs bg-gray-800 hover:bg-gray-900"
+                            >
+                                <XOctagon className="h-3.5 w-3.5 mr-1.5" />
+                                Cerrar Lead
+                            </Button>
+                        ) : (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleReopenLead}
+                                className="h-7 text-xs"
+                            >
+                                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                                Reabrir
+                            </Button>
+                        )}
                     </div>
                 ),
             }}
@@ -663,69 +760,169 @@ export default function LeadShow({ lead, available_users = [] }) {
                         </div>
                     </div>
 
-                    {/* Outcome & Decision */}
-                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <h3 className="text-sm font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100">
-                            Resultado y Decisión
-                        </h3>
-                        <form onSubmit={handleSaveDecision} className="space-y-3">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Clasificación Manual
-                                </label>
-                                <Select
-                                    value={data.manual_classification}
-                                    onValueChange={(value) =>
-                                        setData("manual_classification", value)
-                                    }
-                                >
-                                    <SelectTrigger className="h-8 text-xs border-gray-300">
-                                        <SelectValue placeholder="Seleccionar estado..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="interested">
-                                            Interesado
-                                        </SelectItem>
-                                        <SelectItem value="not_interested">
-                                            No Interesado
-                                        </SelectItem>
-                                        <SelectItem value="callback">
-                                            Solicita Callback
-                                        </SelectItem>
-                                        <SelectItem value="qualified">
-                                            Calificado
-                                        </SelectItem>
-                                        <SelectItem value="disqualified">
-                                            Descalificado
-                                        </SelectItem>
-                                        <SelectItem value="no_answer">
-                                            Sin Respuesta
-                                        </SelectItem>
-                                        <SelectItem value="wrong_number">
-                                            Número Incorrecto
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
+                    {/* Close Info (if closed) */}
+                    {lead.is_closed && (
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <h3 className="text-sm font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100 flex items-center gap-2">
+                                <XOctagon className="h-4 w-4 text-gray-500" />
+                                Información de Cierre
+                            </h3>
+                            <div className="space-y-2 text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Motivo</span>
+                                    <span className={`font-medium ${
+                                        lead.close_reason_color === "green" ? "text-green-600" :
+                                        lead.close_reason_color === "red" ? "text-red-600" :
+                                        "text-gray-800"
+                                    }`}>
+                                        {lead.close_reason_label || lead.close_reason}
+                                    </span>
+                                </div>
+                                {lead.closed_at && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Cerrado el</span>
+                                        <span className="font-medium text-gray-800">
+                                            {formatDateTime(lead.closed_at)}
+                                        </span>
+                                    </div>
+                                )}
+                                {lead.close_notes && (
+                                    <div className="mt-2">
+                                        <span className="text-gray-500 block mb-1">Notas</span>
+                                        <p className="text-gray-700 bg-white p-2 rounded border border-gray-200 text-[11px]">
+                                            {lead.close_notes}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-                            <textarea
-                                className="w-full border border-gray-300 rounded-md shadow-sm text-xs p-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                placeholder="Agregar notas sobre la decisión..."
-                                rows={3}
-                                value={data.decision_notes}
-                                onChange={(e) =>
-                                    setData("decision_notes", e.target.value)
-                                }
-                            />
-                            <Button
-                                type="submit"
-                                size="sm"
-                                className="w-full h-8 text-xs bg-gray-800 hover:bg-gray-900"
-                                disabled={processing}
-                            >
-                                Guardar Decisión
-                            </Button>
-                        </form>
-                    </div>
+                        </div>
+                    )}
+
+                    {/* Outcome & Decision (only if not closed) */}
+                    {!lead.is_closed && (
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <h3 className="text-sm font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100">
+                                Resultado y Decisión
+                            </h3>
+                            <form onSubmit={handleSaveDecision} className="space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Clasificación Manual
+                                    </label>
+                                    <Select
+                                        value={data.manual_classification}
+                                        onValueChange={(value) =>
+                                            setData("manual_classification", value)
+                                        }
+                                    >
+                                        <SelectTrigger className="h-8 text-xs border-gray-300">
+                                            <SelectValue placeholder="Seleccionar estado..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="interested">
+                                                Interesado
+                                            </SelectItem>
+                                            <SelectItem value="not_interested">
+                                                No Interesado
+                                            </SelectItem>
+                                            <SelectItem value="callback">
+                                                Solicita Callback
+                                            </SelectItem>
+                                            <SelectItem value="qualified">
+                                                Calificado
+                                            </SelectItem>
+                                            <SelectItem value="disqualified">
+                                                Descalificado
+                                            </SelectItem>
+                                            <SelectItem value="no_answer">
+                                                Sin Respuesta
+                                            </SelectItem>
+                                            <SelectItem value="wrong_number">
+                                                Número Incorrecto
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <textarea
+                                    className="w-full border border-gray-300 rounded-md shadow-sm text-xs p-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Agregar notas sobre la decisión..."
+                                    rows={3}
+                                    value={data.decision_notes}
+                                    onChange={(e) =>
+                                        setData("decision_notes", e.target.value)
+                                    }
+                                />
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    className="w-full h-8 text-xs bg-gray-800 hover:bg-gray-900"
+                                    disabled={processing}
+                                >
+                                    Guardar Decisión
+                                </Button>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* Dispatch Attempts (if any) */}
+                    {lead.dispatch_attempts && lead.dispatch_attempts.length > 0 && (
+                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <h3 className="text-sm font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-100">
+                                Envíos a Sistemas Externos
+                            </h3>
+                            <div className="space-y-2">
+                                {lead.dispatch_attempts.map((attempt) => (
+                                    <div
+                                        key={attempt.id}
+                                        className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
+                                            attempt.status === "success"
+                                                ? "bg-green-50 border-green-200"
+                                                : attempt.status === "failed"
+                                                ? "bg-red-50 border-red-200"
+                                                : "bg-gray-50 border-gray-200"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {attempt.status === "success" ? (
+                                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                            ) : attempt.status === "failed" ? (
+                                                <AlertTriangle className="h-4 w-4 text-red-600" />
+                                            ) : (
+                                                <Clock className="h-4 w-4 text-gray-500" />
+                                            )}
+                                            <div>
+                                                <span className="font-medium">
+                                                    {attempt.type_label}
+                                                </span>
+                                                <span className="text-gray-500 ml-2">
+                                                    {attempt.trigger_label}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`font-medium ${
+                                                attempt.status === "success" ? "text-green-700" :
+                                                attempt.status === "failed" ? "text-red-700" :
+                                                "text-gray-700"
+                                            }`}>
+                                                {attempt.status_label}
+                                            </span>
+                                            {attempt.can_retry && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => handleRetryDispatch(attempt.id)}
+                                                    className="h-6 w-6 p-0"
+                                                >
+                                                    <RefreshCw className="h-3 w-3" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Timeline / History */}
@@ -928,6 +1125,102 @@ export default function LeadShow({ lead, available_users = [] }) {
                     </ScrollArea>
                 </div>
             </div>
+
+            {/* Close Lead Modal */}
+            <Dialog open={closeModalOpen} onOpenChange={setCloseModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <XOctagon className="h-5 w-5 text-gray-600" />
+                            Cerrar Lead
+                        </DialogTitle>
+                        <DialogDescription>
+                            Selecciona un motivo de cierre para{" "}
+                            <span className="font-medium">
+                                {lead.name || lead.phone}
+                            </span>
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="close_reason">Motivo de cierre *</Label>
+                            <Select
+                                value={closeLeadForm.data.close_reason}
+                                onValueChange={(value) =>
+                                    closeLeadForm.setData("close_reason", value)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona un motivo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {closeReasonOptions.map((option) => (
+                                        <SelectItem
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span
+                                                    className={`h-2 w-2 rounded-full ${
+                                                        option.color === "green"
+                                                            ? "bg-green-500"
+                                                            : option.color === "red"
+                                                            ? "bg-red-500"
+                                                            : option.color === "orange"
+                                                            ? "bg-orange-500"
+                                                            : option.color === "blue"
+                                                            ? "bg-blue-500"
+                                                            : "bg-gray-500"
+                                                    }`}
+                                                />
+                                                {option.label}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {closeLeadForm.errors.close_reason && (
+                                <p className="text-sm text-red-500">
+                                    {closeLeadForm.errors.close_reason}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="close_notes">Notas (opcional)</Label>
+                            <Textarea
+                                id="close_notes"
+                                placeholder="Agrega notas adicionales sobre el cierre..."
+                                value={closeLeadForm.data.close_notes}
+                                onChange={(e) =>
+                                    closeLeadForm.setData("close_notes", e.target.value)
+                                }
+                                rows={3}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setCloseModalOpen(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleCloseLead}
+                            disabled={
+                                closeLeadForm.processing ||
+                                !closeLeadForm.data.close_reason
+                            }
+                        >
+                            {closeLeadForm.processing ? "Cerrando..." : "Cerrar Lead"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

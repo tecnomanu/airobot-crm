@@ -29,4 +29,3 @@ return new class extends Migration
         Schema::dropIfExists('campaign_whatsapp_templates');
     }
 };
-

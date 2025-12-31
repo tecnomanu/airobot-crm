@@ -41,11 +41,29 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [LeadController::class, 'store'])->name('store');
         Route::put('/{id}', [LeadController::class, 'update'])->name('update');
         Route::delete('/{id}', [LeadController::class, 'destroy'])->name('destroy');
+
+        // Stage & Close actions
+        Route::post('/{id}/close', [LeadController::class, 'close'])->name('close');
+        Route::post('/{id}/stage', [LeadController::class, 'updateStage'])->name('update-stage');
+        Route::post('/{id}/sales-ready', [LeadController::class, 'markSalesReady'])->name('sales-ready');
+        Route::post('/{id}/reopen', [LeadController::class, 'reopen'])->name('reopen');
+
+        // Automation actions
+        Route::post('/{id}/automation/start', [LeadController::class, 'startAutomation'])->name('automation.start');
+        Route::post('/{id}/automation/pause', [LeadController::class, 'pauseAutomation'])->name('automation.pause');
         Route::post('/{id}/retry-automation', [LeadController::class, 'retryAutomation'])->name('retry-automation');
         Route::post('/retry-automation-batch', [LeadController::class, 'retryAutomationBatch'])->name('retry-automation-batch');
+
+        // Dispatch actions
+        Route::get('/{id}/dispatch-attempts', [LeadController::class, 'dispatchAttempts'])->name('dispatch-attempts');
+
+        // Legacy quick actions
         Route::post('/{id}/call', [LeadController::class, 'initiateCall'])->name('call-action');
         Route::post('/{id}/whatsapp', [LeadController::class, 'initiateWhatsapp'])->name('whatsapp-action');
     });
+
+    // Dispatch attempt retry (separate from lead routes)
+    Route::post('/dispatch-attempts/{id}/retry', [LeadController::class, 'retryDispatch'])->name('dispatch-attempts.retry');
 
     // Campaigns
     Route::prefix('campaigns')->name('campaigns.')->group(function () {

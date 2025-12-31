@@ -14,7 +14,7 @@ return new class extends Migration
             $table->uuid('client_id')->nullable();
             $table->foreign('client_id')->references('id')->on('clients')->nullOnDelete();
             $table->string('name')->default('Hoja sin título');
-            $table->json('data')->nullable()->comment('Datos de las celdas: {cellId: {value, formula, style}}');
+            $table->json('data')->nullable()->comment('Cell data: {cellId: {value, formula, style}}');
             $table->json('last_cursor_position')->nullable()->comment('{row, col}');
             $table->json('column_widths')->nullable()->comment('{A: 120, B: 200, ...}');
             $table->json('row_heights')->nullable()->comment('{1: 25, 2: 50, ...}');
