@@ -1,13 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\Lead\LeadCallController;
 use App\Http\Controllers\Api\CallProviderWebhookController;
-use App\Http\Controllers\Api\Campaign\CampaignController;
-use App\Http\Controllers\Api\Client\ClientController;
-use App\Http\Controllers\Api\Client\ClientDispatchController;
-use App\Http\Controllers\Api\CalculatorController;
-use App\Http\Controllers\Api\Lead\LeadController;
-use App\Http\Controllers\Api\Reporting\ReportingController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WebhookEventController;
 use App\Http\Controllers\Api\WebhookWhatsappController;
@@ -15,16 +8,18 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| AIRobot API Routes
+| AIRobot API Routes - External Webhooks Only
 |--------------------------------------------------------------------------
 |
-| Estructura clara y organizada:
+| This file contains ONLY stateless external webhook endpoints.
+| These endpoints receive data from external systems (n8n, telephony
+| providers, WhatsApp, etc.) and are validated by token header.
 |
 | 📥 WEBHOOKS EXTERNOS (Sin autenticación, validados por token)
 |    → /api/webhooks/* - Reciben datos de sistemas externos
 |
-| 🔐 API ADMINISTRATIVA (Requiere Sanctum)
-|    → /api/admin/* - Panel administrativo y operaciones internas
+| 🔐 PANEL API (Internal JSON endpoints)
+|    → /panel-api/* - See routes/panel.php (uses web session auth)
 |
 | 📊 DOCUMENTACIÓN
 |    → Scramble: http://localhost:8001/docs/api
@@ -87,111 +82,6 @@ Route::prefix('webhooks')
 Route::get('/webhooks/events', [WebhookEventController::class, 'listEvents'])
     ->name('webhooks.events.list');
 
-// ╔══════════════════════════════════════════════════════════════════════════╗
-// ║                    🔐 API ADMINISTRATIVA (Protegida)                     ║
-// ║                                                                          ║
-// ║  Operaciones internas del panel administrativo.                        ║
-// ║  Requiere autenticación con Sanctum (Bearer Token).                    ║
-// ╚══════════════════════════════════════════════════════════════════════════╝
-
-Route::prefix('admin')
-    ->middleware(['web', 'auth'])
-    ->name('api.admin.')
-    ->group(function () {
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 👥 LEADS - Gestión de leads
-        // ─────────────────────────────────────────────────────────────────────
-
-        Route::apiResource('leads', LeadController::class);
-        // Lead activities (timeline with calls, messages, etc.)
-        Route::get('leads/{lead}/activities', [LeadController::class, 'activities'])
-            ->name('leads.activities');
-
-        // @deprecated - Use leads/{lead}/activities instead
-        Route::get('leads/{lead}/interactions', [LeadController::class, 'interactions'])
-            ->name('leads.interactions');
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 📢 CAMPAÑAS - Gestión de campañas y templates
-        // ─────────────────────────────────────────────────────────────────────
-
-        Route::apiResource('campaigns', CampaignController::class);
-
-        // Templates de WhatsApp por campaña
-        Route::prefix('campaigns/{campaignId}')->name('campaigns.')->group(function () {
-            Route::get('templates', [CampaignController::class, 'getTemplates'])
-                ->name('templates.index');
-            Route::post('templates', [CampaignController::class, 'storeTemplate'])
-                ->name('templates.store');
-            Route::put('templates/{templateId}', [CampaignController::class, 'updateTemplate'])
-                ->name('templates.update');
-            Route::delete('templates/{templateId}', [CampaignController::class, 'destroyTemplate'])
-                ->name('templates.destroy');
-        });
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 🏢 CLIENTES - Gestión de clientes
-        // ─────────────────────────────────────────────────────────────────────
-
-        Route::apiResource('clients', ClientController::class);
-
-        // Dispatch de leads a cliente
-        Route::prefix('clients/{client}')->name('clients.')->group(function () {
-            Route::post('leads/{lead}/dispatch', [ClientDispatchController::class, 'dispatch'])
-                ->name('leads.dispatch');
-            Route::get('leads/{lead}/dispatch-status', [ClientDispatchController::class, 'status'])
-                ->name('leads.dispatch.status');
-        });
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 📞 LLAMADAS DE LEADS - Solo lectura
-        // ─────────────────────────────────────────────────────────────────────
-
-        Route::prefix('lead-calls')->name('lead-calls.')->group(function () {
-            Route::get('/', [LeadCallController::class, 'index'])->name('index');
-            Route::get('/{id}', [LeadCallController::class, 'show'])->name('show');
-        });
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 📊 REPORTES Y MÉTRICAS
-        // ─────────────────────────────────────────────────────────────────────
-
-        Route::prefix('reporting')->name('reporting.')->group(function () {
-            // Métricas globales del dashboard
-            Route::get('metrics', [ReportingController::class, 'globalMetrics'])
-                ->name('metrics');
-
-            // Rendimiento de campañas
-            Route::get('campaigns/performance', [ReportingController::class, 'campaignPerformance'])
-                ->name('campaigns.performance');
-
-            // Reportes por cliente
-            Route::get('clients/{client}/overview', [ReportingController::class, 'clientOverview'])
-                ->name('clients.overview');
-            Route::get('clients/{client}/monthly-summary', [ReportingController::class, 'clientMonthlySummary'])
-                ->name('clients.monthly');
-        });
-
-        // ─────────────────────────────────────────────────────────────────────
-        // 🧮 CALCULATOR - Gestión de hojas de cálculo
-        // ─────────────────────────────────────────────────────────────────────
-
-        Route::prefix('calculator')->name('calculator.')->group(function () {
-            Route::get('/', [CalculatorController::class, 'index'])->name('index');
-            Route::post('/', [CalculatorController::class, 'store'])->name('store');
-            Route::get('/{id}', [CalculatorController::class, 'show'])->name('show');
-            Route::put('/{id}/name', [CalculatorController::class, 'updateName'])->name('update-name');
-            Route::put('/{id}/state', [CalculatorController::class, 'saveState'])->name('save-state');
-            Route::delete('/{id}', [CalculatorController::class, 'destroy'])->name('destroy');
-            
-            // Endpoints granulares con event sourcing
-            Route::post('/{id}/cells', [CalculatorController::class, 'updateCells'])->name('update-cells');
-            Route::put('/{id}/columns/{column}/width', [CalculatorController::class, 'updateColumnWidth'])->name('update-column-width');
-            Route::put('/{id}/rows/{row}/height', [CalculatorController::class, 'updateRowHeight'])->name('update-row-height');
-            Route::post('/{id}/cursor', [CalculatorController::class, 'moveCursor'])->name('move-cursor');
-        });
-    });
 
 // ╔══════════════════════════════════════════════════════════════════════════╗
 // ║                          🛡️ NOTAS DE SEGURIDAD                           ║
@@ -199,45 +89,37 @@ Route::prefix('admin')
 
 /*
 |--------------------------------------------------------------------------
-| 1. 📥 WEBHOOKS EXTERNOS (/api/webhooks/*)
+| 📥 WEBHOOKS EXTERNOS (/api/webhooks/*)
 |--------------------------------------------------------------------------
 |
-| Autenticación: Header X-Webhook-Token
-| Configuración: .env → WEBHOOK_TOKEN=tu_token_secreto
-| Generar token: php artisan webhook:generate-token --show
+| Authentication: Header X-Webhook-Token
+| Configuration: .env → WEBHOOK_TOKEN=your_secret_token
+| Generate token: php artisan webhook:generate-token --show
 |
-| Ejemplo:
+| Example:
 | curl -X POST /api/webhooks/lead \
-|   -H "X-Webhook-Token: tu_token" \
+|   -H "X-Webhook-Token: your_token" \
 |   -d '{"phone":"123","name":"Juan"}'
 |
 |--------------------------------------------------------------------------
-| 2. 🔐 API ADMINISTRATIVA (/api/admin/*)
+| 🔐 PANEL API (/panel-api/*)
 |--------------------------------------------------------------------------
 |
-| Autenticación: Laravel Sanctum (Bearer Token)
-| Generar token: $user->createToken('panel-admin')->plainTextToken
-| Header: Authorization: Bearer {token}
+| Authentication: Web session (cookies)
+| Location: routes/panel.php
 |
-| Ejemplo:
-| curl -X GET /api/admin/leads \
-|   -H "Authorization: Bearer 1|abc123..."
+| These endpoints are for the admin panel's AJAX calls and use the same
+| session authentication as the web routes. No Bearer tokens needed.
 |
 |--------------------------------------------------------------------------
-| 3. 🚦 RATE LIMITING (Opcional)
+| 🚦 RATE LIMITING
 |--------------------------------------------------------------------------
 |
-| Agregar throttle middleware a webhooks:
-| ->middleware('throttle:60,1') // 60 requests por minuto
+| Add throttle middleware to webhooks:
+| ->middleware('throttle:60,1') // 60 requests per minute
 |
 |--------------------------------------------------------------------------
-| 4. 🌐 CORS (config/cors.php)
-|--------------------------------------------------------------------------
-|
-| Si consumes la API desde frontend externo, configura orígenes permitidos
-|
-|--------------------------------------------------------------------------
-| 5. 📚 DOCUMENTACIÓN API
+| 📚 API DOCUMENTATION
 |--------------------------------------------------------------------------
 |
 | Scramble OpenAPI: http://localhost:8001/docs/api

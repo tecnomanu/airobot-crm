@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Lead;
 
+use App\Enums\LeadStage;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -92,13 +93,29 @@ class LeadResource extends JsonResource
             'intention_webhook_response' => $this->intention_webhook_response,
             'automation_status' => $this->automation_status?->value,
             'automation_status_label' => $this->automation_status?->label(),
+            'automation_status_color' => $this->automation_status?->color(),
             'automation_attempts' => $this->automation_attempts,
             'automation_error' => $this->automation_error,
             'last_automation_run_at' => $this->last_automation_run_at?->toIso8601String(),
+            'next_action_at' => $this->next_action_at?->toIso8601String(),
+            'next_action_label' => $this->getNextActionLabel(),
             'intention_decided_at' => $this->intention_decided_at?->toIso8601String(),
+            'stage' => $this->getStageValue(),
+            'stage_label' => $this->computeStageLabel(),
+            'stage_color' => $this->computeStageColor(),
             'contact_source_name' => $this->getContactSourceName(),
             'contact_source_phone' => $this->getContactSourcePhone(),
             'can_retry_automation' => $this->canRetryAutomation(),
+            'assigned_to' => $this->assigned_to,
+            'assigned_at' => $this->assigned_at?->toIso8601String(),
+            'assignment_error' => $this->assignment_error,
+            'assignee' => $this->whenLoaded('assignee', function () {
+                return [
+                    'id' => $this->assignee->id,
+                    'name' => $this->assignee->name,
+                    'email' => $this->assignee->email,
+                ];
+            }),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
@@ -252,5 +269,71 @@ class LeadResource extends JsonResource
         }
 
         return null;
+    }
+
+    /**
+     * Compute the stage using LeadStage enum.
+     *
+     * The LeadStage enum provides the single source of truth for stage derivation.
+     */
+    private function computeStage(): LeadStage
+    {
+        return LeadStage::fromLead(
+            $this->status,
+            $this->automation_status,
+            $this->intention_status,
+            $this->intention
+        );
+    }
+
+    /**
+     * Get stage value as string for JSON output.
+     */
+    private function getStageValue(): string
+    {
+        return $this->computeStage()->value;
+    }
+
+    /**
+     * Get readable label for computed stage.
+     */
+    private function computeStageLabel(): string
+    {
+        return $this->computeStage()->label();
+    }
+
+    /**
+     * Get color for computed stage.
+     */
+    private function computeStageColor(): string
+    {
+        return $this->computeStage()->color();
+    }
+
+    /**
+     * Get next action label based on next_action_at
+     */
+    private function getNextActionLabel(): ?string
+    {
+        if (! $this->next_action_at) {
+            return null;
+        }
+
+        $now = now();
+        $nextAction = $this->next_action_at;
+
+        if ($nextAction->isPast()) {
+            return 'Pendiente';
+        }
+
+        if ($nextAction->isToday()) {
+            return 'Hoy ' . $nextAction->format('H:i');
+        }
+
+        if ($nextAction->isTomorrow()) {
+            return 'Mañana ' . $nextAction->format('H:i');
+        }
+
+        return $nextAction->format('d/m H:i');
     }
 }

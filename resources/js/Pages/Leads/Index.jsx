@@ -27,7 +27,16 @@ import {
     notifyNewLead,
 } from "@/lib/notifications";
 import { Head, router, useForm } from "@inertiajs/react";
-import { CheckCircle, Clock, FileUp, Inbox, Plus } from "lucide-react";
+import {
+    AlertTriangle,
+    Archive,
+    CheckCircle,
+    Clock,
+    FileUp,
+    Inbox,
+    Plus,
+    TrendingUp,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getLeadColumns } from "./columns";
@@ -96,30 +105,46 @@ export default function LeadsIndex({
         (c) => c.id.toString() === data.campaign_id
     );
 
-    // Tab configuration matching the UI mockups
+    // Tab configuration - Views (not states)
     const tabs = [
         {
             value: "inbox",
             label: "Inbox",
             count: tabCounts.inbox,
             icon: Inbox,
-            activeColor: "text-gray-900",
+            description: "Leads nuevos pendientes de procesar",
         },
         {
             value: "active",
-            label: "Active Pipeline",
+            label: "En Curso",
             count: tabCounts.active,
             icon: Clock,
-            activeColor: "text-indigo-600",
-            countColor: "bg-indigo-100 text-indigo-700",
+            activeClass: "border-indigo-500 text-indigo-700",
+            description: "Leads en proceso de calificación",
         },
         {
             value: "sales_ready",
             label: "Sales Ready",
             count: tabCounts.sales_ready,
-            icon: CheckCircle,
-            activeColor: "text-emerald-600",
-            countColor: "bg-emerald-100 text-emerald-700",
+            icon: TrendingUp,
+            activeClass: "border-emerald-500 text-emerald-700",
+            description: "Listos para contacto comercial",
+        },
+        {
+            value: "closed",
+            label: "Cerrados",
+            count: tabCounts.closed,
+            icon: Archive,
+            activeClass: "border-gray-500 text-gray-700",
+            description: "Leads finalizados",
+        },
+        {
+            value: "errors",
+            label: "Errores",
+            count: tabCounts.errors,
+            icon: AlertTriangle,
+            activeClass: "border-red-500 text-red-700",
+            description: "Leads con fallos de automatización",
         },
     ];
 
@@ -409,27 +434,39 @@ export default function LeadsIndex({
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 {/* Header Section with padding */}
                 <div className="p-6 space-y-4">
-                    <div className="flex items-center gap-4 overflow-x-auto no-scrollbar">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.value}
-                                onClick={() => handleTabChange(tab.value)}
-                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all whitespace-nowrap border ${
-                                    activeTab === tab.value
-                                        ? "bg-gray-100 border-gray-200 text-gray-900"
-                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                                }`}
-                            >
-                                <tab.icon className="h-4 w-4" />
-                                {tab.label}
-                                <Badge
-                                    variant="secondary"
-                                    className="ml-1 h-5 min-w-5 px-1"
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                        {tabs.map((tab) => {
+                            const isActive = activeTab === tab.value;
+                            const hasCount = (tab.count || 0) > 0;
+                            return (
+                                <button
+                                    key={tab.value}
+                                    onClick={() => handleTabChange(tab.value)}
+                                    title={tab.description}
+                                    className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap border ${
+                                        isActive
+                                            ? tab.activeClass ||
+                                              "border-gray-300 bg-gray-50 text-gray-900"
+                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                    }`}
                                 >
-                                    {tabCounts[tab.value] || 0}
-                                </Badge>
-                            </button>
-                        ))}
+                                    <tab.icon className="h-4 w-4" />
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                    {hasCount && (
+                                        <Badge
+                                            variant="secondary"
+                                            className={`ml-0.5 h-5 min-w-5 px-1.5 text-xs ${
+                                                isActive && tab.value === "errors"
+                                                    ? "bg-red-100 text-red-700"
+                                                    : ""
+                                            }`}
+                                        >
+                                            {tab.count}
+                                        </Badge>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

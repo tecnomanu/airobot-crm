@@ -8,38 +8,111 @@ import {
     DropdownMenuTrigger,
 } from "@/Components/ui/dropdown-menu";
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/Components/ui/tooltip";
+import {
+    AlertTriangle,
+    Bot,
+    Calendar,
+    CheckCircle,
+    Clock,
     Edit,
     Eye,
+    Loader2,
     MessageSquare,
     MoreHorizontal,
+    Pause,
     Phone,
     RefreshCw,
     Trash2,
+    User,
+    XCircle,
 } from "lucide-react";
 
 /**
- * Status badge component for leads
+ * Stage badge component - derives visible stage from backend computed fields
  */
-const StatusBadge = ({ status, label }) => {
-    const colors = {
-        pending: "bg-blue-50 text-blue-700 border-blue-200",
-        new: "bg-blue-50 text-blue-700 border-blue-200",
-        in_progress: "bg-yellow-50 text-yellow-700 border-yellow-200",
-        qualifying: "bg-yellow-50 text-yellow-700 border-yellow-200",
-        contacted: "bg-purple-50 text-purple-700 border-purple-200",
-        sales_ready: "bg-green-50 text-green-700 border-green-200",
-        closed: "bg-gray-50 text-gray-700 border-gray-200",
-        invalid: "bg-red-50 text-red-700 border-red-200",
+const StageBadge = ({ stage, label, color }) => {
+    const colorMap = {
+        blue: "bg-blue-50 text-blue-700 border-blue-200",
+        indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
+        purple: "bg-purple-50 text-purple-700 border-purple-200",
+        yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
+        green: "bg-green-50 text-green-700 border-green-200",
+        red: "bg-red-50 text-red-700 border-red-200",
+        gray: "bg-gray-50 text-gray-700 border-gray-200",
     };
 
     return (
         <Badge
             variant="outline"
             className={`${
-                colors[status] || "bg-gray-50 text-gray-700"
+                colorMap[color] || colorMap.gray
             } text-[10px] font-medium px-2 py-0.5`}
         >
-            {label || status?.toUpperCase()}
+            {label || stage?.toUpperCase()}
+        </Badge>
+    );
+};
+
+/**
+ * Automation status badge - shows current automation state
+ */
+const AutomationBadge = ({ status, label, color, error }) => {
+    const colorMap = {
+        yellow: "bg-yellow-50 text-yellow-700 border-yellow-200",
+        blue: "bg-blue-50 text-blue-700 border-blue-200",
+        green: "bg-green-50 text-green-700 border-green-200",
+        red: "bg-red-50 text-red-700 border-red-200",
+        gray: "bg-gray-50 text-gray-700 border-gray-200",
+    };
+
+    const iconMap = {
+        pending: Clock,
+        processing: Loader2,
+        completed: CheckCircle,
+        failed: XCircle,
+        skipped: Pause,
+    };
+
+    const Icon = iconMap[status] || Clock;
+    const isAnimated = status === "processing";
+
+    if (error) {
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Badge
+                            variant="outline"
+                            className="bg-red-50 text-red-700 border-red-200 text-[10px] font-medium px-2 py-0.5 cursor-help"
+                        >
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Error
+                        </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                        <p className="text-xs">{error}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    }
+
+    return (
+        <Badge
+            variant="outline"
+            className={`${
+                colorMap[color] || colorMap.gray
+            } text-[10px] font-medium px-2 py-0.5`}
+        >
+            <Icon
+                className={`h-3 w-3 mr-1 ${isAnimated ? "animate-spin" : ""}`}
+            />
+            {label || status}
         </Badge>
     );
 };
@@ -73,39 +146,71 @@ const SourceBadge = ({ source, label }) => {
 };
 
 /**
- * Format date for display
+ * Format relative date for display
  */
-const formatDate = (dateString) => {
+const formatRelativeDate = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Ahora";
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+
     return date.toLocaleDateString("es-ES", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric",
     });
 };
 
 /**
+ * Format next action date
+ */
+const formatNextAction = (dateString, label) => {
+    if (!dateString) return null;
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const isPast = date < now;
+
+    return {
+        label: label || date.toLocaleDateString("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        }),
+        isPast,
+    };
+};
+
+/**
  * Column definitions for leads table
- * Shows: NAME (with phone), SOURCE, STATUS, CREATED, ACTIONS
+ * Shows: NAME, STAGE, AUTOMATION, NEXT ACTION, LAST ACTIVITY, SOURCE, ACTIONS
  */
 export const getLeadColumns = (activeTab, handlers = {}) => {
     const { onDelete, onCall, onWhatsApp, onView, onEdit, onRetryAutomation } =
         handlers;
 
-    return [
+    // Base columns present in all views
+    const baseColumns = [
         // NAME Column - Name + Phone
         {
             accessorKey: "name",
-            header: "NAME",
+            header: "LEAD",
             cell: ({ row }) => {
                 const lead = row.original;
                 return (
                     <div className="flex flex-col min-w-0">
                         <span className="text-sm font-medium text-gray-900 truncate">
-                            {lead.name || "Unknown User"}
+                            {lead.name || "Sin nombre"}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 font-mono">
                             {lead.phone}
                         </span>
                     </div>
@@ -113,23 +218,104 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
             },
         },
 
-        // SOURCE Column
+        // STAGE Column - Computed stage from backend
         {
-            accessorKey: "source",
-            header: "SOURCE",
+            accessorKey: "stage",
+            header: "ETAPA",
             cell: ({ row }) => {
                 const lead = row.original;
-                const sourceText =
-                    lead.source_label || lead.source || "Unknown";
-
-                return <SourceBadge source={lead.source} label={sourceText} />;
+                return (
+                    <StageBadge
+                        stage={lead.stage}
+                        label={lead.stage_label}
+                        color={lead.stage_color}
+                    />
+                );
             },
         },
 
-        // OPTION Column - IVR option selected (only shown if exists)
+        // AUTOMATION Column - Shows automation status
         {
+            accessorKey: "automation_status",
+            header: "AUTOMATIZACIÓN",
+            cell: ({ row }) => {
+                const lead = row.original;
+                
+                if (!lead.automation_status) {
+                    return <span className="text-xs text-gray-400">—</span>;
+                }
+
+                return (
+                    <AutomationBadge
+                        status={lead.automation_status}
+                        label={lead.automation_status_label}
+                        color={lead.automation_status_color}
+                        error={lead.automation_error}
+                    />
+                );
+            },
+        },
+
+        // NEXT ACTION Column
+        {
+            accessorKey: "next_action_at",
+            header: "PRÓXIMA ACCIÓN",
+            cell: ({ row }) => {
+                const lead = row.original;
+                const nextAction = formatNextAction(
+                    lead.next_action_at,
+                    lead.next_action_label
+                );
+
+                if (!nextAction) {
+                    return <span className="text-xs text-gray-400">—</span>;
+                }
+
+                return (
+                    <div
+                        className={`flex items-center gap-1 text-xs ${
+                            nextAction.isPast
+                                ? "text-red-600 font-medium"
+                                : "text-gray-600"
+                        }`}
+                    >
+                        <Calendar className="h-3 w-3" />
+                        <span>{nextAction.label}</span>
+                    </div>
+                );
+            },
+        },
+
+        // LAST ACTIVITY Column
+        {
+            accessorKey: "updated_at",
+            header: "ÚLTIMA ACTIVIDAD",
+            cell: ({ row }) => (
+                <span className="text-xs text-gray-500">
+                    {formatRelativeDate(row.original.updated_at)}
+                </span>
+            ),
+        },
+
+        // SOURCE Column (secondary)
+        {
+            accessorKey: "source",
+            header: "FUENTE",
+            cell: ({ row }) => {
+                const lead = row.original;
+                return <SourceBadge source={lead.source} label={lead.source_label} />;
+            },
+        },
+    ];
+
+    // Conditional columns based on tab
+    const conditionalColumns = [];
+
+    // IVR Entry column for active/inbox tabs with IVR leads
+    if (["inbox", "active"].includes(activeTab)) {
+        conditionalColumns.push({
             accessorKey: "option_selected",
-            header: "OPTION",
+            header: "ENTRADA IVR",
             cell: ({ row }) => {
                 const option = row.original.option_selected;
 
@@ -146,129 +332,195 @@ export const getLeadColumns = (activeTab, handlers = {}) => {
                     </Badge>
                 );
             },
-        },
+        });
+    }
 
-        // STATUS Column
-        {
-            accessorKey: "status",
-            header: "STATUS",
+    // Assignee column for sales_ready tab
+    if (activeTab === "sales_ready") {
+        conditionalColumns.push({
+            accessorKey: "assignee",
+            header: "ASIGNADO A",
             cell: ({ row }) => {
                 const lead = row.original;
-                let displayLabel = lead.status_label;
+                const assignee = lead.assignee;
+                const hasError = lead.assignment_error;
 
-                // Custom labels based on tab
-                if (activeTab === "inbox") {
-                    displayLabel = "NEW";
-                } else if (activeTab === "active") {
-                    displayLabel = "QUALIFYING";
-                } else if (activeTab === "sales_ready") {
-                    displayLabel = "SALES READY";
+                if (hasError) {
+                    return (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Badge
+                                        variant="outline"
+                                        className="bg-red-50 text-red-700 border-red-200 text-[10px] font-medium px-2 py-0.5 cursor-help"
+                                    >
+                                        <AlertTriangle className="h-3 w-3 mr-1" />
+                                        Sin asignar
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                    <p className="text-xs">{hasError}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    );
+                }
+
+                if (!assignee) {
+                    return <span className="text-xs text-gray-400">—</span>;
                 }
 
                 return (
-                    <StatusBadge status={lead.status} label={displayLabel} />
-                );
-            },
-        },
-
-        // CREATED Column
-        {
-            accessorKey: "created_at",
-            header: "CREATED",
-            cell: ({ row }) => (
-                <span className="text-sm text-gray-600">
-                    {formatDate(row.original.created_at)}
-                </span>
-            ),
-        },
-
-        // ACTIONS Column - Dropdown Menu
-        {
-            id: "actions",
-            header: "",
-            enableHiding: false,
-            cell: ({ row }) => {
-                const lead = row.original;
-                return (
-                    <div
-                        className="flex justify-end"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 hover:bg-gray-100"
-                                >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Abrir menú</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                {/* View */}
-                                <DropdownMenuItem
-                                    onClick={() => onView?.(lead)}
-                                    className="cursor-pointer"
-                                >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Ver detalles
-                                </DropdownMenuItem>
-
-                                {/* Edit */}
-                                <DropdownMenuItem
-                                    onClick={() => onEdit?.(lead)}
-                                    className="cursor-pointer"
-                                >
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Editar
-                                </DropdownMenuItem>
-
-                                <DropdownMenuSeparator />
-
-                                {/* Communication Actions */}
-                                <DropdownMenuItem
-                                    onClick={() => onCall?.(lead)}
-                                    className="cursor-pointer"
-                                >
-                                    <Phone className="mr-2 h-4 w-4 text-green-600" />
-                                    Llamar
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem
-                                    onClick={() => onWhatsApp?.(lead)}
-                                    className="cursor-pointer"
-                                >
-                                    <MessageSquare className="mr-2 h-4 w-4 text-blue-600" />
-                                    Abrir WhatsApp
-                                </DropdownMenuItem>
-
-                                <DropdownMenuSeparator />
-
-                                {/* Campaign Actions */}
-                                <DropdownMenuItem
-                                    onClick={() => onRetryAutomation?.(lead)}
-                                    className="cursor-pointer"
-                                >
-                                    <RefreshCw className="mr-2 h-4 w-4 text-purple-600" />
-                                    Re-ejecutar campaña
-                                </DropdownMenuItem>
-
-                                <DropdownMenuSeparator />
-
-                                {/* Destructive */}
-                                <DropdownMenuItem
-                                    onClick={() => onDelete?.(lead)}
-                                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Eliminar
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                    <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <User className="h-3 w-3 text-indigo-600" />
+                        </div>
+                        <span className="text-xs font-medium text-gray-700 truncate max-w-[100px]">
+                            {assignee.name}
+                        </span>
                     </div>
                 );
             },
+        });
+    }
+
+    // Error details for errors tab
+    if (activeTab === "errors") {
+        conditionalColumns.push({
+            accessorKey: "automation_error",
+            header: "DETALLE ERROR",
+            cell: ({ row }) => {
+                const error = row.original.automation_error;
+
+                if (!error) {
+                    return <span className="text-xs text-gray-400">—</span>;
+                }
+
+                return (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="text-xs text-red-600 truncate max-w-[150px] block cursor-help">
+                                    {error.substring(0, 30)}...
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                                <p className="text-xs">{error}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                );
+            },
+        });
+    }
+
+    // ACTIONS Column - Always last
+    const actionsColumn = {
+        id: "actions",
+        header: "",
+        enableHiding: false,
+        cell: ({ row }) => {
+            const lead = row.original;
+            const canRetry = lead.can_retry_automation;
+
+            return (
+                <div
+                    className="flex justify-end"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-gray-100"
+                            >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Abrir menú</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                            {/* View */}
+                            <DropdownMenuItem
+                                onClick={() => onView?.(lead)}
+                                className="cursor-pointer"
+                            >
+                                <Eye className="mr-2 h-4 w-4" />
+                                Ver detalles
+                            </DropdownMenuItem>
+
+                            {/* Edit */}
+                            <DropdownMenuItem
+                                onClick={() => onEdit?.(lead)}
+                                className="cursor-pointer"
+                            >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
+                            {/* Communication Actions */}
+                            <DropdownMenuItem
+                                onClick={() => onCall?.(lead)}
+                                className="cursor-pointer"
+                            >
+                                <Phone className="mr-2 h-4 w-4 text-green-600" />
+                                Llamar
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                                onClick={() => onWhatsApp?.(lead)}
+                                className="cursor-pointer"
+                            >
+                                <MessageSquare className="mr-2 h-4 w-4 text-blue-600" />
+                                Abrir WhatsApp
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
+                            {/* Retry automation - only if applicable */}
+                            {canRetry && (
+                                <>
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            onRetryAutomation?.(lead)
+                                        }
+                                        className="cursor-pointer"
+                                    >
+                                        <RefreshCw className="mr-2 h-4 w-4 text-purple-600" />
+                                        Reintentar automatización
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                </>
+                            )}
+
+                            {/* Destructive */}
+                            <DropdownMenuItem
+                                onClick={() => onDelete?.(lead)}
+                                className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Eliminar
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            );
         },
+    };
+
+    // Insert conditional columns before SOURCE and ACTIONS
+    const sourceIndex = baseColumns.findIndex(
+        (col) => col.accessorKey === "source"
+    );
+    const columnsBeforeSource = baseColumns.slice(0, sourceIndex);
+    const sourceColumn = baseColumns[sourceIndex];
+
+    return [
+        ...columnsBeforeSource,
+        ...conditionalColumns,
+        sourceColumn,
+        actionsColumn,
     ];
 };

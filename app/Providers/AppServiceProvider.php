@@ -2,6 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Campaign\Campaign;
+use App\Models\Client\Client;
+use App\Models\Lead\Lead;
+use App\Observers\LeadObserver;
+use App\Policies\CampaignPolicy;
+use App\Policies\ClientPolicy;
+use App\Policies\LeadPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
         // Configure HTTPS and URL scheme
         $this->configureHttpsAndUrls();
 
+        // Register model policies for authorization
+        $this->registerPolicies();
+
         Vite::prefetch(concurrency: 3);
         Model::shouldBeStrict(! $this->app->environment('production'));
 
@@ -31,6 +42,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\LeadUpdated::class,
             \App\Listeners\ExportLeadToGoogleSheet::class
         );
+
+        // Register lead domain event subscriber for broadcasting
+        \Illuminate\Support\Facades\Event::subscribe(
+            \App\Listeners\Lead\BroadcastLeadChanges::class
+        );
+
+        // Register Lead observer for auto-assignment on Sales Ready
+        Lead::observe(LeadObserver::class);
     }
 
     /**
@@ -82,5 +101,15 @@ class AppServiceProvider extends ServiceProvider
             $request->header('X-Forwarded-SSL') === 'on' ||
             $request->header('CloudFront-Forwarded-Proto') === 'https' ||
             $request->server('HTTPS') === 'on';
+    }
+
+    /**
+     * Register model policies for authorization.
+     */
+    private function registerPolicies(): void
+    {
+        Gate::policy(Lead::class, LeadPolicy::class);
+        Gate::policy(Campaign::class, CampaignPolicy::class);
+        Gate::policy(Client::class, ClientPolicy::class);
     }
 }

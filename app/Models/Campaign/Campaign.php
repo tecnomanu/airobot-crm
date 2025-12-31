@@ -106,6 +106,24 @@ class Campaign extends Model
         return $this->hasOne(\App\Models\AI\CampaignAgent::class);
     }
 
+    public function assignees(): HasMany
+    {
+        return $this->hasMany(CampaignAssignee::class);
+    }
+
+    public function activeAssignees(): HasMany
+    {
+        return $this->hasMany(CampaignAssignee::class)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
+    }
+
+    public function assignmentCursor(): HasOne
+    {
+        return $this->hasOne(CampaignAssignmentCursor::class);
+    }
+
 
     // =========================================================================
     // LEGACY SUPPORT - CampaignOption relation

@@ -1,6 +1,5 @@
 import SourceCombobox from "@/Components/Common/SourceCombobox";
 import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
-import { Button } from "@/Components/ui/button";
 import {
     Card,
     CardContent,
@@ -18,7 +17,6 @@ import {
     SelectValue,
 } from "@/Components/ui/select";
 import { router } from "@inertiajs/react";
-import { Plus } from "lucide-react";
 import { useState } from "react";
 
 const optionConfig = {
@@ -116,7 +114,7 @@ export default function AutomationTab({
             <CreateSourceModal
                 open={createWebhookDialog}
                 onOpenChange={setCreateWebhookDialog}
-                sourceType="webhook_crm"
+                sourceType="webhook"
                 clients={clients}
                 redirectTo={window.location.pathname}
                 onSuccess={() => router.reload({ only: ["webhookSources"] })}
@@ -204,42 +202,28 @@ function OptionCard({
                 {/* WhatsApp Action */}
                 {currentAction === "whatsapp" && (
                     <>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label>Fuente WhatsApp</Label>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={onCreateWhatsappSource}
-                                    className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                                >
-                                    <Plus className="mr-1 h-3 w-3" />
-                                    Nueva Fuente
-                                </Button>
-                            </div>
-                            <SourceCombobox
-                                sources={whatsappSources || []}
-                                value={currentSourceId?.toString() || null}
-                                onValueChange={(value) =>
-                                    updateOption(
-                                        optionKey,
-                                        "source_id",
-                                        value ? parseInt(value) : null
-                                    )
-                                }
-                                placeholder="Selecciona fuente WhatsApp"
-                                emptyMessage="No hay fuentes WhatsApp disponibles"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                {!whatsappSources ||
-                                whatsappSources.length === 0
+                        <SourceCombobox
+                            label="Fuente WhatsApp"
+                            sources={whatsappSources || []}
+                            value={currentSourceId?.toString() || null}
+                            onValueChange={(value) =>
+                                updateOption(
+                                    optionKey,
+                                    "source_id",
+                                    value || null
+                                )
+                            }
+                            onCreateNew={onCreateWhatsappSource}
+                            placeholder="Selecciona fuente WhatsApp"
+                            emptyMessage="No hay fuentes WhatsApp disponibles"
+                            helperText={
+                                !whatsappSources || whatsappSources.length === 0
                                     ? "No hay fuentes WhatsApp disponibles. Usa el botón 'Nueva Fuente' para crear una."
                                     : !currentSourceId
                                     ? "Selecciona una fuente WhatsApp para enviar mensajes."
-                                    : ""}
-                            </p>
-                        </div>
+                                    : ""
+                            }
+                        />
 
                         <div className="space-y-2">
                             <Label>Plantilla de WhatsApp</Label>
@@ -287,41 +271,24 @@ function OptionCard({
 
                 {/* Webhook/CRM Action */}
                 {currentAction === "webhook_crm" && (
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label>Fuente Webhook</Label>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={onCreateWebhookSource}
-                                className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                            >
-                                <Plus className="mr-1 h-3 w-3" />
-                                Nueva Fuente
-                            </Button>
-                        </div>
-                        <SourceCombobox
-                            sources={webhookSources || []}
-                            value={currentSourceId?.toString() || null}
-                            onValueChange={(value) =>
-                                updateOption(
-                                    optionKey,
-                                    "source_id",
-                                    value ? parseInt(value) : null
-                                )
-                            }
-                            placeholder="Selecciona webhook"
-                            emptyMessage="No hay fuentes webhook disponibles"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                            {!webhookSources || webhookSources.length === 0
+                    <SourceCombobox
+                        label="Fuente Webhook"
+                        sources={webhookSources || []}
+                        value={currentSourceId?.toString() || null}
+                        onValueChange={(value) =>
+                            updateOption(optionKey, "source_id", value || null)
+                        }
+                        onCreateNew={onCreateWebhookSource}
+                        placeholder="Selecciona webhook"
+                        emptyMessage="No hay fuentes webhook disponibles"
+                        helperText={
+                            !webhookSources || webhookSources.length === 0
                                 ? "No hay fuentes webhook disponibles. Usa el botón 'Nueva Fuente' para crear una."
                                 : !currentSourceId
                                 ? "Selecciona una fuente webhook para enviar datos."
-                                : ""}
-                        </p>
-                    </div>
+                                : ""
+                        }
+                    />
                 )}
 
                 {currentAction === "call_ai" && (

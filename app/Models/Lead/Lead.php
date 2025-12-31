@@ -57,6 +57,9 @@ class Lead extends Model
         'last_automation_run_at',
         'automation_attempts',
         'automation_error',
+        'assigned_to',
+        'assigned_at',
+        'assignment_error',
         'created_by',
     ];
 
@@ -75,11 +78,13 @@ class Lead extends Model
         'intention_webhook_sent_at' => 'datetime',
         'tags' => 'array',
         'ai_agent_active' => 'boolean',
+        'assigned_at' => 'datetime',
     ];
 
     public const RELATION_CAMPAIGN = 'campaign';
     public const RELATION_CLIENT = 'client';
     public const RELATION_CREATOR = 'creator';
+    public const RELATION_ASSIGNEE = 'assignee';
     public const RELATION_ACTIVITIES = 'activities';
     public const RELATION_CALLS = 'calls';
     public const RELATION_MESSAGES = 'messages';
@@ -97,6 +102,11 @@ class Lead extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     public function getResolvedClientAttribute(): ?Client
@@ -167,6 +177,21 @@ class Lead extends Model
         return $query->where('intention_status', LeadIntentionStatus::FINALIZED->value)
             ->where('status', '!=', LeadStatus::CLOSED->value)
             ->orderBy('intention_decided_at', 'desc');
+    }
+
+    public function scopeClosed($query)
+    {
+        return $query->where('status', LeadStatus::CLOSED->value)
+            ->orderBy('updated_at', 'desc');
+    }
+
+    public function scopeWithErrors($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('automation_status', LeadAutomationStatus::FAILED->value)
+                ->orWhereNotNull('automation_error');
+        })
+            ->orderBy('updated_at', 'desc');
     }
 
     public function scopeForClient($query, $clientId)

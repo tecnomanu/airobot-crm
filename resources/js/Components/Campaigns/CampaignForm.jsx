@@ -1,4 +1,5 @@
 import AgentsTab from "@/Components/Campaigns/AgentsTab";
+import AssigneesTab from "@/Components/Campaigns/AssigneesTab";
 import AutomationTab from "@/Components/Campaigns/AutomationTab";
 import BasicInfoTab from "@/Components/Campaigns/BasicInfoTab";
 import DirectActionTab from "@/Components/Campaigns/DirectActionTab";
@@ -19,6 +20,7 @@ export default function CampaignForm({
     clients = [],
     whatsapp_sources = [],
     webhook_sources = [],
+    available_users = [],
     mode = "edit" // "create" | "edit"
 }) {
     const isCreating = mode === "create";
@@ -235,17 +237,23 @@ export default function CampaignForm({
 
     // Get tabs based on campaign type
     const getTabsConfig = () => {
+        const baseTabs = [
+            { value: "basic", label: "Información Básica", hasError: tabsWithErrors.basic },
+        ];
+
         if (isDirectCampaign) {
             return [
-                { value: "basic", label: "Información Básica", hasError: tabsWithErrors.basic },
+                ...baseTabs,
                 { value: "action", label: "Acción Directa", hasError: tabsWithErrors.agents },
+                { value: "assignees", label: "Vendedores", hasError: false },
                 { value: "webhooks", label: "Webhooks", hasError: false },
             ];
         }
         return [
-            { value: "basic", label: "Información Básica", hasError: tabsWithErrors.basic },
+            ...baseTabs,
             { value: "agents", label: "Agentes", hasError: tabsWithErrors.agents },
             { value: "automation", label: "Automatización", hasError: tabsWithErrors.automation },
+            { value: "assignees", label: "Vendedores", hasError: false },
             { value: "webhooks", label: "Webhooks", hasError: false },
             { value: "templates", label: "Plantillas", hasError: false },
         ];
@@ -368,6 +376,15 @@ export default function CampaignForm({
                                 whatsappSources={whatsapp_sources || []}
                                 webhookSources={webhook_sources || []}
                                 clients={clients || []}
+                            />
+                        </TabsContent>
+                    )}
+
+                    {activeTab === "assignees" && (
+                        <TabsContent value="assignees" className="mt-0">
+                            <AssigneesTab
+                                campaign={defaultCampaign}
+                                availableUsers={available_users}
                             />
                         </TabsContent>
                     )}

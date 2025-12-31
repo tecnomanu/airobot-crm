@@ -32,14 +32,10 @@ Route::middleware('auth')->group(function () {
     // Settings
     Route::inertia('/settings/integrations', 'Settings/Integrations')->name('settings.integrations');
 
-    // Leads - Note: Using closure for index due to route resolution issue
+    // Leads
     Route::prefix('leads')->name('leads.')->group(function () {
-        Route::get('/', function (\Illuminate\Http\Request $request) {
-            return app(LeadController::class)->index($request);
-        })->name('index');
-        Route::get('/{id}', function (\Illuminate\Http\Request $request, string $id) {
-            return app(LeadController::class)->show($id);
-        })->name('show');
+        Route::get('/', [LeadController::class, 'index'])->name('index');
+        Route::get('/{id}', [LeadController::class, 'show'])->name('show');
         Route::post('/import-csv', [LeadController::class, 'importCSV'])->name('import-csv');
         Route::post('/', [LeadController::class, 'store'])->name('store');
         Route::put('/{id}', [LeadController::class, 'update'])->name('update');
@@ -72,9 +68,7 @@ Route::middleware('auth')->group(function () {
 
     // Messages (Chat Interface)
     Route::prefix('messages')->name('messages.')->group(function () {
-        Route::get('/', function (\Illuminate\Http\Request $request) {
-            return app(\App\Http\Controllers\Web\Message\MessagesController::class)->index($request);
-        })->name('index');
+        Route::get('/', [\App\Http\Controllers\Web\Message\MessagesController::class, 'index'])->name('index');
         Route::get('/{leadId}/messages', [\App\Http\Controllers\Web\Message\MessagesController::class, 'getMessages'])->name('get');
         Route::post('/{leadId}/send', [\App\Http\Controllers\Web\Message\MessagesController::class, 'sendMessage'])->name('send');
         Route::post('/{leadId}/toggle-ai', [\App\Http\Controllers\Web\Message\MessagesController::class, 'toggleAiAgent'])->name('toggle-ai');
@@ -85,7 +79,6 @@ Route::middleware('auth')->group(function () {
 
     // Sources (Fuentes)
     Route::resource('sources', SourceController::class)->except(['show']);
-    Route::get('/api/sources/active/{type}', [\App\Http\Controllers\Api\Source\SourceController::class, 'getActiveByType'])->name('sources.active-by-type');
 
     // Call Agents (Agentes de Retell)
     Route::prefix('call-agents')->name('call-agents.')->group(function () {
@@ -97,15 +90,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [\App\Http\Controllers\Web\CallAgent\CallAgentController::class, 'destroy'])->name('destroy');
     });
 
-    // AI Agent Templates
+    // AI Administration (Agent Templates & Campaign Agents)
     Route::prefix('admin')->name('admin.')->group(function () {
+        // Agent Templates
         Route::resource('agent-templates', \App\Http\Controllers\Web\AI\AgentTemplateController::class);
         Route::post('agent-templates/{agentTemplate}/duplicate', [\App\Http\Controllers\Web\AI\AgentTemplateController::class, 'duplicate'])
             ->name('agent-templates.duplicate');
-    });
 
-    // Campaign Agents (AI)
-    Route::prefix('admin')->name('admin.')->group(function () {
+        // Campaign Agents
         Route::resource('campaign-agents', \App\Http\Controllers\Web\AI\CampaignAgentController::class);
         Route::post('campaign-agents/{campaignAgent}/generate', [\App\Http\Controllers\Web\AI\CampaignAgentController::class, 'generate'])
             ->name('campaign-agents.generate');

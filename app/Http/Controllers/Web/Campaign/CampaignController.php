@@ -10,6 +10,7 @@ use App\Services\Campaign\CampaignService;
 use App\Services\Campaign\CampaignWhatsappTemplateService;
 use App\Services\Client\ClientService;
 use App\Services\Source\SourceService;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +57,9 @@ class CampaignController extends Controller
             abort(404, 'Campaña no encontrada');
         }
 
+        // Load assignees with their user relation
+        $campaign->load(['assignees.user', 'assignmentCursor']);
+
         $templates = $this->templateService->getTemplatesByCampaign($id);
         $clients = $this->clientService->getActiveClients();
 
@@ -66,12 +70,16 @@ class CampaignController extends Controller
         $whatsappSources = $allActiveSources->filter(fn($s) => $s->type->isWhatsApp());
         $webhookSources = $allActiveSources->filter(fn($s) => $s->type->isWebhook());
 
+        // Get available users for assignment
+        $availableUsers = User::select('id', 'name', 'email')->orderBy('name')->get();
+
         return Inertia::render('Campaigns/Show', [
             'campaign' => $campaign,
             'templates' => $templates,
             'clients' => $clients,
             'whatsapp_sources' => $whatsappSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
             'webhook_sources' => $webhookSources->values()->map(fn($s) => (new SourceResource($s))->resolve()),
+            'available_users' => $availableUsers,
         ]);
     }
 

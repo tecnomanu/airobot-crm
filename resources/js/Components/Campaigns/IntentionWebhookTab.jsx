@@ -1,7 +1,6 @@
 import GoogleIntegrationSelector from "@/Components/Campaigns/GoogleIntegrationSelector";
 import SourceCombobox from "@/Components/Common/SourceCombobox";
 import CreateSourceModal from "@/Components/Sources/CreateSourceModal";
-import { Button } from "@/Components/ui/button";
 import {
     Card,
     CardContent,
@@ -13,14 +12,7 @@ import { Label } from "@/Components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/Components/ui/radio-group";
 import { Switch } from "@/Components/ui/switch";
 import { router } from "@inertiajs/react";
-import {
-    CheckCircle,
-    CircleDot,
-    Plus,
-    Sheet,
-    Webhook,
-    XCircle,
-} from "lucide-react";
+import { CheckCircle, CircleDot, Sheet, Webhook, XCircle } from "lucide-react";
 import { useState } from "react";
 
 export default function IntentionWebhookTab({
@@ -183,47 +175,28 @@ export default function IntentionWebhookTab({
                             </RadioGroup>
                         </div>
 
-                        {/* Configuración según selección */}
                         {interestedActionType === "webhook" ? (
-                            <div className="space-y-2 p-4 border rounded-lg bg-gray-50/30">
-                                <div className="flex items-center justify-between">
-                                    <Label htmlFor="interested_webhook">
-                                        Webhook de Destino
-                                    </Label>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                            setCreateWebhookModalOpen(true)
-                                        }
-                                        className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                                    >
-                                        <Plus className="mr-1 h-3 w-3" />
-                                        Crear Nuevo
-                                    </Button>
-                                </div>
-                                <SourceCombobox
-                                    sources={availableWebhooks}
-                                    value={
-                                        data.intention_interested_webhook_id?.toString() ||
-                                        null
-                                    }
-                                    onValueChange={(value) =>
-                                        setData(
-                                            "intention_interested_webhook_id",
-                                            value ? parseInt(value) : null
-                                        )
-                                    }
-                                    placeholder="Seleccionar webhook..."
-                                    emptyMessage="No hay webhooks disponibles"
-                                />
-                                {errors.intention_interested_webhook_id && (
-                                    <p className="text-sm text-red-500">
-                                        {errors.intention_interested_webhook_id}
-                                    </p>
-                                )}
-                            </div>
+                            <SourceCombobox
+                                label="Webhook de Destino"
+                                sources={availableWebhooks}
+                                value={
+                                    data.intention_interested_webhook_id?.toString() ||
+                                    null
+                                }
+                                onValueChange={(value) =>
+                                    setData(
+                                        "intention_interested_webhook_id",
+                                        value || null
+                                    )
+                                }
+                                onCreateNew={() =>
+                                    setCreateWebhookModalOpen(true)
+                                }
+                                placeholder="Seleccionar webhook..."
+                                emptyMessage="No hay webhooks disponibles"
+                                error={errors.intention_interested_webhook_id}
+                                className="p-4 border rounded-lg bg-gray-50/30"
+                            />
                         ) : (
                             <div className="p-4 border rounded-lg bg-gray-50/30">
                                 <GoogleIntegrationSelector
@@ -318,47 +291,29 @@ export default function IntentionWebhookTab({
                             </div>
 
                             {notInterestedActionType === "webhook" ? (
-                                <div className="space-y-2 p-4 border rounded-lg bg-gray-50/30">
-                                    <div className="flex items-center justify-between">
-                                        <Label htmlFor="not_interested_webhook">
-                                            Webhook de Destino
-                                        </Label>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                setCreateWebhookModalOpen(true)
-                                            }
-                                            className="h-7 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                                        >
-                                            <Plus className="mr-1 h-3 w-3" />
-                                            Crear Nuevo
-                                        </Button>
-                                    </div>
-                                    <SourceCombobox
-                                        sources={availableWebhooks}
-                                        value={
-                                            data.intention_not_interested_webhook_id?.toString() ||
-                                            null
-                                        }
-                                        onValueChange={(value) =>
-                                            setData(
-                                                "intention_not_interested_webhook_id",
-                                                value ? parseInt(value) : null
-                                            )
-                                        }
-                                        placeholder="Seleccionar webhook..."
-                                        emptyMessage="No hay webhooks disponibles"
-                                    />
-                                    {errors.intention_not_interested_webhook_id && (
-                                        <p className="text-sm text-red-500">
-                                            {
-                                                errors.intention_not_interested_webhook_id
-                                            }
-                                        </p>
-                                    )}
-                                </div>
+                                <SourceCombobox
+                                    label="Webhook de Destino"
+                                    sources={availableWebhooks}
+                                    value={
+                                        data.intention_not_interested_webhook_id?.toString() ||
+                                        null
+                                    }
+                                    onValueChange={(value) =>
+                                        setData(
+                                            "intention_not_interested_webhook_id",
+                                            value || null
+                                        )
+                                    }
+                                    onCreateNew={() =>
+                                        setCreateWebhookModalOpen(true)
+                                    }
+                                    placeholder="Seleccionar webhook..."
+                                    emptyMessage="No hay webhooks disponibles"
+                                    error={
+                                        errors.intention_not_interested_webhook_id
+                                    }
+                                    className="p-4 border rounded-lg bg-gray-50/30"
+                                />
                             ) : (
                                 <div className="p-4 border rounded-lg bg-gray-50/30">
                                     <GoogleIntegrationSelector
