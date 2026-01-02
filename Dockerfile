@@ -44,14 +44,14 @@ RUN mkdir -p /etc/supervisor.d /run/nginx /var/www /var/log/supervisor /var/log/
     ln -sf /dev/stderr /var/log/nginx/error.log
 
 # Copy config files
-COPY ./docker-compose/php/local.ini /usr/local/etc/php/php.ini
-COPY ./docker-compose/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY ./docker-compose/nginx/conf.d/app.conf /etc/nginx/http.d/default.conf
-COPY ./docker-compose/supervisord/supervisord.ini /etc/supervisor.d/supervisord.ini
-COPY ./docker-compose/crontab /etc/crontabs/root
+COPY ./docker/php/local.ini /usr/local/etc/php/php.ini
+COPY ./docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY ./docker/nginx/conf.d/app.conf /etc/nginx/http.d/default.conf
+COPY ./docker/supervisord/supervisord.ini /etc/supervisor.d/supervisord.ini
+COPY ./docker/crontab /etc/crontabs/root
 
 # Copy and configure entrypoint script
-COPY ./docker-compose/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY ./docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 WORKDIR /var/www
